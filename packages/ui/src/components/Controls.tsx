@@ -5,7 +5,7 @@ export function Controls() {
 
   return (
     <nav
-      className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-purple-500/20 p-3 sm:p-4 shadow-md dark:shadow-xl transition-colors duration-300"
+      className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-[rgba(var(--color-primary-rgb),0.2)] p-3 sm:p-4 shadow-md dark:shadow-xl transition-colors duration-300"
       aria-label="Demo navigation"
     >
       <div className="flex items-center justify-between gap-2">
@@ -25,7 +25,7 @@ export function Controls() {
             onClick={() => dispatch({ type: 'NEXT_STEP' })}
             disabled={isLastStep}
             aria-label="Next step"
-            className="px-2 sm:px-4 py-2 bg-gradient-to-r from-purple-600 to-cyan-600 text-white rounded-lg font-medium hover:from-purple-500 hover:to-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 sm:gap-2 shadow-lg shadow-purple-500/25 transition-all duration-300"
+            className="px-2 sm:px-4 py-2 bg-gradient-to-r from-theme-primary to-theme-accent text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 sm:gap-2 shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)] transition-all duration-300"
           >
             <span className="hidden sm:inline">Next</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,7 +35,7 @@ export function Controls() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <span className="text-xs sm:text-sm text-gray-500 dark:text-purple-300/70">
+          <span className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">
             <span className="sm:hidden">{state.currentStep + 1}/{totalSteps}</span>
             <span className="hidden sm:inline">Step {state.currentStep + 1} of {totalSteps}</span>
           </span>

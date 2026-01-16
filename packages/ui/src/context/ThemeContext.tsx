@@ -42,10 +42,13 @@ export function ThemeProvider({ children, defaultTheme = 'dark', themeSettings }
   // Get theme colors based on settings
   const colors = getThemeColors(themeSettings);
 
-  // Apply CSS variables when colors change
+  // Apply CSS variables when colors change (only if themeSettings was provided)
+  // DemoRunner handles applying theme from loaded config
   useEffect(() => {
-    applyThemeColors(colors);
-  }, [colors.primary, colors.accent, colors.primaryRgb, colors.accentRgb]);
+    if (themeSettings) {
+      applyThemeColors(colors);
+    }
+  }, [themeSettings, colors]);
 
   // Apply dark/light class
   useEffect(() => {

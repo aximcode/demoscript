@@ -29,7 +29,7 @@ export const THEME_PRESETS: Record<ThemePreset, Omit<ThemeColors, 'primaryRgb' |
   },
   green: {
     primary: '#10b981',  // Emerald-500
-    accent: '#3b82f6',   // Blue-500
+    accent: '#059669',   // Emerald-600 (darker green for cohesive look)
   },
   teal: {
     primary: '#14b8a6',  // Teal-500
@@ -98,10 +98,17 @@ function isValidHex(color: string): boolean {
 }
 
 // Apply theme colors to document as CSS variables
-export function applyThemeColors(colors: ThemeColors): void {
+export function applyThemeColors(colors: ThemeColors, preset?: ThemePreset): void {
   const root = document.documentElement;
   root.style.setProperty('--color-primary', colors.primary);
   root.style.setProperty('--color-accent', colors.accent);
   root.style.setProperty('--color-primary-rgb', colors.primaryRgb);
   root.style.setProperty('--color-accent-rgb', colors.accentRgb);
+
+  // Set preset attribute for conditional styling (e.g., green theme tints)
+  if (preset) {
+    root.setAttribute('data-theme-preset', preset);
+  } else {
+    root.removeAttribute('data-theme-preset');
+  }
 }

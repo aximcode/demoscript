@@ -12,13 +12,13 @@ export function ChoiceButtons({ choices, onSelect }: Props) {
         <button
           key={index}
           onClick={() => onSelect(choice.goto)}
-          className="group px-6 py-4 bg-gradient-to-r from-purple-600 to-cyan-600
+          className="group px-6 py-4 bg-gradient-to-r from-theme-primary to-theme-accent
                      text-white rounded-xl font-medium
-                     hover:from-purple-500 hover:to-cyan-500
-                     shadow-lg shadow-purple-500/25
-                     hover:shadow-xl hover:shadow-purple-500/40
+                     hover:opacity-90
+                     shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]
+                     hover:shadow-xl hover:shadow-[rgba(var(--color-primary-rgb),0.4)]
                      transition-all duration-300
-                     border border-purple-500/30
+                     border border-[rgba(var(--color-primary-rgb),0.3)]
                      flex flex-col items-center min-w-[180px]
                      transform hover:scale-105"
         >

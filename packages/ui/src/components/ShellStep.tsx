@@ -147,7 +147,7 @@ export function ShellStep({ step }: Props) {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-purple-500/20">
+    <div className="bg-white dark:bg-slate-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-[rgba(var(--color-primary-rgb),0.2)]">
       {/* Header */}
       <div className="border-b border-gray-200 dark:border-slate-700 p-4">
         <div className="flex items-center gap-3">

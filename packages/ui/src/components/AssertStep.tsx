@@ -51,7 +51,7 @@ export function AssertStep({ step }: Props) {
 
   return (
     <GlowingCard isActive={result !== null} color={glowColor as 'cyan' | 'green' | 'red'} intensity="medium">
-      <div className="bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-md dark:shadow-xl border border-gray-200 dark:border-cyan-500/20 p-8 transition-colors duration-300">
+      <div className="bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-md dark:shadow-xl border border-gray-200 dark:border-[rgba(var(--color-primary-rgb),0.2)] p-8 transition-colors duration-300">
         <div className="text-center">
           {/* Icon */}
           <div className="mb-6">
@@ -139,7 +139,7 @@ export function AssertStep({ step }: Props) {
             <button
               onClick={handleVerify}
               disabled={status === 'executing'}
-              className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-medium rounded-lg hover:from-cyan-400 hover:to-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/25 transition-all duration-300"
+              className="px-6 py-3 bg-gradient-to-r from-theme-primary to-theme-accent text-white font-medium rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)] transition-all duration-300"
             >
               {status === 'executing' ? 'Verifying...' : 'Verify'}
             </button>

@@ -32,10 +32,20 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* Light mode body - subtle gradient with theme colors */
+/* Light mode gradient class - subtle theme color tints in corners */
+html:not(.dark) .light-mode-gradient {
+  background: linear-gradient(
+    135deg,
+    rgba(var(--color-primary-rgb), 0.05) 0%,
+    rgba(var(--color-primary-rgb), 0.03) 15%,
+    #ffffff 50%,
+    rgba(var(--color-accent-rgb), 0.03) 85%,
+    rgba(var(--color-accent-rgb), 0.05) 100%
+  ) !important;
+  background-attachment: fixed !important;
+}
+
 html:not(.dark) body {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
-  background-attachment: fixed;
   color: #1e293b;
 }
 
@@ -47,9 +57,28 @@ html:not(.dark) {
   }
 }
 
+/* Light mode card enhancements */
+html:not(.dark) .light-theme-card {
+  border-color: rgba(var(--color-primary-rgb), 0.15);
+  box-shadow: 0 4px 6px -1px rgba(var(--color-primary-rgb), 0.08),
+              0 2px 4px -2px rgba(var(--color-primary-rgb), 0.06);
+}
+
+/* Light mode themed border - use on headers/cards for accent */
+.light-border-accent {
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, var(--color-primary), var(--color-accent)) 1;
+}
+
+/* Light mode subtle glow for active elements */
+html:not(.dark) .light-glow-primary {
+  box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.15),
+              0 2px 6px rgba(var(--color-primary-rgb), 0.1);
+}
+
 /* Dark mode body */
 .dark body {
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  background: linear-gradient(135deg, #0f172a 0%, rgba(var(--color-primary-rgb), 0.15) 50%, #0f172a 100%);
   background-attachment: fixed;
   color: #e2e8f0;
 }
@@ -131,10 +160,10 @@ html:not(.dark) {
 
 @keyframes glow-pulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 20px rgba(var(--color-primary-rgb), 0.3);
   }
   50% {
-    box-shadow: 0 0 40px rgba(139, 92, 246, 0.6);
+    box-shadow: 0 0 40px rgba(var(--color-primary-rgb), 0.6);
   }
 }
 
@@ -174,7 +203,7 @@ html:not(.dark) {
 }
 
 .prose code {
-  @apply bg-gray-100 text-purple-600 px-1.5 py-0.5 rounded text-sm border border-gray-200;
+  @apply bg-gray-100 text-theme-primary px-1.5 py-0.5 rounded text-sm border border-gray-200;
 }
 
 .prose pre code {
@@ -187,9 +216,21 @@ html:not(.dark) {
 }
 
 .dark .prose code {
-  @apply bg-slate-700/50 text-purple-300 border-slate-600/50;
+  @apply bg-slate-700/50 text-theme-primary border-slate-600/50;
 }
 
 .dark .prose pre code {
   @apply bg-transparent text-inherit p-0 border-0;
+}
+
+/* Theme-specific styling - sidebar and header tints */
+html[data-theme-preset].dark .sidebar-themed {
+  background: linear-gradient(to bottom, rgba(var(--color-primary-rgb), 0.08), rgba(15, 23, 42, 0.98));
+  border-color: rgba(var(--color-primary-rgb), 0.2);
+}
+
+html[data-theme-preset].dark .header-themed {
+  background: linear-gradient(to right, rgba(var(--color-primary-rgb), 0.08), rgba(15, 23, 42, 0.9));
+  border-color: rgba(var(--color-primary-rgb), 0.2);
+  box-shadow: 0 4px 6px -1px rgba(var(--color-primary-rgb), 0.1);
 }

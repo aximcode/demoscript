@@ -21,7 +21,7 @@ export function ExecuteButtons({
   showTryIt,
 }: Props) {
   return (
-    <div className="p-4 flex items-center gap-4 bg-gray-50/50 dark:bg-slate-900/30 flex-wrap">
+    <div className="p-4 flex items-center gap-4 bg-[rgba(var(--color-primary-rgb),0.03)] dark:bg-slate-900/30 flex-wrap border-t border-[rgba(var(--color-primary-rgb),0.08)] dark:border-transparent">
       <button
         onClick={onExecute}
         disabled={isExecuting || isTryItExecuting}

@@ -144,9 +144,9 @@ export function DemoRunner() {
     if (state.config?.settings?.theme) {
       const themeSettings = state.config.settings.theme;
 
-      // Apply color scheme
+      // Apply color scheme (pass preset for conditional styling)
       const colors = getThemeColors(themeSettings);
-      applyThemeColors(colors);
+      applyThemeColors(colors, themeSettings.preset);
 
       // Apply forced mode if specified
       if (themeSettings.mode === 'light' || themeSettings.mode === 'dark') {
@@ -266,8 +266,8 @@ export function DemoRunner() {
     return (
       <div className="min-h-screen flex items-center justify-center relative z-10">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-purple-300">Loading demo...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-theme-primary mx-auto mb-4"></div>
+          <p className="text-theme-primary opacity-70">Loading demo...</p>
         </div>
       </div>
     );

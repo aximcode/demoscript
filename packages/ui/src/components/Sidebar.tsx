@@ -84,7 +84,7 @@ export function Sidebar({ steps, onStepClick }: Props) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 h-full bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 transition-all duration-300 z-40 flex flex-col ${
+      className={`fixed left-0 top-0 h-full sidebar-themed bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 transition-all duration-300 z-40 flex flex-col ${
         isCollapsed ? 'w-14' : 'w-72'
       }`}
     >
@@ -156,7 +156,7 @@ export function Sidebar({ steps, onStepClick }: Props) {
               onClick={() => onStepClick(stepIndex)}
               className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left transition-all ${
                 isCurrent
-                  ? 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                  ? 'bg-[rgba(var(--color-primary-rgb),0.15)] dark:bg-[rgba(var(--color-primary-rgb),0.2)] text-theme-primary'
                   : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300'
               } ${displayStep.groupName ? 'ml-2' : ''}`}
               title={isCollapsed ? title : undefined}

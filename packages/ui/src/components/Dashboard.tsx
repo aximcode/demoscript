@@ -33,7 +33,7 @@ export function Dashboard({ config, onStart }: DashboardProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
       <div className="w-full max-w-2xl">
-        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-[rgba(var(--color-primary-rgb),0.1)] p-8 border border-slate-200 dark:border-[rgba(var(--color-primary-rgb),0.2)]">
+        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl shadow-[rgba(var(--color-primary-rgb),0.08)] dark:shadow-[rgba(var(--color-primary-rgb),0.1)] p-8 border border-[rgba(var(--color-primary-rgb),0.15)] dark:border-[rgba(var(--color-primary-rgb),0.2)]">
           {/* Logo/Icon */}
           <div className="flex justify-center mb-6">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-theme-primary to-theme-accent flex items-center justify-center shadow-lg shadow-[rgba(var(--color-primary-rgb),0.3)]">
@@ -208,7 +208,7 @@ function StatCard({
     : 'text-slate-800 dark:text-slate-200';
 
   return (
-    <div className="text-center p-3 rounded-lg bg-slate-50 dark:bg-slate-700/30">
+    <div className="text-center p-3 rounded-lg bg-[rgba(var(--color-primary-rgb),0.04)] dark:bg-slate-700/30 border border-[rgba(var(--color-primary-rgb),0.08)] dark:border-transparent">
       <div className="flex justify-center text-slate-400 dark:text-slate-500 mb-1">
         {icons[icon]}
       </div>

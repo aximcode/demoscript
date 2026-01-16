@@ -14,13 +14,13 @@ export function GlowOrbs({ enabled = true }: GlowOrbsProps) {
       <div
         className="fixed top-0 left-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none z-0 transition-all duration-500"
         style={{
-          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(var(--color-primary-rgb), 0.3) 0%, transparent 70%)',
         }}
       />
       <div
         className="fixed bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none z-0 transition-all duration-500"
         style={{
-          background: 'radial-gradient(circle, rgba(6, 182, 212, 0.3) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(var(--color-accent-rgb), 0.3) 0%, transparent 70%)',
         }}
       />
     </>

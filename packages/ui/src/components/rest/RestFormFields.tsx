@@ -37,14 +37,14 @@ export function RestFormFields({ fields, values, onChange, isFieldModified, disa
                 disabled={field.readonly || disabled}
                 placeholder={field.placeholder}
                 rows={3}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:text-gray-500 dark:disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:text-gray-500 dark:disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-theme-primary/50 focus:border-theme-primary"
               />
             ) : field.type === 'select' ? (
               <select
                 value={String(values[field.name] ?? '')}
                 onChange={(e) => onChange(field.name, e.target.value)}
                 disabled={field.readonly || disabled}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:text-gray-500 dark:disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-sm text-gray-900 dark:text-slate-200 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:text-gray-500 dark:disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-theme-primary/50 focus:border-theme-primary"
               >
                 {field.options?.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -57,8 +57,8 @@ export function RestFormFields({ fields, values, onChange, isFieldModified, disa
                 type="button"
                 onClick={() => onChange(field.name, !values[field.name])}
                 disabled={field.readonly || disabled}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed ${
-                  values[field.name] ? 'bg-purple-600' : 'bg-gray-200 dark:bg-slate-600'
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-theme-primary/50 focus:ring-offset-2 dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  values[field.name] ? 'bg-theme-primary' : 'bg-gray-200 dark:bg-slate-600'
                 }`}
               >
                 <span
@@ -77,7 +77,7 @@ export function RestFormFields({ fields, values, onChange, isFieldModified, disa
                   value={Number(values[field.name]) || field.min || 0}
                   onChange={(e) => onChange(field.name, Number(e.target.value))}
                   disabled={field.readonly || disabled}
-                  className="flex-1 h-2 bg-gray-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 h-2 bg-gray-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-theme-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <span className="min-w-[3rem] text-right text-sm font-mono text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">
                   {values[field.name] ?? field.min ?? 0}
@@ -92,7 +92,7 @@ export function RestFormFields({ fields, values, onChange, isFieldModified, disa
                 }
                 disabled={field.readonly || disabled}
                 placeholder={field.placeholder}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-mono text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:text-gray-500 dark:disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-700/50 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-mono text-gray-900 dark:text-slate-200 placeholder-gray-400 dark:placeholder-slate-500 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:text-gray-500 dark:disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-theme-primary/50 focus:border-theme-primary"
               />
             )}
           </div>

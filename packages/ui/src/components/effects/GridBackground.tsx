@@ -9,7 +9,7 @@ interface GridBackgroundProps {
 
 export function GridBackground({
   enabled = true,
-  color = 'rgba(139, 92, 246, 0.3)',
+  color = 'rgba(var(--color-primary-rgb), 0.3)',
   opacity = 0.2,
   gridSize = 50,
 }: GridBackgroundProps) {

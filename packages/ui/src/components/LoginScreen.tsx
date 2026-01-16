@@ -38,7 +38,7 @@ export function LoginScreen() {
   const message = authSettings?.message || 'Enter the password to view this demo.';
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:via-purple-950/20 dark:to-slate-900">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:via-[rgba(var(--color-primary-rgb),0.05)] dark:to-slate-900">
       {/* Background effects for dark mode */}
       {theme === 'dark' && (
         <>
@@ -46,22 +46,22 @@ export function LoginScreen() {
             <div
               className="absolute inset-0"
               style={{
-                backgroundImage: `linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px),
-                                 linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)`,
+                backgroundImage: `linear-gradient(rgba(var(--color-primary-rgb), 0.3) 1px, transparent 1px),
+                                 linear-gradient(90deg, rgba(var(--color-primary-rgb), 0.3) 1px, transparent 1px)`,
                 backgroundSize: '50px 50px',
               }}
             />
           </div>
-          <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl pointer-events-none z-0" />
-          <div className="fixed bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none z-0" />
+          <div className="fixed top-1/4 left-1/4 w-96 h-96 bg-[rgba(var(--color-primary-rgb),0.2)] rounded-full blur-3xl pointer-events-none z-0" />
+          <div className="fixed bottom-1/4 right-1/4 w-96 h-96 bg-[rgba(var(--color-accent-rgb),0.2)] rounded-full blur-3xl pointer-events-none z-0" />
         </>
       )}
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-purple-500/10 p-8 border border-slate-200 dark:border-purple-500/20">
+        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-[rgba(var(--color-primary-rgb),0.1)] p-8 border border-slate-200 dark:border-[rgba(var(--color-primary-rgb),0.2)]">
           {/* Lock icon */}
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-theme-primary to-theme-accent flex items-center justify-center shadow-lg shadow-[rgba(var(--color-primary-rgb),0.3)]">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -98,10 +98,10 @@ export function LoginScreen() {
                   bg-white dark:bg-slate-700/50
                   text-slate-800 dark:text-white
                   placeholder-slate-400 dark:placeholder-slate-500
-                  focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-cyan-500
+                  focus:outline-none focus:ring-2 focus:ring-theme-primary
                   ${error
                     ? 'border-red-500 dark:border-red-400'
-                    : 'border-slate-300 dark:border-slate-600 hover:border-purple-400 dark:hover:border-purple-500'
+                    : 'border-slate-300 dark:border-slate-600 hover:border-theme-primary'
                   }
                   disabled:opacity-50 disabled:cursor-not-allowed`}
               />
@@ -123,10 +123,10 @@ export function LoginScreen() {
               type="submit"
               disabled={isLoading}
               className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200
-                bg-gradient-to-r from-purple-600 to-cyan-600
-                hover:from-purple-500 hover:to-cyan-500
-                text-white shadow-lg shadow-purple-500/30
-                focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+                bg-gradient-to-r from-theme-primary to-theme-accent
+                hover:opacity-90
+                text-white shadow-lg shadow-[rgba(var(--color-primary-rgb),0.3)]
+                focus:outline-none focus:ring-2 focus:ring-theme-primary focus:ring-offset-2
                 dark:focus:ring-offset-slate-800
                 disabled:opacity-50 disabled:cursor-not-allowed
                 ${isLoading ? 'animate-pulse' : ''}`}

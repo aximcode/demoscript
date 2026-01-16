@@ -21,9 +21,9 @@ export function SlideStep({ step }: Props) {
   };
 
   return (
-    <GlowingCard isActive={true} color="purple" intensity="subtle">
-      <div className="bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-md dark:shadow-xl border border-gray-200 dark:border-purple-500/20 p-8 transition-colors duration-300">
-        <div className="prose prose-lg max-w-none prose-headings:text-gray-900 dark:prose-invert dark:prose-headings:bg-gradient-to-r dark:prose-headings:from-purple-400 dark:prose-headings:to-cyan-400 dark:prose-headings:bg-clip-text dark:prose-headings:text-transparent prose-strong:text-purple-600 dark:prose-strong:text-purple-300 prose-p:text-gray-700 dark:prose-p:text-slate-300 prose-li:text-gray-700 dark:prose-li:text-slate-300">
+    <GlowingCard isActive={true} color="primary" intensity="subtle">
+      <div className="bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-md dark:shadow-xl border border-gray-200 dark:border-[rgba(var(--color-primary-rgb),0.2)] p-8 transition-colors duration-300">
+        <div className="prose prose-lg max-w-none prose-headings:text-gray-900 dark:prose-invert dark:prose-headings:bg-gradient-to-r dark:prose-headings:from-theme-primary dark:prose-headings:to-theme-accent dark:prose-headings:bg-clip-text dark:prose-headings:text-transparent prose-strong:text-theme-primary dark:prose-strong:text-theme-primary prose-p:text-gray-700 dark:prose-p:text-slate-300 prose-li:text-gray-700 dark:prose-li:text-slate-300">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </div>
 

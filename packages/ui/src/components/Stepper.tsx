@@ -37,7 +37,7 @@ export function Stepper() {
   if (!state.config) return null;
 
   return (
-    <div className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-[rgba(var(--color-primary-rgb),0.2)] p-4 shadow-md dark:shadow-xl transition-colors duration-300">
+    <div className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-[rgba(var(--color-primary-rgb),0.15)] dark:border-[rgba(var(--color-primary-rgb),0.2)] p-4 shadow-[0_4px_12px_rgba(var(--color-primary-rgb),0.08)] dark:shadow-xl transition-colors duration-300">
       <div className="relative flex items-center">
         {canScrollLeft && (
           <button
