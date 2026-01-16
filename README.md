@@ -1,5 +1,6 @@
 # DemoScript
 
+[![Website](https://img.shields.io/badge/Website-demoscript.app-blue)](https://demoscript.app)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 
@@ -33,10 +34,12 @@ A framework for creating scripted, shareable product demonstrations. Write YAML 
 
 See DemoScript in action without installing:
 
-- [Hello World](https://mgosha.github.io/demoscript/hello-world/) - Minimal starter demo
-- [JSONPlaceholder](https://mgosha.github.io/demoscript/jsonplaceholder/) - REST API tutorial
-- [GitHub API](https://mgosha.github.io/demoscript/github-api/) - Custom link handlers
-- [Feature Showcase](https://mgosha.github.io/demoscript/feature-showcase/) - All features demo
+- [Hello World](https://demoscript.app/gallery/hello-world/) - Minimal starter demo
+- [JSONPlaceholder](https://demoscript.app/gallery/jsonplaceholder/) - REST API tutorial
+- [GitHub API](https://demoscript.app/gallery/github-api/) - Custom link handlers
+- [Feature Showcase](https://demoscript.app/gallery/feature-showcase/) - All features demo
+
+Browse all examples at [demoscript.app/gallery](https://demoscript.app/gallery/)
 
 ## Installation
 
