@@ -278,7 +278,7 @@ export function RestStep({ step }: Props) {
 
   return (
     <GlowingCard isActive={isExecuting || status === 'complete'} color={glowColor} intensity="medium">
-      <div className="bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-slate-700/50 overflow-hidden transition-colors duration-300">
+      <div className="bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-[rgba(var(--color-primary-rgb),0.12)] dark:border-slate-700/50 overflow-hidden transition-colors duration-300">
         <RestStepHeader
           method={method}
           endpoint={resolvedEndpoint}

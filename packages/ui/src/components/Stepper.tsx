@@ -37,7 +37,7 @@ export function Stepper() {
   if (!state.config) return null;
 
   return (
-    <div className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-purple-500/20 p-4 shadow-md dark:shadow-xl transition-colors duration-300">
+    <div className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-[rgba(var(--color-primary-rgb),0.2)] p-4 shadow-md dark:shadow-xl transition-colors duration-300">
       <div className="relative flex items-center">
         {canScrollLeft && (
           <button
@@ -83,7 +83,7 @@ export function Stepper() {
       {/* Progress line underneath */}
       <div className="mt-3 h-1 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-purple-500 via-cyan-500 to-purple-500 transition-all duration-500"
+          className="h-full bg-gradient-to-r from-theme-primary via-theme-accent to-theme-primary transition-all duration-500"
           style={{ width: `${((state.currentStep + 1) / state.flatSteps.length) * 100}%` }}
         />
       </div>
@@ -145,7 +145,7 @@ function StepperItemComponent({
             onClick={() => toggleGroup(item.groupIndex!)}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg whitespace-nowrap transition-all duration-300 ${
               groupHasCurrentStep
-                ? 'bg-gradient-to-r from-purple-100 to-cyan-100 dark:from-purple-500/20 dark:to-cyan-500/20 text-purple-700 dark:text-purple-300 border-2 border-purple-400/50 dark:border-purple-500/40 shadow-md'
+                ? 'bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.1)] to-[rgba(var(--color-accent-rgb),0.1)] dark:from-[rgba(var(--color-primary-rgb),0.2)] dark:to-[rgba(var(--color-accent-rgb),0.2)] text-theme-primary border-2 border-[rgba(var(--color-primary-rgb),0.5)] dark:border-[rgba(var(--color-primary-rgb),0.4)] shadow-md'
                 : isComplete
                 ? 'bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/30'
                 : progress.hasError
@@ -192,7 +192,7 @@ function StepperItemComponent({
           {!isComplete && progress.completed > 0 && (
             <div className="absolute -bottom-0.5 left-2 right-2 h-0.5 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-500"
+                className="h-full bg-gradient-to-r from-theme-primary to-theme-accent transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -201,7 +201,7 @@ function StepperItemComponent({
 
         {/* Nested steps (when expanded) */}
         {isExpanded && (
-          <div className="flex items-center gap-1 pl-2 border-l-2 border-purple-200 dark:border-purple-500/30 ml-1">
+          <div className="flex items-center gap-1 pl-2 border-l-2 border-[rgba(var(--color-primary-rgb),0.3)] dark:border-[rgba(var(--color-primary-rgb),0.3)] ml-1">
             {item.stepsInGroup.map(({ step, flatIndex }) => (
               <StepButton
                 key={flatIndex}
@@ -257,7 +257,7 @@ function StepButton({ step, flatIndex, currentStep, getStepStatus, dispatch, com
       aria-current={isCurrent ? 'step' : undefined}
       className={`flex items-center gap-1 sm:gap-2 ${compact ? 'px-2 py-1' : 'px-2 sm:px-3 py-1.5 sm:py-2'} rounded-lg whitespace-nowrap transition-all duration-300 ${
         isCurrent
-          ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-500/30 scale-105'
+          ? 'bg-gradient-to-r from-theme-primary to-theme-accent text-white shadow-lg shadow-[rgba(var(--color-primary-rgb),0.3)] scale-105'
           : status === 'complete'
           ? 'bg-green-50 dark:bg-slate-700/50 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-slate-700'
           : status === 'error'

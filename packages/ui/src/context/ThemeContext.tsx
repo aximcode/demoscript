@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { getThemeColors, applyThemeColors, type ThemeColors } from '../lib/theme-colors';
+import type { ThemeSettings } from '../types/schema';
 
 type Theme = 'light' | 'dark';
 
@@ -6,6 +8,8 @@ interface ThemeContextValue {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  colors: ThemeColors;
+  isModeLocked: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -13,10 +17,20 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 interface ThemeProviderProps {
   children: ReactNode;
   defaultTheme?: Theme;
+  themeSettings?: ThemeSettings;
 }
 
-export function ThemeProvider({ children, defaultTheme = 'dark' }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
+export function ThemeProvider({ children, defaultTheme = 'dark', themeSettings }: ThemeProviderProps) {
+  // Determine if mode is forced by config
+  const forcedMode = themeSettings?.mode;
+  const isModeLocked = forcedMode === 'light' || forcedMode === 'dark';
+
+  const [theme, setThemeState] = useState<Theme>(() => {
+    // If mode is forced, use it
+    if (forcedMode === 'light' || forcedMode === 'dark') {
+      return forcedMode;
+    }
+    // Otherwise check localStorage and system preference
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('demoscript-theme') as Theme;
       if (saved) return saved;
@@ -25,6 +39,15 @@ export function ThemeProvider({ children, defaultTheme = 'dark' }: ThemeProvider
     return defaultTheme;
   });
 
+  // Get theme colors based on settings
+  const colors = getThemeColors(themeSettings);
+
+  // Apply CSS variables when colors change
+  useEffect(() => {
+    applyThemeColors(colors);
+  }, [colors.primary, colors.accent, colors.primaryRgb, colors.accentRgb]);
+
+  // Apply dark/light class
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
@@ -32,13 +55,25 @@ export function ThemeProvider({ children, defaultTheme = 'dark' }: ThemeProvider
     } else {
       root.classList.remove('dark');
     }
-    localStorage.setItem('demoscript-theme', theme);
-  }, [theme]);
+    // Only save to localStorage if mode isn't locked
+    if (!isModeLocked) {
+      localStorage.setItem('demoscript-theme', theme);
+    }
+  }, [theme, isModeLocked]);
 
-  const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light');
+  const setTheme = (newTheme: Theme) => {
+    // Don't allow theme changes if mode is locked
+    if (isModeLocked) return;
+    setThemeState(newTheme);
+  };
+
+  const toggleTheme = () => {
+    if (isModeLocked) return;
+    setThemeState(t => t === 'light' ? 'dark' : 'light');
+  };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, colors, isModeLocked }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -57,7 +92,12 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className = '' }: ThemeToggleProps) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, isModeLocked } = useTheme();
+
+  // Don't render toggle if mode is locked
+  if (isModeLocked) {
+    return null;
+  }
 
   return (
     <button
@@ -65,7 +105,7 @@ export function ThemeToggle({ className = '' }: ThemeToggleProps) {
       className={`
         relative w-14 h-7 rounded-full transition-all duration-300
         ${theme === 'dark'
-          ? 'bg-gradient-to-r from-purple-600 to-cyan-600 shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+          ? 'bg-gradient-to-r from-theme-primary to-theme-accent shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.5)]'
           : 'bg-gray-200 hover:bg-gray-300'
         }
         ${className}

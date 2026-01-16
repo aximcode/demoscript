@@ -88,6 +88,14 @@ export interface DemoSettings {
 
 export interface ThemeSettings {
   logo?: string;
+  // Theme preset (purple is default, matches original DemoScript look)
+  preset?: 'purple' | 'blue' | 'green' | 'teal' | 'orange' | 'rose';
+  // Custom colors (override preset)
+  primary?: string;   // Hex color for main brand color
+  accent?: string;    // Hex color for secondary accent
+  // Force light/dark mode (default: auto follows system preference)
+  mode?: 'auto' | 'light' | 'dark';
+  // Legacy field (deprecated, use 'primary' instead)
   primary_color?: string;
 }
 

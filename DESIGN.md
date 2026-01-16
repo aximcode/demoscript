@@ -1,7 +1,5 @@
 # DemoScript Design Document
 
-> **Note:** This document describes the full DemoScript architecture. The open source version includes the `serve` command for live presentations. Additional features like `record`, `build`, `deploy`, and video export are available in [DemoScript Studio](https://demoscript.app).
-
 ## Overview
 
 DemoScript is a framework for creating scripted, shareable product demonstrations. Users write simple YAML files describing demo steps, and the framework provides:
@@ -145,8 +143,11 @@ tags: ["api", "tutorial"]
 settings:
   base_url: "http://localhost:8000"   # Default base URL for REST calls
   theme:
-    logo: "./assets/logo.png"
-    primary_color: "#3B82F6"
+    logo: "./assets/logo.png"         # Optional logo image
+    preset: "purple"                  # Color preset: purple|blue|green|teal|orange|rose
+    primary: "#8b5cf6"                # Custom primary color (overrides preset)
+    accent: "#06b6d4"                 # Custom accent color (overrides preset)
+    mode: "auto"                      # Force light/dark mode: auto|light|dark
   polling:
     interval: 2000                     # Default polling interval (ms)
     max_attempts: 30                   # Default max polling attempts
@@ -534,6 +535,69 @@ Key files:
 - `packages/ui/src/hooks/useStepEffects.ts` - Centralized effect triggering
 - `packages/ui/src/components/effects/` - Effect components (Confetti, SoundEffects, etc.)
 - `packages/ui/src/types/schema.ts` - EffectsSettings interface
+
+### Theme System
+
+DemoScript supports customizable color themes via YAML configuration.
+
+#### Theme Configuration
+
+```yaml
+settings:
+  theme:
+    # Option 1: Use a preset theme
+    preset: "purple"              # purple (default) | blue | green | teal | orange | rose
+
+    # Option 2: Custom colors (overrides preset)
+    primary: "#8b5cf6"            # Main brand color (buttons, gradients, accents)
+    accent: "#06b6d4"             # Secondary color (gradient endpoints, highlights)
+
+    # Option 3: Force light/dark mode
+    mode: "auto"                  # auto | light | dark
+```
+
+#### Color Presets
+
+| Preset | Primary | Accent | Use Case |
+|--------|---------|--------|----------|
+| `purple` | #8b5cf6 | #06b6d4 | Default DemoScript look |
+| `blue` | #3b82f6 | #8b5cf6 | Corporate, professional |
+| `green` | #10b981 | #3b82f6 | Fintech, nature |
+| `teal` | #14b8a6 | #f59e0b | Modern, fresh |
+| `orange` | #f97316 | #8b5cf6 | Energetic, warm |
+| `rose` | #f43f5e | #8b5cf6 | Bold, vibrant |
+
+#### Architecture
+
+The theme system uses CSS custom properties for dynamic color injection:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    Theme System Flow                           │
+├──────────────────────────────────────────────────────────────┤
+│                                                                │
+│   1. YAML config loads ──► theme settings extracted           │
+│                                                                │
+│   2. DemoRunner ──► getThemeColors() ──► resolves colors      │
+│      (preset lookup or custom colors)                         │
+│                                                                │
+│   3. applyThemeColors() ──► injects CSS variables on <html>   │
+│      --color-primary: #8b5cf6                                 │
+│      --color-accent: #06b6d4                                  │
+│      --color-primary-rgb: 139, 92, 246                        │
+│      --color-accent-rgb: 6, 182, 212                          │
+│                                                                │
+│   4. Components use CSS variables via Tailwind classes        │
+│      from-theme-primary, text-theme-accent, etc.              │
+│                                                                │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Key files:
+- `packages/ui/src/lib/theme-colors.ts` - Presets and color utilities
+- `packages/ui/src/context/ThemeContext.tsx` - Theme state and mode management
+- `packages/ui/src/index.css` - CSS variables and utility classes
+- `packages/ui/tailwind.config.js` - Tailwind color configuration
 
 ### Branching and Navigation
 

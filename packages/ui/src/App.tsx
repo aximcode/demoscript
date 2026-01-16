@@ -8,7 +8,7 @@ function App() {
     <ThemeProvider defaultTheme="dark">
       <SoundProvider>
         <DemoProvider>
-          <div className="min-h-screen relative bg-white dark:bg-transparent transition-colors duration-300">
+          <div className="min-h-screen relative light-mode-gradient dark:bg-transparent transition-colors duration-300">
             <DemoRunner />
           </div>
         </DemoProvider>

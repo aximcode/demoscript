@@ -14,6 +14,10 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Dynamic theme colors from CSS variables
+        'theme-primary': 'var(--color-primary)',
+        'theme-accent': 'var(--color-accent)',
+        // Static primary palette for backwards compatibility
         primary: {
           50: '#f5f3ff',
           100: '#ede9fe',

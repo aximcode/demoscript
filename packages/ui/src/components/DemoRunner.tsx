@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import yaml from 'js-yaml';
 import { useDemo } from '../context/DemoContext';
+import { useTheme } from '../context/ThemeContext';
 import { Stepper } from './Stepper';
 import { StepViewer } from './StepViewer';
 import { Controls } from './Controls';
@@ -13,6 +14,7 @@ import { GridBackground, GlowOrbs } from './effects';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { normalizeConfig } from '../lib/normalize-config';
 import { isCloudMode } from '../lib/execute-adapter';
+import { getThemeColors, applyThemeColors } from '../lib/theme-colors';
 import type { DemoConfig, AuthSettings, EffectsSettings } from '../types/schema';
 
 // Background effects wrapper
@@ -134,7 +136,24 @@ function DemoContent() {
 
 export function DemoRunner() {
   const { state, dispatch } = useDemo();
+  const { setTheme } = useTheme();
   const [authSettings, setAuthSettings] = useState<AuthSettings | undefined>(undefined);
+
+  // Apply theme colors and mode from config
+  useEffect(() => {
+    if (state.config?.settings?.theme) {
+      const themeSettings = state.config.settings.theme;
+
+      // Apply color scheme
+      const colors = getThemeColors(themeSettings);
+      applyThemeColors(colors);
+
+      // Apply forced mode if specified
+      if (themeSettings.mode === 'light' || themeSettings.mode === 'dark') {
+        setTheme(themeSettings.mode);
+      }
+    }
+  }, [state.config?.settings?.theme, setTheme]);
 
   useEffect(() => {
     async function loadDemo() {

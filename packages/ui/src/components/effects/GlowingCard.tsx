@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 interface GlowingCardProps {
   children: ReactNode;
   isActive?: boolean;
-  color?: 'blue' | 'green' | 'purple' | 'orange' | 'cyan' | 'yellow' | 'pink' | 'red' | 'emerald';
+  color?: 'blue' | 'green' | 'purple' | 'orange' | 'cyan' | 'yellow' | 'pink' | 'red' | 'emerald' | 'primary';
   intensity?: 'subtle' | 'medium' | 'strong';
 }
 
@@ -70,6 +70,14 @@ const glowColors = {
     strong: 'shadow-[0_0_40px_rgba(16,185,129,0.4)]',
     border: 'border-emerald-400/50',
     ring: 'ring-emerald-400/30',
+  },
+  // Theme-aware color using CSS variables
+  primary: {
+    subtle: 'shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.2)]',
+    medium: 'shadow-[0_0_25px_rgba(var(--color-primary-rgb),0.3)]',
+    strong: 'shadow-[0_0_40px_rgba(var(--color-primary-rgb),0.4)]',
+    border: 'border-[rgba(var(--color-primary-rgb),0.5)]',
+    ring: 'ring-[rgba(var(--color-primary-rgb),0.3)]',
   },
 };
 

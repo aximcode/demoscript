@@ -33,10 +33,10 @@ export function Dashboard({ config, onStart }: DashboardProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
       <div className="w-full max-w-2xl">
-        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-purple-500/10 p-8 border border-slate-200 dark:border-purple-500/20">
+        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl dark:shadow-[rgba(var(--color-primary-rgb),0.1)] p-8 border border-slate-200 dark:border-[rgba(var(--color-primary-rgb),0.2)]">
           {/* Logo/Icon */}
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-theme-primary to-theme-accent flex items-center justify-center shadow-lg shadow-[rgba(var(--color-primary-rgb),0.3)]">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
@@ -134,7 +134,7 @@ export function Dashboard({ config, onStart }: DashboardProps) {
               {config.tags.map(tag => (
                 <span
                   key={tag}
-                  className="px-3 py-1 text-xs font-medium rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                  className="px-3 py-1 text-xs font-medium rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] dark:bg-[rgba(var(--color-primary-rgb),0.2)] text-theme-primary"
                 >
                   {tag}
                 </span>
@@ -146,10 +146,10 @@ export function Dashboard({ config, onStart }: DashboardProps) {
           <button
             onClick={onStart}
             className="w-full py-4 px-6 rounded-lg font-medium text-lg transition-all duration-200
-              bg-gradient-to-r from-purple-600 to-cyan-600
-              hover:from-purple-500 hover:to-cyan-500
-              text-white shadow-lg shadow-purple-500/30
-              focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+              bg-gradient-to-r from-theme-primary to-theme-accent
+              hover:opacity-90
+              text-white shadow-lg shadow-[rgba(var(--color-primary-rgb),0.3)]
+              focus:outline-none focus:ring-2 focus:ring-[rgba(var(--color-primary-rgb),0.5)] focus:ring-offset-2
               dark:focus:ring-offset-slate-800"
           >
             Start Demo

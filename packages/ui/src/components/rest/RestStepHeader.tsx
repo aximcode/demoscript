@@ -14,7 +14,7 @@ export function RestStepHeader({ method, endpoint, description, status, pollingS
   const isExecuting = status === 'executing';
 
   return (
-    <div className="border-b border-gray-200 dark:border-slate-700/50 p-4 bg-gray-50 dark:bg-slate-900/50">
+    <div className="border-b border-[rgba(var(--color-primary-rgb),0.1)] dark:border-slate-700/50 p-4 bg-[rgba(var(--color-primary-rgb),0.03)] dark:bg-slate-900/50">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className={`px-2 py-1 rounded text-sm font-bold ${getMethodColor(method)}`}>

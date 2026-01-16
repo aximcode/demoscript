@@ -6,8 +6,21 @@ interface GradientTextProps {
 }
 
 export function GradientText({ children, variant = 'primary' }: GradientTextProps) {
+  // Primary variant uses theme colors via CSS variables
+  if (variant === 'primary') {
+    return (
+      <span
+        className="bg-clip-text text-transparent"
+        style={{
+          backgroundImage: 'linear-gradient(to right, var(--color-primary), var(--color-accent))',
+        }}
+      >
+        {children}
+      </span>
+    );
+  }
+
   const gradients = {
-    primary: 'from-purple-600 via-blue-500 to-cyan-400',
     success: 'from-green-500 via-emerald-400 to-teal-400',
     warning: 'from-orange-500 via-amber-400 to-yellow-400',
   };
