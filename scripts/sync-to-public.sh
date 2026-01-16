@@ -77,9 +77,17 @@ EXCLUDES=(
     ".git"
     "node_modules"
     "dist"
+    "dist-pages"
+
+    # GitHub workflows (public repo has its own)
+    ".github"
 
     # Cloud package (entire directory)
     "packages/cloud"
+
+    # Private-only directories
+    "landing"
+    "docs"
 
     # Pro CLI commands
     "packages/cli/src/commands/build.ts"
@@ -93,9 +101,10 @@ EXCLUDES=(
     "packages/cli/src/lib/video-encoder.ts"
     "packages/cli/src/lib/video-encoder.test.ts"
 
-    # Cloud docs
-    "docs/CLOUD-ARCHITECTURE.md"
-    "docs/GO-TO-MARKET.md"
+    # Private-only scripts
+    "scripts/build-pages.sh"
+    "scripts/publish.sh"
+    "scripts/capture-demo.js"
 
     # Environment/secrets
     ".envrc"
@@ -104,7 +113,7 @@ EXCLUDES=(
 
     # Misc
     "assets/frames"
-    "scripts/capture-demo.js"
+    "ROADMAP.md"
 
     # Files that differ between repos (have public-specific versions)
     "packages/ui/src/lib/execute-adapter.ts"
