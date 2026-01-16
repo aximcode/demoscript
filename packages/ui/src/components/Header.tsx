@@ -19,9 +19,11 @@ export function Header() {
       <div className="container mx-auto px-4 py-4 max-w-5xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-theme-primary dark:text-white dark:neon-text-primary">
-              {state.config.title}
-            </h1>
+            {state.config.title && (
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white dark:neon-text-primary">
+                {state.config.title}
+              </h1>
+            )}
             <p className="text-gray-600 dark:text-slate-300/70 text-sm mt-1">
               {state.config.description}
             </p>
