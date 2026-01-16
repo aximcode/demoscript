@@ -1,6 +1,20 @@
 name: Publish to npm
 
 on:
+  # Manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+  # Auto-trigger on version tags (for local publish.sh script)
   push:
     tags:
       - 'v*'
@@ -10,12 +24,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
+
+      - name: Configure git
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd packages/cli
+          npm version ${{ inputs.version }} --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          cd ../..
+          git add packages/cli/package.json
+          git commit -m "Release v${VERSION}"
+          git tag "v${VERSION}"
+          git push
+          git push --tags
 
       - name: Install dependencies
         run: npm ci
