@@ -1,4 +1,4 @@
-name: Deploy Landing Page to GitHub Pages
+name: Deploy Examples to GitHub Pages
 on:
   push:
     branches: [main]
@@ -9,21 +9,37 @@ permissions:
   pages: write
   id-token: write
 
+# Only one pages deployment at a time, but don't cancel in-progress deploys
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
+# Note: upload-pages-artifact is auto-cleaned after deployment
+# For regular artifacts, use retention-days: 3 to limit storage
+
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: node packages/cli/dist/index.js build examples --all -o dist-pages
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-pages
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v4
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs
       - uses: actions/deploy-pages@v4
         id: deployment

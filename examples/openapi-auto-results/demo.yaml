@@ -1,0 +1,139 @@
+# OpenAPI Auto-Generated Results Demo
+# Demonstrates automatic result field generation from OpenAPI response schemas
+
+title: "OpenAPI Auto Results"
+description: "When results aren't specified, DemoScript auto-generates them from OpenAPI response schemas"
+version: "1.0"
+author: "DemoScript"
+tags:
+  - openapi
+  - tutorial
+
+metadata:
+  duration: "3 minutes"
+  difficulty: beginner
+  category: "Tutorial"
+
+settings:
+  base_url: "https://petstore3.swagger.io/api/v3"
+  openapi: "https://petstore3.swagger.io/api/v3/openapi.json"
+
+  dashboard:
+    enabled: true
+    show_stats: true
+    show_description: true
+
+  effects:
+    confetti: true
+    sounds: true
+    sound_volume: 0.3
+
+steps:
+  - slide: |
+      # OpenAPI Auto-Generated Results
+
+      DemoScript can automatically generate `results:` fields from OpenAPI response schemas.
+
+      ### How It Works
+
+      1. Configure `settings.openapi` with your API spec URL
+      2. Create REST steps **without** `results:`
+      3. DemoScript extracts response schema from OpenAPI
+      4. Result fields are auto-generated with smart type mapping
+
+      ### Type Mapping
+
+      | OpenAPI Schema | Display Type |
+      |----------------|--------------|
+      | `format: date-time` | `relative_time` |
+      | `format: uri` | `link` |
+      | name contains `id` | `mono` |
+      | name contains `address` | `address` |
+      | name contains `price`/`amount` | `currency` |
+
+    title: "Introduction"
+
+  - slide: |
+      # Demo Setup
+
+      This demo uses the **Swagger Petstore API** which has a complete OpenAPI spec.
+
+      ```yaml
+      settings:
+        base_url: "https://petstore3.swagger.io/api/v3"
+        openapi: "https://petstore3.swagger.io/api/v3/openapi.json"
+      ```
+
+      The following steps omit `results:` - they're auto-generated from the API spec!
+
+    title: "Setup"
+
+  # This step has NO results: field - auto-generated from OpenAPI!
+  - rest: GET /pet/findByStatus?status=available
+    title: "Find Pets (Auto Results)"
+    description: "Results auto-generated from OpenAPI response schema - notice we didn't specify results: in YAML"
+
+  # Another auto-generated example
+  - rest: GET /store/inventory
+    title: "Store Inventory (Auto Results)"
+    description: "OpenAPI says this returns an object - auto-generates as JSON viewer"
+
+  - slide: |
+      # Manual vs Auto-Generated
+
+      ### Before (manual specification):
+      ```yaml
+      - rest: GET /pet/findByStatus?status=available
+        results:
+          - key: "[0].id"
+            label: "Pet ID"
+            type: mono
+          - key: "[0].name"
+            label: "Name"
+          - key: "[0].status"
+            label: "Status"
+      ```
+
+      ### After (auto-generated):
+      ```yaml
+      - rest: GET /pet/findByStatus?status=available
+        # No results: field needed!
+        # Auto-generated from OpenAPI response schema
+      ```
+
+    title: "Comparison"
+
+  # This step HAS results: - manual override takes precedence
+  - rest: GET /pet/findByStatus?status=sold
+    title: "Find Sold Pets (Manual Override)"
+    description: "This step specifies results: manually, overriding auto-generation"
+    results:
+      - key: "[0].id"
+        label: "Pet ID"
+        type: mono
+      - key: "[0].name"
+        label: "Pet Name"
+      - key: "[0].status"
+        label: "Status"
+
+  - slide: |
+      # Best Practices
+
+      ### When to use auto-generation
+
+      - APIs with complete OpenAPI documentation
+      - Standard CRUD endpoints
+      - When you want consistent result display
+
+      ### When to specify results manually
+
+      - Show only specific fields (not all response properties)
+      - Need custom labels or types
+      - Complex nested data extraction with JSON paths
+      - Array responses where you want specific items
+
+      ### Override behavior
+
+      Specify `results:` to override auto-generation for any step.
+
+    title: "Best Practices"
