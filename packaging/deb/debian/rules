@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	# Install all dependencies (dev deps needed for build)
+	npm ci
+	# Build UI first
+	npm run build --workspace=packages/ui
+	# Bundle CLI with esbuild (puppeteer-core is bundled, no external node_modules needed)
+	npm run bundle --workspace=packages/cli
+
+override_dh_auto_install:
+	mkdir -p debian/demoscript/usr/lib/demoscript
+	mkdir -p debian/demoscript/usr/bin
+	# Copy bundled CLI (all deps are bundled)
+	cp packages/cli/dist/index.js debian/demoscript/usr/lib/demoscript/
+	cp packages/cli/dist/bundle.cjs debian/demoscript/usr/lib/demoscript/
+	cp -r packages/cli/dist/ui-dist debian/demoscript/usr/lib/demoscript/
+	# Copy schema
+	cp demo.schema.json debian/demoscript/usr/lib/demoscript/
+	# Create wrapper script
+	printf '#!/bin/bash\nexec node /usr/lib/demoscript/index.js "$$@"\n' > debian/demoscript/usr/bin/demoscript
+	chmod 755 debian/demoscript/usr/bin/demoscript
+
+override_dh_auto_test:
+	# Skip tests during package build

@@ -390,7 +390,9 @@ steps:
       settings:
         openapi: "http://localhost:8000/docs/json"
       ```
-      Auto-generates form fields from your API spec!
+      Auto-generates **form fields** AND **results** from your API spec!
+      - Forms: Generated from request body schemas
+      - Results: Generated from response schemas (omit `results:` to enable)
 
       ### Polling
       ```yaml
@@ -434,6 +436,7 @@ steps:
       - **Visual Effects** - Confetti, sounds, transitions, counters
       - **Shell** - Commands with confirm option
       - **REST** - Forms with text, textarea, select, toggle, slider, hidden fields
+      - **OpenAPI Auto-Generation** - Auto-generate forms AND results from API spec
       - **cURL Command** - Show curl command for REST requests (show_curl: true)
       - **JSON Viewer** - Expandable tree view for nested responses
       - **Result Types** - Address, link, code, table, currency, mono types

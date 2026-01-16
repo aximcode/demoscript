@@ -4,7 +4,13 @@ node_modules/
 # Build outputs
 dist/
 dist-node/
+dist-gif/
+dist-gif-showcase/
+dist-pages/
 *.tsbuildinfo
+
+# Wrangler (Cloudflare)
+.wrangler/
 
 # Generated demo assets
 examples/*/assets/

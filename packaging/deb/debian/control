@@ -1,0 +1,20 @@
+Source: demoscript
+Section: devel
+Priority: optional
+Maintainer: Mike Gosha <mike@example.com>
+Build-Depends: debhelper-compat (= 13), nodejs (>= 18), npm
+Standards-Version: 4.6.0
+Homepage: https://github.com/mgosha/demoscript
+Rules-Requires-Root: no
+
+Package: demoscript
+Architecture: all
+Depends: nodejs (>= 18), ${misc:Depends}
+Recommends: chromium-browser | chromium | google-chrome-stable, ffmpeg
+Description: Framework for scripted, shareable product demonstrations
+ DemoScript is a framework for creating scripted, shareable product
+ demonstrations. Write YAML files to define demo steps, and the framework
+ provides a polished web UI for presenting and sharing demos.
+ .
+ Features include REST API demos, shell commands, browser automation,
+ variable chaining, branching flows, and static site export.
