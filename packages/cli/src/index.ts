@@ -2,6 +2,8 @@
 
 import { Command } from 'commander';
 import { serve } from './commands/serve.js';
+import { push } from './commands/push.js';
+import { login, logout, whoami } from './commands/login.js';
 
 // Version injected at build time by esbuild
 declare const __PKG_VERSION__: string;
@@ -23,6 +25,39 @@ program
   .action(async (demo: string, options: { port: string; host?: string | boolean; open: boolean; watch?: boolean }) => {
     const host = options.host === true ? '0.0.0.0' : (typeof options.host === 'string' ? options.host : undefined);
     await serve(demo, { port: parseInt(options.port, 10), host, open: options.open, watch: options.watch });
+  });
+
+// Cloud commands
+program
+  .command('login')
+  .description('Login to DemoScript Cloud')
+  .action(async () => {
+    await login();
+  });
+
+program
+  .command('logout')
+  .description('Logout from DemoScript Cloud')
+  .action(async () => {
+    await logout();
+  });
+
+program
+  .command('whoami')
+  .description('Show current logged in user')
+  .action(async () => {
+    await whoami();
+  });
+
+program
+  .command('push <demo>')
+  .description('Push demo to DemoScript Cloud')
+  .option('-s, --slug <slug>', 'Demo slug (default: directory name)')
+  .option('-t, --title <title>', 'Demo title (default: from YAML)')
+  .option('--public', 'Make demo public (default)')
+  .option('--private', 'Make demo private')
+  .action(async (demo: string, options: { slug?: string; title?: string; public?: boolean; private?: boolean }) => {
+    await push(demo, options);
   });
 
 program.parse();
