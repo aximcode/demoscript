@@ -31,7 +31,12 @@ export function getErrorType(error: string): string {
   if (lowerError.includes('403') || lowerError.includes('forbidden')) {
     return 'Access Denied';
   }
-  if (lowerError.includes('404') || lowerError.includes('not found')) {
+  // Check 415 before 404 - "unsupported media type" errors often contain "not found" in the message
+  if (lowerError.includes('415') || lowerError.includes('unsupported media type') || lowerError.includes('mime')) {
+    return 'Invalid Content-Type';
+  }
+  // Use word boundary match to avoid false positives like "was not found"
+  if (lowerError.includes('404') || /\bnot found\b/.test(lowerError)) {
     return 'Not Found';
   }
   if (lowerError.includes('500') || lowerError.includes('internal server')) {

@@ -6,8 +6,6 @@
 # Usage:
 #   ./build.sh                        # Build UI and CLI
 #   ./build.sh --serve [serve-args]   # Build and start dev server
-#   ./build.sh --cloud                # Deploy cloud worker only (no build)
-#   ./build.sh --deploy               # Build everything + deploy cloud worker
 #   ./build.sh --rpm                  # Build everything + RPM package
 #   ./build.sh --deb                  # Build everything + DEB package
 #   ./build.sh --packages             # Build everything + all packages
@@ -16,8 +14,6 @@
 # Options:
 #   --clean      Clean build artifacts before building
 #   --serve      Start dev server after building (args after this are passed to serve)
-#   --cloud      Deploy Cloudflare Worker only (requires .envrc or CLOUDFLARE_API_TOKEN)
-#   --deploy     Build everything and deploy cloud worker
 #   --rpm        Build RPM package after building
 #   --deb        Build DEB package after building
 #   --packages   Build all packages (RPM + DEB) after building
@@ -50,8 +46,6 @@ BUILD_RPM=false
 BUILD_DEB=false
 SKIP_UI=false
 SKIP_CLI=false
-DEPLOY_CLOUD=false
-CLOUD_ONLY=false
 SERVE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -80,15 +74,6 @@ while [[ $# -gt 0 ]]; do
             BUILD_DEB=true
             shift
             ;;
-        --cloud)
-            CLOUD_ONLY=true
-            DEPLOY_CLOUD=true
-            shift
-            ;;
-        --deploy)
-            DEPLOY_CLOUD=true
-            shift
-            ;;
         --skip-ui)
             SKIP_UI=true
             shift
@@ -98,7 +83,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            head -32 "$0" | tail -31
+            head -28 "$0" | tail -27
             exit 0
             ;;
         *)
@@ -114,37 +99,10 @@ echo -e "${CYAN}║       DemoScript Build Script        ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════╝${NC}"
 echo
 
-# Cloud-only deployment (skip build)
-if [ "$CLOUD_ONLY" = true ]; then
-    echo -e "${YELLOW}Deploying Cloudflare Worker...${NC}"
-
-    # Source .envrc if it exists and CLOUDFLARE_API_TOKEN is not set
-    if [ -z "$CLOUDFLARE_API_TOKEN" ] && [ -f ".envrc" ]; then
-        echo -e "  Sourcing .envrc for credentials..."
-        set +e
-        source .envrc 2>/dev/null
-        set -e
-    fi
-
-    if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-        echo -e "${RED}Error: CLOUDFLARE_API_TOKEN not set${NC}"
-        echo "Either set the environment variable or create .envrc with:"
-        echo "  export CLOUDFLARE_API_TOKEN=your_token"
-        exit 1
-    fi
-
-    cd packages/cloud
-    npx wrangler deploy
-    cd "$SCRIPT_DIR"
-
-    echo
-    echo -e "${GREEN}Cloud worker deployed!${NC}"
-    exit 0
-fi
-
 # Step 1: Clean if requested
 if [ "$CLEAN" = true ]; then
-    echo -e "${YELLOW}[1/4] Cleaning build artifacts...${NC}"
+    echo -e "${YELLOW}[1/5] Cleaning build artifacts...${NC}"
+    rm -rf packages/shared/dist
     rm -rf packages/ui/dist
     rm -rf packages/cli/dist
     rm -rf dist
@@ -152,35 +110,43 @@ if [ "$CLEAN" = true ]; then
     echo
 fi
 
-# Step 2: Build UI
+# Step 2: Build shared package (required by CLI)
+echo -e "${YELLOW}[2/5] Building shared package...${NC}"
+cd packages/shared
+npm run build
+cd "$SCRIPT_DIR"
+echo -e "${GREEN}      Shared package built!${NC}"
+echo
+
+# Step 3: Build UI
 if [ "$SKIP_UI" = false ]; then
-    echo -e "${YELLOW}[2/4] Building UI package...${NC}"
+    echo -e "${YELLOW}[3/5] Building UI package...${NC}"
     cd packages/ui
     npm run build
     cd "$SCRIPT_DIR"
     echo -e "${GREEN}      UI build complete!${NC}"
     echo
 else
-    echo -e "${YELLOW}[2/4] Skipping UI build${NC}"
+    echo -e "${YELLOW}[3/5] Skipping UI build${NC}"
     echo
 fi
 
-# Step 3: Build CLI
+# Step 4: Build CLI
 if [ "$SKIP_CLI" = false ]; then
-    echo -e "${YELLOW}[3/4] Building CLI package...${NC}"
+    echo -e "${YELLOW}[4/5] Building CLI package...${NC}"
     cd packages/cli
     npm run build
     cd "$SCRIPT_DIR"
     echo -e "${GREEN}      CLI build complete!${NC}"
     echo
 else
-    echo -e "${YELLOW}[3/4] Skipping CLI build${NC}"
+    echo -e "${YELLOW}[4/5] Skipping CLI build${NC}"
     echo
 fi
 
-# Step 4: Copy UI dist to CLI's ui-dist folder
+# Step 5: Copy UI dist to CLI's ui-dist folder
 # This is CRITICAL - the CLI serve command looks for ui-dist in its dist folder
-echo -e "${YELLOW}[4/4] Syncing UI assets to CLI...${NC}"
+echo -e "${YELLOW}[5/5] Syncing UI assets to CLI...${NC}"
 if [ -d "packages/ui/dist" ]; then
     mkdir -p packages/cli/dist/ui-dist
     rm -rf packages/cli/dist/ui-dist/*
@@ -205,10 +171,10 @@ else
     exit 1
 fi
 
-if [ -f "packages/cli/dist/bundle.cjs" ]; then
-    echo -e "  ${GREEN}✓${NC} CLI:     packages/cli/dist/bundle.cjs"
+if [ -f "packages/cli/dist/index.js" ]; then
+    echo -e "  ${GREEN}✓${NC} CLI:     packages/cli/dist/index.js"
 else
-    echo -e "  ${RED}✗${NC} CLI bundle not found!"
+    echo -e "  ${RED}✗${NC} CLI entry point not found!"
     exit 1
 fi
 echo
@@ -225,32 +191,6 @@ if [ "$BUILD_RPM" = true ] || [ "$BUILD_DEB" = true ]; then
     elif [ "$BUILD_DEB" = true ]; then
         ./scripts/build-packages.sh deb
     fi
-    echo
-fi
-
-# Deploy cloud worker if requested
-if [ "$DEPLOY_CLOUD" = true ]; then
-    echo -e "${CYAN}Deploying Cloudflare Worker...${NC}"
-
-    # Source .envrc if it exists and CLOUDFLARE_API_TOKEN is not set
-    if [ -z "$CLOUDFLARE_API_TOKEN" ] && [ -f ".envrc" ]; then
-        echo -e "  Sourcing .envrc for credentials..."
-        set +e
-        source .envrc 2>/dev/null
-        set -e
-    fi
-
-    if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-        echo -e "${RED}Error: CLOUDFLARE_API_TOKEN not set${NC}"
-        echo "Either set the environment variable or create .envrc with:"
-        echo "  export CLOUDFLARE_API_TOKEN=your_token"
-        exit 1
-    fi
-
-    cd packages/cloud
-    npx wrangler deploy
-    cd "$SCRIPT_DIR"
-    echo -e "${GREEN}      Cloud worker deployed!${NC}"
     echo
 fi
 

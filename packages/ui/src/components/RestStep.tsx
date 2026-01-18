@@ -276,6 +276,9 @@ export function RestStep({ step }: Props) {
   // Check if we have output to show (for two-column layout)
   const hasOutput = (response !== null && response !== undefined && !isTryItMode) || isTryItMode;
 
+  // Check if we have form fields (affects Results placement)
+  const hasFormFields = step.form && step.form.length > 0;
+
   return (
     <GlowingCard isActive={isExecuting || status === 'complete'} color={glowColor} intensity="medium">
       <div className="bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl border border-[rgba(var(--color-primary-rgb),0.12)] dark:border-slate-700/50 overflow-hidden transition-colors duration-300">
@@ -338,8 +341,8 @@ export function RestStep({ step }: Props) {
               />
             )}
 
-            {/* Results in left column on desktop */}
-            {response !== null && response !== undefined && step.results && step.results.length > 0 && !isTryItMode && (
+            {/* Results in left column when no form fields (desktop only) */}
+            {!hasFormFields && response !== null && response !== undefined && !isTryItMode && step.results && step.results.length > 0 && (
               <div className="hidden xl:block">
                 <ResultsDisplay response={response} results={step.results} />
               </div>
@@ -358,7 +361,15 @@ export function RestStep({ step }: Props) {
               )}
 
               {response !== null && response !== undefined && !isTryItMode && (
-                <ResponseDisplay response={response} results={step.results} hideResultsOnDesktop />
+                <>
+                  {/* Results above Response on desktop (only when form fields exist) */}
+                  {hasFormFields && step.results && step.results.length > 0 && (
+                    <div className="hidden xl:block">
+                      <ResultsDisplay response={response} results={step.results} />
+                    </div>
+                  )}
+                  <ResponseDisplay response={response} results={step.results} hideResultsOnDesktop={step.results && step.results.length > 0} />
+                </>
               )}
             </div>
           )}

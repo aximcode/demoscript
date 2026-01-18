@@ -1,26 +1,8 @@
 // YAML Schema Types
 
-export interface FormField {
-  name: string;
-  label?: string;
-  type?: 'text' | 'number' | 'select' | 'textarea';
-  default?: string | number;
-  required?: boolean;
-  readonly?: boolean;
-  hidden?: boolean;
-  placeholder?: string;
-  options?: Array<{ value: string; label: string }>;
-}
-
-export interface ResultField {
-  key: string;
-  label?: string;
-  type?: 'text' | 'address' | 'tx' | 'token' | 'link' | 'currency' | 'code' | 'table' | 'json' | 'mono' | 'relative_time';
-  link?: string;
-  format?: string;
-  columns?: Array<{ key: string; label: string }>;
-  expandedDepth?: number;
-}
+// Import and re-export shared types
+import type { FormField, ResultField, SelectOption, TableColumn } from '@demoscript/shared/types';
+export type { FormField, ResultField, SelectOption, TableColumn };
 
 export interface PollConfig {
   endpoint: string;

@@ -123,6 +123,7 @@ EXCLUDES=(
     "packages/cli/tests/commands.test.ts"
     "package.json"
     "package-lock.json"
+    "build.sh"
 )
 
 # Build rsync exclude args
@@ -160,6 +161,7 @@ PUBLIC_SPECIFIC_FILES=(
     "packages/cli/tests/commands.test.ts"
     "package.json"
     "package-lock.json"
+    "build.sh"
 )
 
 for file in "${PUBLIC_SPECIFIC_FILES[@]}"; do
