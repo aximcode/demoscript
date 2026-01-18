@@ -288,6 +288,19 @@ export function isDatabaseStep(step: Step): step is DatabaseStep | ExplicitDatab
   return 'db' in step || ('step' in step && (step as ExplicitDatabaseStep).step === 'db');
 }
 
+// Flatten step groups into a flat array of steps (for consistent indexing)
+export function flattenSteps(items: StepOrGroup[]): Step[] {
+  const result: Step[] = [];
+  for (const item of items) {
+    if (isStepGroup(item)) {
+      result.push(...item.steps);
+    } else {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
 // Config types
 
 export interface ThemeConfig {

@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, ReactNode, useState, useCallback, useMemo } from 'react';
 import type { DemoConfig, DemoRecordings, StepOrGroup, Step, Recording, StepGroup } from '../types/schema';
 import { isStepGroup, flattenSteps, getStepTitle } from '../types/schema';
+import { extractValueByPath } from '../lib/variable-substitution';
 
 // Info about which step provides a variable
 export interface VariableProvider {
@@ -89,6 +90,62 @@ function buildVariableProviders(flatSteps: Step[]): Map<string, VariableProvider
   return map;
 }
 
+// Helper to pre-populate variables from recorded responses
+// This allows assertions to work without requiring manual execution of each step
+function extractVariablesFromRecordings(
+  flatSteps: Step[],
+  recordings: DemoRecordings
+): Record<string, unknown> {
+  const variables: Record<string, unknown> = {};
+
+  flatSteps.forEach((step, index) => {
+    if ('save' in step && step.save) {
+      const recording = recordings.recordings.find((r) => r.stepId === `step-${index}`);
+      if (!recording) return;
+
+      const saveConfig = step.save as Record<string, string>;
+      for (const [varName, path] of Object.entries(saveConfig)) {
+        // Handle REST step recordings
+        if ('rest' in step && recording.response?.body !== undefined) {
+          if (path === '_status') {
+            if (recording.response.status !== undefined) {
+              variables[varName] = recording.response.status;
+            }
+          } else {
+            variables[varName] = extractValueByPath(recording.response.body, path);
+          }
+        }
+        // Handle shell step recordings
+        if ('shell' in step) {
+          if (path === 'stdout' || path === 'output') {
+            variables[varName] = recording.stdout ?? recording.output;
+          } else if (path === 'stderr') {
+            variables[varName] = recording.stderr;
+          } else if (path === 'status') {
+            variables[varName] = recording.status;
+          } else {
+            // Regex pattern against stdout
+            const stdout = recording.stdout ?? recording.output ?? '';
+            if (typeof stdout === 'string') {
+              try {
+                const regex = new RegExp(path);
+                const match = stdout.match(regex);
+                if (match) {
+                  variables[varName] = match[1] || match[0];
+                }
+              } catch {
+                // Invalid regex, skip
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  return variables;
+}
+
 
 function demoReducer(state: DemoState, action: DemoAction): DemoState {
   switch (action.type) {
@@ -106,8 +163,18 @@ function demoReducer(state: DemoState, action: DemoAction): DemoState {
       };
     }
 
-    case 'SET_RECORDINGS':
-      return { ...state, recordings: action.payload };
+    case 'SET_RECORDINGS': {
+      // Pre-populate variables from recorded responses so assertions work
+      // without requiring manual execution of each step
+      const prePopulatedVars = state.flatSteps.length > 0
+        ? extractVariablesFromRecordings(state.flatSteps, action.payload)
+        : {};
+      return {
+        ...state,
+        recordings: action.payload,
+        variables: { ...state.variables, ...prePopulatedVars },
+      };
+    }
 
     case 'SET_STEP':
       return { ...state, currentStep: action.payload };

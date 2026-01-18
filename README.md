@@ -238,52 +238,6 @@ Options:
 
 **Note:** Requires a static build first (`demoscript build`).
 
-## Cloud Commands
-
-DemoScript integrates with [DemoScript Cloud](https://demoscript.app) for hosting and sharing demos.
-
-### `demoscript login`
-
-Authenticate with DemoScript Cloud.
-
-```bash
-demoscript login
-```
-
-### `demoscript logout`
-
-Log out from DemoScript Cloud.
-
-```bash
-demoscript logout
-```
-
-### `demoscript whoami`
-
-Show current logged-in user.
-
-```bash
-demoscript whoami
-```
-
-### `demoscript push <demo>`
-
-Push a demo to DemoScript Cloud.
-
-```bash
-demoscript push ./my-demo
-```
-
-Options:
-- `-s, --slug <slug>` - Demo slug (default: directory name)
-- `-t, --title <title>` - Demo title (default: from YAML)
-- `--public` - Make demo public (default)
-- `--private` - Make demo private
-
-After pushing, your demo will be available at `https://demoscript.app/u/username/slug`.
-
-**Note:** To include recordings in your pushed demo, first record with `demoscript record`, then push. The `recordings.json` file will be uploaded automatically.
-
 ## YAML Schema
 
 ### Demo Configuration

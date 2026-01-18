@@ -85,17 +85,63 @@ export function extractValueByPath(obj: unknown, path: string): unknown {
     return obj;
   }
 
-  const parts = path.split('.');
+  // Parse path into segments, handling both dot and bracket notation
+  // Examples: "name", "[0].id", "data[0].name", "items[2].value[0]"
+  const segments: (string | number)[] = [];
+  let i = 0;
+
+  while (i < path.length) {
+    if (path[i] === '[') {
+      // Array index: [0], [123], etc.
+      const end = path.indexOf(']', i);
+      if (end === -1) break;
+      const index = parseInt(path.slice(i + 1, end), 10);
+      if (!isNaN(index)) {
+        segments.push(index);
+      }
+      i = end + 1;
+      // Skip trailing dot if present
+      if (path[i] === '.') i++;
+    } else if (path[i] === '.') {
+      // Skip leading dots
+      i++;
+    } else {
+      // Property name: find end at next . or [
+      let end = i;
+      while (end < path.length && path[end] !== '.' && path[end] !== '[') {
+        end++;
+      }
+      if (end > i) {
+        segments.push(path.slice(i, end));
+      }
+      i = end;
+      // Skip trailing dot if present
+      if (path[i] === '.') i++;
+    }
+  }
+
+  // Traverse the path
   let current: unknown = obj;
 
-  for (const part of parts) {
+  for (const segment of segments) {
     if (current === null || current === undefined) {
       return undefined;
     }
-    if (typeof current === 'object') {
-      current = (current as Record<string, unknown>)[part];
+
+    if (typeof segment === 'number') {
+      // Array index access
+      if (Array.isArray(current)) {
+        current = current[segment];
+      } else {
+        return undefined;
+      }
     } else {
-      return undefined;
+      // Property access
+      if (typeof current === 'object') {
+        current = (current as Record<string, unknown>)[segment];
+      } else {
+        return undefined;
+      }
     }
   }
 

@@ -76,9 +76,39 @@ describe('extractValueByPath', () => {
     expect(result).toBeUndefined();
   });
 
-  it('extracts array element', () => {
+  it('extracts array element with dot notation', () => {
     const obj = { items: ['a', 'b', 'c'] };
     const result = extractValueByPath(obj, 'items.1');
     expect(result).toBe('b');
+  });
+
+  it('extracts array element with bracket notation', () => {
+    const obj = { items: ['a', 'b', 'c'] };
+    const result = extractValueByPath(obj, 'items[1]');
+    expect(result).toBe('b');
+  });
+
+  it('extracts first element of root array with bracket notation', () => {
+    const arr = [{ id: 123, name: 'first' }, { id: 456, name: 'second' }];
+    const result = extractValueByPath(arr, '[0].id');
+    expect(result).toBe(123);
+  });
+
+  it('extracts nested property from array element', () => {
+    const arr = [{ id: 123, name: 'first' }, { id: 456, name: 'second' }];
+    const result = extractValueByPath(arr, '[1].name');
+    expect(result).toBe('second');
+  });
+
+  it('handles mixed bracket and dot notation', () => {
+    const obj = { data: [{ users: [{ name: 'Alice' }, { name: 'Bob' }] }] };
+    const result = extractValueByPath(obj, 'data[0].users[1].name');
+    expect(result).toBe('Bob');
+  });
+
+  it('returns undefined for out of bounds array index', () => {
+    const arr = [{ id: 1 }];
+    const result = extractValueByPath(arr, '[5].id');
+    expect(result).toBeUndefined();
   });
 });

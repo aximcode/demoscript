@@ -15,8 +15,8 @@ metadata:
   category: "Tutorial"
 
 settings:
-  base_url: "https://petstore3.swagger.io/api/v3"
-  openapi: "https://petstore3.swagger.io/api/v3/openapi.json"
+  base_url: "https://petstore.swagger.io/v2"
+  openapi: "https://petstore.swagger.io/v2/swagger.json"
 
   dashboard:
     enabled: true
@@ -60,8 +60,8 @@ steps:
 
       ```yaml
       settings:
-        base_url: "https://petstore3.swagger.io/api/v3"
-        openapi: "https://petstore3.swagger.io/api/v3/openapi.json"
+        base_url: "https://petstore.swagger.io/v2"
+        openapi: "https://petstore.swagger.io/v2/swagger.json"
       ```
 
       The following steps omit `results:` - they're auto-generated from the API spec!
