@@ -1,19 +1,21 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { createRequire } from 'module';
 import { serve } from './commands/serve.js';
 import { push } from './commands/push.js';
 import { login, logout, whoami } from './commands/login.js';
 
-// Version injected at build time by esbuild
-declare const __PKG_VERSION__: string;
+// Read version from package.json at runtime
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 
 const program = new Command();
 
 program
   .name('demoscript')
   .description('Framework for creating scripted, shareable product demonstrations')
-  .version(__PKG_VERSION__);
+  .version(pkg.version);
 
 program
   .command('serve <demo>')
