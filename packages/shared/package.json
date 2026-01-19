@@ -1,0 +1,37 @@
+{
+  "name": "@demoscript/shared",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared utilities for DemoScript packages",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./openapi": {
+      "types": "./dist/openapi/index.d.ts",
+      "import": "./dist/openapi/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    },
+    "./sandbox": {
+      "types": "./dist/sandbox/index.d.ts",
+      "import": "./dist/sandbox/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
