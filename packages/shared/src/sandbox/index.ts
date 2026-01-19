@@ -8,7 +8,7 @@
 export { sandboxOpenApiSpec, type SandboxOpenApiSpec } from './openapi.js';
 
 // Request handlers
-export { handleSandboxRequest, resetSandboxData } from './handlers.js';
+export { handleSandboxRequest, resetSandboxData, createSandboxSession, destroySandboxSession } from './handlers.js';
 
 // Types
 export type {

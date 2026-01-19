@@ -3,6 +3,8 @@
  *
  * Framework-agnostic request handlers for the Sandbox API.
  * These can be used with Express, Hono, or any other framework.
+ *
+ * Supports session-scoped data stores for concurrent user isolation during recording.
  */
 
 import {
@@ -22,9 +24,11 @@ import {
   createToken,
   getUserIdFromToken,
   resetSandboxData,
+  createSandboxSession,
+  destroySandboxSession,
 } from './data.js';
 
-export { resetSandboxData };
+export { resetSandboxData, createSandboxSession, destroySandboxSession };
 
 // Error response helper
 function errorResponse(status: number, error: string, code: string, details?: unknown): SandboxResponse {
@@ -60,19 +64,19 @@ function matchRoute(path: string, pattern: string): Record<string, string> | nul
   return params;
 }
 
-// Auth check helper
+// Auth check helper (session-aware)
 function checkAuth(req: SandboxRequest): { userId: string } | null {
   const authHeader = req.headers?.['authorization'] || req.headers?.['Authorization'];
   if (!authHeader) return null;
 
   const token = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-  const userId = getUserIdFromToken(token);
+  const userId = getUserIdFromToken(token, req.sessionId);
   if (!userId) return null;
 
   return { userId };
 }
 
-// Individual handlers
+// Individual handlers (all session-aware)
 function handleHealth(): SandboxResponse {
   return successResponse(200, {
     status: 'ok',
@@ -83,19 +87,20 @@ function handleHealth(): SandboxResponse {
 
 function handleLogin(req: SandboxRequest): SandboxResponse {
   const body = req.body as { email?: string; password?: string } | undefined;
+  const sessionId = req.sessionId;
 
   if (!body?.email || !body?.password) {
     return errorResponse(400, 'Email and password are required', 'INVALID_INPUT');
   }
 
   // Find or create user by email
-  let user = getUserByEmail(body.email);
+  let user = getUserByEmail(body.email, sessionId);
   if (!user) {
     // In sandbox mode, auto-create users on login
-    user = createUser({ email: body.email, name: body.email.split('@')[0], role: 'user' });
+    user = createUser({ email: body.email, name: body.email.split('@')[0], role: 'user' }, sessionId);
   }
 
-  const token = createToken(user.id);
+  const token = createToken(user.id, sessionId);
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
   return successResponse(200, { token, user, expiresAt });
@@ -106,8 +111,9 @@ function handleListUsers(req: SandboxRequest): SandboxResponse {
   const page = parseInt(String(query.page || '1'), 10);
   const limit = Math.min(parseInt(String(query.limit || '10'), 10), 100);
   const roleFilter = query.role as User['role'] | undefined;
+  const sessionId = req.sessionId;
 
-  let users = getUsers();
+  let users = getUsers(sessionId);
 
   // Filter by role if specified
   if (roleFilter && ['admin', 'user', 'viewer'].includes(roleFilter)) {
@@ -130,13 +136,14 @@ function handleListUsers(req: SandboxRequest): SandboxResponse {
 
 function handleCreateUser(req: SandboxRequest): SandboxResponse {
   const body = req.body as { email?: string; name?: string; role?: User['role'] } | undefined;
+  const sessionId = req.sessionId;
 
   if (!body?.email || !body?.name) {
     return errorResponse(400, 'Email and name are required', 'INVALID_INPUT');
   }
 
   // Check for duplicate email
-  if (getUserByEmail(body.email)) {
+  if (getUserByEmail(body.email, sessionId)) {
     return errorResponse(409, 'Email already exists', 'DUPLICATE_EMAIL');
   }
 
@@ -144,13 +151,13 @@ function handleCreateUser(req: SandboxRequest): SandboxResponse {
     email: body.email,
     name: body.name,
     role: body.role,
-  });
+  }, sessionId);
 
   return successResponse(201, user);
 }
 
-function handleGetUser(userId: string): SandboxResponse {
-  const user = getUserById(userId);
+function handleGetUser(userId: string, sessionId?: string): SandboxResponse {
+  const user = getUserById(userId, sessionId);
   if (!user) {
     return errorResponse(404, 'User not found', 'NOT_FOUND');
   }
@@ -159,12 +166,13 @@ function handleGetUser(userId: string): SandboxResponse {
 
 function handleUpdateUser(userId: string, req: SandboxRequest): SandboxResponse {
   const body = req.body as { email?: string; name?: string; role?: User['role'] } | undefined;
+  const sessionId = req.sessionId;
 
   if (!body || Object.keys(body).length === 0) {
     return errorResponse(400, 'No update fields provided', 'INVALID_INPUT');
   }
 
-  const user = updateUser(userId, body);
+  const user = updateUser(userId, body, sessionId);
   if (!user) {
     return errorResponse(404, 'User not found', 'NOT_FOUND');
   }
@@ -172,8 +180,8 @@ function handleUpdateUser(userId: string, req: SandboxRequest): SandboxResponse 
   return successResponse(200, user);
 }
 
-function handleDeleteUser(userId: string): SandboxResponse {
-  const deleted = deleteUser(userId);
+function handleDeleteUser(userId: string, sessionId?: string): SandboxResponse {
+  const deleted = deleteUser(userId, sessionId);
   if (!deleted) {
     return errorResponse(404, 'User not found', 'NOT_FOUND');
   }
@@ -183,8 +191,9 @@ function handleDeleteUser(userId: string): SandboxResponse {
 function handleListJobs(req: SandboxRequest): SandboxResponse {
   const query = req.query || {};
   const statusFilter = query.status as Job['status'] | undefined;
+  const sessionId = req.sessionId;
 
-  let jobs = getJobs();
+  let jobs = getJobs(sessionId);
 
   // Filter by status if specified
   if (statusFilter && ['pending', 'running', 'completed', 'failed'].includes(statusFilter)) {
@@ -196,17 +205,18 @@ function handleListJobs(req: SandboxRequest): SandboxResponse {
 
 function handleCreateJob(req: SandboxRequest): SandboxResponse {
   const body = req.body as { type?: Job['type'] } | undefined;
+  const sessionId = req.sessionId;
 
   if (!body?.type || !['export', 'import', 'process'].includes(body.type)) {
     return errorResponse(400, 'Valid job type is required (export, import, process)', 'INVALID_INPUT');
   }
 
-  const job = createJob({ type: body.type });
+  const job = createJob({ type: body.type }, sessionId);
   return successResponse(201, job);
 }
 
-function handleGetJob(jobId: string): SandboxResponse {
-  const job = getJobById(jobId);
+function handleGetJob(jobId: string, sessionId?: string): SandboxResponse {
+  const job = getJobById(jobId, sessionId);
   if (!job) {
     return errorResponse(404, 'Job not found', 'NOT_FOUND');
   }
@@ -245,13 +255,14 @@ function handleError(code: string): SandboxResponse {
 /**
  * Main request handler for the Sandbox API
  *
- * @param req - The incoming request
+ * @param req - The incoming request (may include sessionId for isolated recording)
  * @returns A SandboxResponse with status and body
  */
 export async function handleSandboxRequest(req: SandboxRequest): Promise<SandboxResponse> {
   // Normalize path - remove leading slash if present
   const path = req.path.startsWith('/') ? req.path : `/${req.path}`;
   const method = req.method.toUpperCase();
+  const sessionId = req.sessionId;
 
   // Health check (no auth required)
   if (path === '/health' && method === 'GET') {
@@ -295,9 +306,9 @@ export async function handleSandboxRequest(req: SandboxRequest): Promise<Sandbox
 
   const userMatch = matchRoute(path, '/users/{id}');
   if (userMatch) {
-    if (method === 'GET') return handleGetUser(userMatch.id);
+    if (method === 'GET') return handleGetUser(userMatch.id, sessionId);
     if (method === 'PUT') return handleUpdateUser(userMatch.id, req);
-    if (method === 'DELETE') return handleDeleteUser(userMatch.id);
+    if (method === 'DELETE') return handleDeleteUser(userMatch.id, sessionId);
   }
 
   // Job routes
@@ -308,7 +319,7 @@ export async function handleSandboxRequest(req: SandboxRequest): Promise<Sandbox
 
   const jobMatch = matchRoute(path, '/jobs/{id}');
   if (jobMatch && method === 'GET') {
-    return handleGetJob(jobMatch.id);
+    return handleGetJob(jobMatch.id, sessionId);
   }
 
   // Not found

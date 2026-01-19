@@ -3,6 +3,8 @@
  *
  * This module provides an in-memory data store for the Sandbox API.
  * Data is ephemeral and resets on server restart.
+ *
+ * Session-scoped stores are used for recording to prevent concurrent user conflicts.
  */
 
 // Types
@@ -44,6 +46,7 @@ export interface SandboxRequest {
   query?: Record<string, string | string[]>;
   body?: unknown;
   headers?: Record<string, string | string[] | undefined>;
+  sessionId?: string; // Optional session ID for isolated data stores
 }
 
 export interface SandboxResponse {
@@ -52,24 +55,19 @@ export interface SandboxResponse {
   headers?: Record<string, string>;
 }
 
-// Helper to generate unique IDs
-let idCounter = 0;
-export function generateId(): string {
-  return `${Date.now().toString(36)}-${(++idCounter).toString(36)}`;
-}
-
-// In-memory data store
+// In-memory data store structure
 interface DataStore {
   users: Map<string, User>;
   jobs: Map<string, Job>;
   tokens: Map<string, string>; // token -> userId
+  idCounter: number;
 }
 
-const store: DataStore = {
-  users: new Map(),
-  jobs: new Map(),
-  tokens: new Map(),
-};
+// Session-scoped stores for concurrent isolation
+const sessions = new Map<string, DataStore>();
+
+// Default shared store (for live playback, not recording)
+let defaultStore: DataStore;
 
 // Seed data
 const seedUsers: Omit<User, 'id' | 'createdAt' | 'updatedAt'>[] = [
@@ -79,16 +77,23 @@ const seedUsers: Omit<User, 'id' | 'createdAt' | 'updatedAt'>[] = [
   { email: 'demo@example.com', name: 'Demo User', role: 'viewer' },
 ];
 
-// Initialize store with seed data
-function initializeStore(): void {
-  store.users.clear();
-  store.jobs.clear();
-  store.tokens.clear();
-  idCounter = 0;
+// Helper to generate unique IDs within a store
+function generateIdForStore(store: DataStore): string {
+  return `${Date.now().toString(36)}-${(++store.idCounter).toString(36)}`;
+}
+
+// Create a fresh store with seed data
+function createFreshStore(): DataStore {
+  const store: DataStore = {
+    users: new Map(),
+    jobs: new Map(),
+    tokens: new Map(),
+    idCounter: 0,
+  };
 
   const now = new Date().toISOString();
   for (const userData of seedUsers) {
-    const id = generateId();
+    const id = generateIdForStore(store);
     store.users.set(id, {
       ...userData,
       id,
@@ -96,33 +101,68 @@ function initializeStore(): void {
       updatedAt: now,
     });
   }
+
+  return store;
 }
 
-// Initialize on load
-initializeStore();
+// Initialize default store on load
+defaultStore = createFreshStore();
+
+// Get the appropriate store for a session
+function getStore(sessionId?: string): DataStore {
+  if (sessionId) {
+    const session = sessions.get(sessionId);
+    if (session) return session;
+  }
+  return defaultStore;
+}
 
 /**
- * Reset the data store to initial seed data
+ * Create an isolated sandbox session for recording
+ * Returns a session ID that should be passed to all subsequent requests
+ */
+export function createSandboxSession(): string {
+  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+  sessions.set(sessionId, createFreshStore());
+  return sessionId;
+}
+
+/**
+ * Destroy a sandbox session and clean up its data
+ */
+export function destroySandboxSession(sessionId: string): void {
+  sessions.delete(sessionId);
+}
+
+/**
+ * Reset the default data store (for backwards compatibility)
+ * @deprecated Use createSandboxSession() for isolated recording
  */
 export function resetSandboxData(): void {
-  initializeStore();
+  defaultStore = createFreshStore();
+}
+
+// Public ID generator (uses default store for backwards compatibility)
+export function generateId(sessionId?: string): string {
+  return generateIdForStore(getStore(sessionId));
 }
 
 // User operations
-export function getUsers(): User[] {
-  return Array.from(store.users.values());
+export function getUsers(sessionId?: string): User[] {
+  return Array.from(getStore(sessionId).users.values());
 }
 
-export function getUserById(id: string): User | undefined {
-  return store.users.get(id);
+export function getUserById(id: string, sessionId?: string): User | undefined {
+  return getStore(sessionId).users.get(id);
 }
 
-export function getUserByEmail(email: string): User | undefined {
-  return Array.from(store.users.values()).find((u) => u.email === email);
+export function getUserByEmail(email: string, sessionId?: string): User | undefined {
+  return Array.from(getStore(sessionId).users.values()).find((u) => u.email === email);
 }
 
-export function createUser(data: { email: string; name: string; role?: User['role'] }): User {
-  const id = generateId();
+export function createUser(data: { email: string; name: string; role?: User['role'] }, sessionId?: string): User {
+  const store = getStore(sessionId);
+  const id = generateIdForStore(store);
   const now = new Date().toISOString();
   const user: User = {
     id,
@@ -136,7 +176,8 @@ export function createUser(data: { email: string; name: string; role?: User['rol
   return user;
 }
 
-export function updateUser(id: string, data: Partial<Omit<User, 'id' | 'createdAt'>>): User | undefined {
+export function updateUser(id: string, data: Partial<Omit<User, 'id' | 'createdAt'>>, sessionId?: string): User | undefined {
+  const store = getStore(sessionId);
   const user = store.users.get(id);
   if (!user) return undefined;
 
@@ -151,21 +192,22 @@ export function updateUser(id: string, data: Partial<Omit<User, 'id' | 'createdA
   return updated;
 }
 
-export function deleteUser(id: string): boolean {
-  return store.users.delete(id);
+export function deleteUser(id: string, sessionId?: string): boolean {
+  return getStore(sessionId).users.delete(id);
 }
 
 // Job operations
-export function getJobs(): Job[] {
-  return Array.from(store.jobs.values());
+export function getJobs(sessionId?: string): Job[] {
+  return Array.from(getStore(sessionId).jobs.values());
 }
 
-export function getJobById(id: string): Job | undefined {
-  return store.jobs.get(id);
+export function getJobById(id: string, sessionId?: string): Job | undefined {
+  return getStore(sessionId).jobs.get(id);
 }
 
-export function createJob(data: { type: Job['type'] }): Job {
-  const id = generateId();
+export function createJob(data: { type: Job['type'] }, sessionId?: string): Job {
+  const store = getStore(sessionId);
+  const id = generateIdForStore(store);
   const job: Job = {
     id,
     type: data.type,
@@ -175,13 +217,25 @@ export function createJob(data: { type: Job['type'] }): Job {
   };
   store.jobs.set(id, job);
 
-  // Simulate async job progress
-  simulateJobProgress(id);
+  // Simulate async job progress (only for default store, not during recording)
+  if (!sessionId) {
+    simulateJobProgress(id, sessionId);
+  } else {
+    // For recording, immediately mark as completed
+    store.jobs.set(id, {
+      ...job,
+      status: 'completed',
+      progress: 100,
+      completedAt: new Date().toISOString(),
+      result: { message: 'Job completed successfully', processedItems: 42 },
+    });
+  }
 
-  return job;
+  return store.jobs.get(id)!;
 }
 
-export function updateJob(id: string, data: Partial<Omit<Job, 'id' | 'createdAt'>>): Job | undefined {
+export function updateJob(id: string, data: Partial<Omit<Job, 'id' | 'createdAt'>>, sessionId?: string): Job | undefined {
+  const store = getStore(sessionId);
   const job = store.jobs.get(id);
   if (!job) return undefined;
 
@@ -195,8 +249,8 @@ export function updateJob(id: string, data: Partial<Omit<Job, 'id' | 'createdAt'
   return updated;
 }
 
-// Simulate job progress over time
-function simulateJobProgress(jobId: string): void {
+// Simulate job progress over time (only for live playback)
+function simulateJobProgress(jobId: string, sessionId?: string): void {
   const progressSteps = [
     { delay: 500, progress: 0, status: 'running' as const },
     { delay: 1000, progress: 25, status: 'running' as const },
@@ -205,6 +259,7 @@ function simulateJobProgress(jobId: string): void {
     { delay: 2500, progress: 100, status: 'completed' as const },
   ];
 
+  const store = getStore(sessionId);
   for (const step of progressSteps) {
     setTimeout(() => {
       const job = store.jobs.get(jobId);
@@ -216,26 +271,27 @@ function simulateJobProgress(jobId: string): void {
             completedAt: new Date().toISOString(),
             result: { message: 'Job completed successfully', processedItems: 42 }
           } : {}),
-        });
+        }, sessionId);
       }
     }, step.delay);
   }
 }
 
 // Auth operations
-export function createToken(userId: string): string {
-  const token = `sandbox_${generateId()}_${Math.random().toString(36).substring(2)}`;
+export function createToken(userId: string, sessionId?: string): string {
+  const store = getStore(sessionId);
+  const token = `sandbox_${generateIdForStore(store)}_${Math.random().toString(36).substring(2)}`;
   store.tokens.set(token, userId);
   return token;
 }
 
-export function getUserIdFromToken(token: string): string | undefined {
+export function getUserIdFromToken(token: string, sessionId?: string): string | undefined {
   // Handle "Bearer " prefix
   const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
-  return store.tokens.get(cleanToken);
+  return getStore(sessionId).tokens.get(cleanToken);
 }
 
-export function invalidateToken(token: string): boolean {
+export function invalidateToken(token: string, sessionId?: string): boolean {
   const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
-  return store.tokens.delete(cleanToken);
+  return getStore(sessionId).tokens.delete(cleanToken);
 }
