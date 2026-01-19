@@ -1,0 +1,223 @@
+title: "Sandbox API Demo"
+description: "Demonstrates DemoScript features using the built-in Sandbox API - no external dependencies required"
+version: "1.0"
+author: "DemoScript"
+tags:
+  - api
+  - tutorial
+  - sandbox
+
+metadata:
+  duration: "3 minutes"
+  difficulty: beginner
+  category: "Getting Started"
+
+settings:
+  base_url: "/sandbox"
+  openapi: "/sandbox/openapi.json"
+
+  theme:
+    preset: "teal"
+
+  effects:
+    confetti: true
+    sounds: true
+
+steps:
+  - slide: |
+      # Sandbox API Demo
+
+      This demo uses DemoScript's **built-in Sandbox API** - a self-contained
+      mock API that works without any external dependencies.
+
+      **Features demonstrated:**
+      - Authentication flow
+      - CRUD operations (users)
+      - Async jobs with polling
+      - Error handling
+
+      Click **Next** to begin!
+
+  - rest: GET /health
+    title: "Health Check"
+    description: "Verify the Sandbox API is running"
+    results:
+      - key: status
+        label: "Status"
+        type: text
+      - key: version
+        label: "Version"
+        type: mono
+
+  - rest: POST /auth/login
+    title: "Authenticate"
+    description: "Login to get an authentication token"
+    defaults:
+      email: "demo@example.com"
+      password: "demo123"
+    save:
+      token: token
+      userId: user.id
+      userName: user.name
+    results:
+      - key: user.name
+        label: "Welcome"
+        type: text
+      - key: token
+        label: "Token"
+        type: mono
+
+  - slide: |
+      # Authentication Complete
+
+      Welcome, **$userName**!
+
+      You're now authenticated with the Sandbox API.
+      Your token has been saved and will be used for subsequent requests.
+
+      Let's explore user management next.
+
+  - rest: GET /users
+    title: "List All Users"
+    description: "Retrieve all users from the sandbox database"
+    headers:
+      Authorization: "Bearer $token"
+    results:
+      - key: total
+        label: "Total Users"
+      - key: users
+        label: "Users"
+        type: json
+
+  - rest: POST /users
+    title: "Create New User"
+    description: "Add a new user to the sandbox"
+    headers:
+      Authorization: "Bearer $token"
+    defaults:
+      email: "newuser@example.com"
+      name: "New User"
+      role: "user"
+    save:
+      newUserId: id
+    results:
+      - key: id
+        label: "User ID"
+        type: mono
+      - key: email
+        label: "Email"
+        type: text
+      - key: createdAt
+        label: "Created"
+        type: relative_time
+
+  - rest: GET /users/$newUserId
+    title: "Get User Details"
+    description: "Retrieve the user we just created"
+    headers:
+      Authorization: "Bearer $token"
+    results:
+      - key: name
+        label: "Name"
+        type: text
+      - key: role
+        label: "Role"
+        type: text
+      - key: updatedAt
+        label: "Last Updated"
+        type: relative_time
+
+  - slide: |
+      # Async Jobs
+
+      The Sandbox API also supports **async jobs** that demonstrate
+      polling behavior.
+
+      When you create a job, it will:
+      1. Start in `pending` status
+      2. Progress through `running` (0% → 100%)
+      3. Complete after ~3 seconds
+
+      This is perfect for testing polling configurations!
+
+  - rest: POST /jobs
+    title: "Create Async Job"
+    description: "Start an export job and watch it progress"
+    headers:
+      Authorization: "Bearer $token"
+    body:
+      type: "export"
+    save:
+      jobId: id
+    poll:
+      endpoint: /jobs/$jobId
+      interval: 500
+      max_attempts: 15
+      success_when: "status == 'completed'"
+    results:
+      - key: id
+        label: "Job ID"
+        type: mono
+      - key: status
+        label: "Status"
+        type: text
+      - key: progress
+        label: "Progress"
+      - key: result.message
+        label: "Result"
+        type: text
+
+  - slide: |
+      # Error Handling
+
+      The Sandbox API includes an `/error/{code}` endpoint for
+      testing error scenarios.
+
+      Let's see how DemoScript handles a 404 error.
+
+  - rest: GET /error/404
+    title: "Test Error Response"
+    description: "Generate a 404 Not Found error"
+    save:
+      errorStatus: _status
+    results:
+      - key: error
+        label: "Error"
+        type: text
+      - key: code
+        label: "Code"
+        type: mono
+
+  - rest: POST /echo
+    title: "Echo Test"
+    description: "The echo endpoint returns whatever you send it"
+    body:
+      message: "Hello from DemoScript!"
+      features:
+        - "OpenAPI integration"
+        - "Async polling"
+        - "Error handling"
+    results:
+      - key: echo.message
+        label: "Message"
+        type: text
+      - key: timestamp
+        label: "Timestamp"
+        type: relative_time
+
+  - slide: |
+      # Demo Complete!
+
+      You've successfully explored the Sandbox API, including:
+
+      - **Health checks** - API status verification
+      - **Authentication** - Token-based auth flow
+      - **CRUD operations** - User management
+      - **Async jobs** - Polling for completion
+      - **Error handling** - Testing error responses
+      - **Echo endpoint** - Request/response testing
+
+      The Sandbox API is available at `/sandbox` in CLI mode
+      and `/api/sandbox` in DemoScript Cloud.
+
+      **No external dependencies required!**
