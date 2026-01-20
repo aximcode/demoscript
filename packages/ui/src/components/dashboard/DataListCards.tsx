@@ -6,7 +6,7 @@ interface DataListCardsProps {
   items: unknown[];
   config: CardLayoutConfig;
   emptyMessage?: string;
-  linksConfig?: Record<string, { address?: string; tx?: string; token?: string }>;
+  linksConfig?: Record<string, Record<string, string | undefined>>;
 }
 
 // Badge component
@@ -125,6 +125,7 @@ function DataListCardItem({
                     value={fieldValue}
                     type={field.type || 'text'}
                     link={field.link}
+                    linkKey={field.link_key}
                   />
                 </span>
               </div>

@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=@demoscript/ui",
-    "build": "npm run build --workspace=packages/ui && npm run bundle --workspace=packages/cli",
+    "build": "npm run build --workspace=@demoscript/shared && npm run build --workspace=@demoscript/ui && npm run bundle --workspace=packages/cli",
     "lint": "npm run lint --workspaces",
     "clean": "rm -rf packages/*/dist packages/*/node_modules dist node_modules"
   },

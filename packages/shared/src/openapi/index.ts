@@ -451,12 +451,12 @@ function mapSchemaToResultType(
     if (nameLower.includes('id') || nameLower.includes('uuid')) {
       return 'mono';
     }
-    // Blockchain-specific
+    // Identifiers that benefit from truncation (addresses, hashes, etc.)
     if (nameLower.includes('address') || nameLower.includes('wallet')) {
-      return 'address';
+      return 'ref';
     }
     if (nameLower.includes('hash') || nameLower.includes('txid') || nameLower === 'tx') {
-      return 'tx';
+      return 'ref';
     }
   }
 

@@ -61,6 +61,7 @@ export function DataListTable({ items, columns, emptyMessage }: DataListTablePro
                         value={value}
                         type={col.type || 'text'}
                         link={col.link}
+                        linkKey={col.link_key}
                       />
                     </td>
                   );

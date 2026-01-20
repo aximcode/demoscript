@@ -286,9 +286,10 @@
         "label": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["text", "address", "tx", "token", "currency", "mono", "relative_time", "link"]
+          "enum": ["text", "ref", "currency", "mono", "relative_time", "link"]
         },
-        "link": { "type": "string" }
+        "link": { "type": "string", "description": "Link handler name (e.g., 'github', 'polygonscan')" },
+        "link_key": { "type": "string", "description": "Key within link handler (e.g., 'user', 'address', 'tx')" }
       }
     },
     "TableColumnConfig": {
@@ -299,9 +300,10 @@
         "label": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["text", "address", "tx", "token", "currency", "mono", "relative_time", "link"]
+          "enum": ["text", "ref", "currency", "mono", "relative_time", "link"]
         },
-        "link": { "type": "string" }
+        "link": { "type": "string", "description": "Link handler name (e.g., 'github', 'polygonscan')" },
+        "link_key": { "type": "string", "description": "Key within link handler (e.g., 'user', 'address', 'tx')" }
       }
     },
     "SidebarSettings": {
@@ -385,11 +387,8 @@
     },
     "LinkHandler": {
       "type": "object",
-      "properties": {
-        "address": { "type": "string" },
-        "tx": { "type": "string" },
-        "token": { "type": "string" }
-      }
+      "description": "Link handler with named URL templates. Use {value} as placeholder.",
+      "additionalProperties": { "type": "string" }
     },
     "BaseStep": {
       "type": "object",
@@ -445,10 +444,11 @@
         "key": { "type": "string", "description": "JSON path to extract value (e.g., 'user.name' or '[0].id')" },
         "label": { "type": "string", "description": "Display label (defaults to formatted key name)" },
         "type": {
-          "enum": ["text", "address", "tx", "token", "link", "currency", "code", "table", "json", "mono", "relative_time"],
-          "description": "Display type: text (default), address/tx/token (blockchain), link, currency, code, table, json (tree view), mono (monospace), relative_time"
+          "enum": ["text", "ref", "link", "currency", "code", "table", "json", "mono", "relative_time"],
+          "description": "Display type: text (default), ref (truncated identifier with copy button), link, currency, code, table, json (tree view), mono (monospace), relative_time"
         },
-        "link": { "type": "string", "description": "Link handler name (e.g., 'github', 'etherscan')" },
+        "link": { "type": "string", "description": "Link handler name (e.g., 'github', 'polygonscan')" },
+        "link_key": { "type": "string", "description": "Key within link handler (e.g., 'user', 'address', 'tx')" },
         "format": { "type": "string" },
         "columns": {
           "type": "array",

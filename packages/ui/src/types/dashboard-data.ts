@@ -36,8 +36,9 @@ export interface CardLayoutConfig {
 export interface DataListField {
   key: string;
   label?: string;
-  type?: 'text' | 'address' | 'tx' | 'token' | 'currency' | 'mono' | 'relative_time' | 'link';
+  type?: 'text' | 'ref' | 'currency' | 'mono' | 'relative_time' | 'link';
   link?: string;             // Link handler name (github, jira, etc.) from settings.links
+  link_key?: string;         // Key within link handler (e.g., 'user', 'address', 'tx')
 }
 
 // Table Column Configuration
@@ -46,6 +47,7 @@ export interface TableColumnConfig {
   label: string;
   type?: DataListField['type'];
   link?: string;
+  link_key?: string;
 }
 
 // Data List Configuration

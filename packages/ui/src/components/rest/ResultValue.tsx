@@ -10,6 +10,7 @@ interface Props {
   value: unknown;
   type?: string;
   link?: string;
+  linkKey?: string;
   expandedDepth?: number;
   columns?: TableColumn[];
 }
@@ -136,14 +137,14 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export function ResultValue({ value, type, link, expandedDepth, columns }: Props) {
+export function ResultValue({ value, type, link, linkKey, expandedDepth, columns }: Props) {
   const { state } = useDemo();
   const stringValue = String(value ?? '');
 
   // Check if counters are enabled (defaults to true)
   const countersEnabled = state.config?.settings?.effects?.counters ?? true;
 
-  // Animate numeric values that aren't addresses/transactions
+  // Animate numeric values that don't have an explicit type
   if (typeof value === 'number' && !type) {
     return (
       <span className="font-mono text-sm text-gray-700 dark:text-slate-300">
@@ -156,7 +157,7 @@ export function ResultValue({ value, type, link, expandedDepth, columns }: Props
     );
   }
 
-  if (type === 'address' || type === 'tx' || type === 'token') {
+  if (type === 'ref') {
     const truncated =
       stringValue.length > 16
         ? `${stringValue.slice(0, 10)}...${stringValue.slice(-8)}`
@@ -169,7 +170,7 @@ export function ResultValue({ value, type, link, expandedDepth, columns }: Props
       const linksConfig = state.config?.settings?.links || {};
 
       // Try to resolve via configured link handler
-      const resolvedUrl = buildLink(stringValue, type, link, linksConfig);
+      const resolvedUrl = buildLink(stringValue, link, linksConfig, linkKey);
 
       if (resolvedUrl) {
         explorerUrl = resolvedUrl;

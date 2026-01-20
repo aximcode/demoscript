@@ -235,8 +235,9 @@ Makes HTTP API calls.
       type: text
     - key: username
       label: "Username"
-      type: address                  # text, address, tx, link, currency, code
+      type: ref                      # text, ref, link, currency, code, table, json, mono, relative_time
       link: github                   # Optional: configured link handler
+      link_key: user                 # Optional: key within link handler
 
   # Polling for async operations (optional)
   wait_for: abtJobId                 # Response field containing job ID
@@ -775,11 +776,17 @@ Then reference handlers in results:
 ```yaml
 results:
   - key: username
-    type: address
-    link: github       # Opens GitHub profile
+    type: ref
+    link: github       # Link handler name
+    link_key: user     # Key within handler (uses github.user template)
   - key: ticketId
-    type: tx
-    link: jira         # Opens Jira ticket
+    type: ref
+    link: jira         # Link handler name
+    link_key: issue    # Key within handler (uses jira.issue template)
+  - key: walletAddress
+    type: ref
+    link: polygonscan
+    link_key: address  # Uses polygonscan.address template
 ```
 
 The `{value}` placeholder is replaced with the actual result value.
@@ -1035,7 +1042,7 @@ Shows:
 Dynamically generates form fields from YAML config.
 
 #### ResultRenderer
-Formats response values based on type (address, tx, currency, etc.) with appropriate links.
+Formats response values based on type (ref, currency, etc.) with appropriate links.
 
 #### Controls
 Navigation buttons, keyboard shortcuts, mode toggle (live/recorded).

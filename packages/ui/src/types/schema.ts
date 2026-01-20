@@ -105,9 +105,7 @@ export interface PollingDefaults {
 }
 
 export interface LinkHandler {
-  address?: string;
-  tx?: string;
-  token?: string;
+  [key: string]: string | undefined;
 }
 
 export interface BaseStep {
@@ -351,8 +349,9 @@ export interface SelectOption {
 export interface ResultField {
   key: string;
   label?: string;
-  type?: 'text' | 'address' | 'tx' | 'token' | 'link' | 'currency' | 'code' | 'table' | 'json';
-  link?: string;
+  type?: 'text' | 'ref' | 'link' | 'currency' | 'code' | 'table' | 'json' | 'mono' | 'relative_time';
+  link?: string;           // Link handler name (e.g., 'github', 'polygonscan')
+  link_key?: string;       // Key within handler (e.g., 'user', 'address', 'tx')
   format?: string;
   columns?: TableColumn[];
   // JSON viewer options

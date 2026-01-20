@@ -31,6 +31,7 @@ export function ResultsDisplay({ response, results }: Props) {
                     value={value}
                     type={result.type}
                     link={result.link}
+                    linkKey={result.link_key}
                     expandedDepth={result.expandedDepth}
                     columns={result.columns}
                   />
@@ -45,6 +46,7 @@ export function ResultsDisplay({ response, results }: Props) {
                   value={value}
                   type={result.type}
                   link={result.link}
+                  linkKey={result.link_key}
                   expandedDepth={result.expandedDepth}
                   columns={result.columns}
                 />

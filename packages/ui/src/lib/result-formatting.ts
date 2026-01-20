@@ -13,30 +13,52 @@ export function formatCurrency(value: unknown, format?: string): string {
   }).format(num);
 }
 
-export function truncateAddress(address: string, chars = 6): string {
-  if (address.length <= chars * 2 + 2) return address;
-  return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
+/**
+ * Truncate a reference string (address, hash, ID, etc.) for display
+ * Shows first 10 chars ... last 8 chars for long values
+ */
+export function truncateRef(value: string, threshold = 16): string {
+  if (value.length <= threshold) return value;
+  return `${value.slice(0, 10)}...${value.slice(-8)}`;
 }
 
-export function truncateTxHash(hash: string, chars = 8): string {
-  if (hash.length <= chars * 2 + 2) return hash;
-  return `${hash.slice(0, chars + 2)}...${hash.slice(-chars)}`;
-}
+// Legacy aliases for backward compatibility
+export const truncateAddress = truncateRef;
+export const truncateTxHash = truncateRef;
 
+/**
+ * Build a link URL using a configured link handler
+ *
+ * @param value - The value to insert into the URL template
+ * @param handler - Name of the link handler (e.g., 'github', 'polygonscan')
+ * @param linkHandlers - Map of handler configs
+ * @param linkKey - Explicit key within handler to use (e.g., 'user', 'address', 'tx')
+ */
 export function buildLink(
   value: string,
-  type: string,
   handler: string,
-  linkHandlers: Record<string, { address?: string; tx?: string; token?: string }>
+  linkHandlers: Record<string, Record<string, string | undefined>>,
+  linkKey?: string
 ): string | null {
   const handlerConfig = linkHandlers[handler];
   if (!handlerConfig) return null;
 
   let template: string | undefined;
-  if (type === 'address' || type === 'token') {
-    template = handlerConfig.address || handlerConfig.token;
-  } else if (type === 'tx') {
-    template = handlerConfig.tx;
+
+  // Priority 1: Explicit link_key
+  if (linkKey && handlerConfig[linkKey]) {
+    template = handlerConfig[linkKey];
+  }
+  // Priority 2: Default key
+  else if (handlerConfig.default) {
+    template = handlerConfig.default;
+  }
+  // Priority 3: First available key (fallback)
+  else {
+    const keys = Object.keys(handlerConfig);
+    if (keys.length > 0) {
+      template = handlerConfig[keys[0]];
+    }
   }
 
   if (!template) return null;

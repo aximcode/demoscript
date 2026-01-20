@@ -31,7 +31,7 @@ function inferResultType(varName: string, jsonPath: string): ResultField['type']
 
   // Address/wallet fields
   if (nameLower.includes('address') || nameLower.includes('wallet')) {
-    return 'address';
+    return 'ref';
   }
 
   // URL fields
