@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: demoscript
 Upstream-Contact: Mike Gosha <mike@example.com>
-Source: https://github.com/mgosha/demoscript
+Source: https://github.com/aximcode/demoscript
 
 Files: *
 Copyright: 2025 Mike Gosha

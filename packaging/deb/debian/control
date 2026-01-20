@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Mike Gosha <mike@example.com>
 Build-Depends: debhelper-compat (= 13), nodejs (>= 18), npm
 Standards-Version: 4.6.0
-Homepage: https://github.com/mgosha/demoscript
+Homepage: https://github.com/aximcode/demoscript
 Rules-Requires-Root: no
 
 Package: demoscript

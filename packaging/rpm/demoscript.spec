@@ -4,7 +4,7 @@ Release:        1%{?dist}
 Summary:        Framework for scripted, shareable product demonstrations
 
 License:        MIT
-URL:            https://github.com/mgosha/demoscript
+URL:            https://github.com/aximcode/demoscript
 Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  nodejs >= 18
