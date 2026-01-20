@@ -63,7 +63,7 @@ npx demoscript-cli serve ./my-demo
 
 ### Linux Packages
 
-RPM and DEB packages are available in [Releases](https://github.com/mgosha/demoscript/releases).
+RPM and DEB packages are available in [Releases](https://github.com/aximcode/demoscript/releases).
 
 ```bash
 # RHEL/Alma/Fedora

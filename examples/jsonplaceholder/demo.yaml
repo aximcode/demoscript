@@ -122,6 +122,6 @@ steps:
 
       - Check out `examples/feature-showcase` for advanced features
       - See `examples/github-api` for custom link handlers
-      - Read the [full documentation](https://github.com/mgosha/demoscript)
+      - Read the [full documentation](https://github.com/aximcode/demoscript)
 
     title: "Complete!"
