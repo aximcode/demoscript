@@ -1,29 +1,12 @@
 # DemoScript
 
-[![npm version](https://img.shields.io/npm/v/demoscript-cli.svg)](https://www.npmjs.com/package/demoscript-cli)
-[![GitHub stars](https://img.shields.io/github/stars/aximcode/demoscript)](https://github.com/aximcode/demoscript/stargazers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Website](https://img.shields.io/badge/Website-demoscript.app-blue)](https://demoscript.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 
-**The open-source interactive demo platform for developers and DevRel teams.** Create API demos, product walkthroughs, and technical tutorials in YAML — no coding required. Self-host for free or use [DemoScript Cloud](https://demoscript.app).
-
-```bash
-npm install -g demoscript-cli && demoscript serve ./my-demo
-```
+A framework for creating scripted, shareable product demonstrations. Write YAML files to define demo steps, and DemoScript provides a polished web UI for presenting and sharing them.
 
 ![DemoScript Demo](assets/demo.gif)
-
-## Why DemoScript?
-
-| | DemoScript | Demostack | Walnut | Storylane |
-|---|:---:|:---:|:---:|:---:|
-| **Pricing** | Free (OSS) | $$$$ | $$$$ | $$$ |
-| **Target** | Developers, DevRel | Sales teams | Sales teams | Marketing |
-| **Approach** | YAML-first, code-native | No-code, click capture | No-code, click capture | No-code, screenshots |
-| **Self-host** | ✅ Yes | ❌ No | ❌ No | ❌ No |
-| **API demos** | ✅ Native support | ❌ Limited | ❌ Limited | ❌ No |
-| **Open source** | ✅ MIT | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary |
-| **Git-friendly** | ✅ YAML files | ❌ No | ❌ No | ❌ No |
 
 ## Features
 

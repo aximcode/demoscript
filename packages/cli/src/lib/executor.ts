@@ -1,4 +1,9 @@
 import type { RestStep, DemoConfig, PollConfig } from '../types.js';
+import {
+  substituteVariables,
+  substituteInObject,
+  extractValueByPath,
+} from '@demoscript/shared/variables';
 
 interface ExecutionResult {
   request: {
@@ -83,7 +88,7 @@ export async function executeRestStep(
         variables[varName] = response.status;
       } else if (responseBody) {
         // JSON path extraction from response body
-        const value = getNestedValue(responseBody, path);
+        const value = extractValueByPath(responseBody, path);
         if (value !== undefined) {
           variables[varName] = value;
         }
@@ -177,7 +182,7 @@ export function evaluateCondition(condition: string, response: unknown): boolean
   }
 
   const [, path, operator, expectedRaw] = match;
-  const actualValue = getNestedValue(response, path);
+  const actualValue = extractValueByPath(response, path);
 
   // Parse expected value
   let expectedValue: unknown;
@@ -204,48 +209,9 @@ export function evaluateCondition(condition: string, response: unknown): boolean
   return false;
 }
 
-export function getNestedValue(obj: unknown, path: string): unknown {
-  const parts = path.split('.');
-  let current: unknown = obj;
-
-  for (const part of parts) {
-    if (current === null || current === undefined) {
-      return undefined;
-    }
-    if (typeof current === 'object') {
-      current = (current as Record<string, unknown>)[part];
-    } else {
-      return undefined;
-    }
-  }
-
-  return current;
-}
+// Re-export for backward compatibility
+export { extractValueByPath as getNestedValue } from '@demoscript/shared/variables';
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function substituteVariables(str: string, variables: Record<string, unknown>): string {
-  return str.replace(/\$([a-zA-Z_][a-zA-Z0-9_]*)/g, (_, name) => {
-    const value = variables[name];
-    return value !== undefined ? String(value) : `$${name}`;
-  });
-}
-
-function substituteInObject(obj: unknown, variables: Record<string, unknown>): unknown {
-  if (typeof obj === 'string') {
-    return substituteVariables(obj, variables);
-  }
-  if (Array.isArray(obj)) {
-    return obj.map((item) => substituteInObject(item, variables));
-  }
-  if (obj && typeof obj === 'object') {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      result[key] = substituteInObject(value, variables);
-    }
-    return result;
-  }
-  return obj;
 }

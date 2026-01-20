@@ -2,6 +2,14 @@
  * DemoScript YAML Schema Types
  */
 
+// Re-export shared types for backward compatibility
+export type {
+  FormField,
+  ResultField,
+  SelectOption,
+  TableColumn,
+} from '@demoscript/shared/types';
+
 // Re-export dashboard data types
 export type {
   DataCard,
@@ -13,6 +21,7 @@ export type {
 } from './dashboard-data';
 
 import type { DataCard, DataList } from './dashboard-data';
+import type { FormField, ResultField } from '@demoscript/shared/types';
 
 export interface DemoConfig {
   title: string;
@@ -323,45 +332,7 @@ export type Step =
 
 export type StepOrGroup = Step | StepGroup;
 
-// Supporting types
-
-export interface FormField {
-  name: string;
-  label?: string;
-  type?: 'text' | 'number' | 'select' | 'textarea' | 'toggle' | 'slider';
-  default?: string | number | boolean;
-  required?: boolean;
-  readonly?: boolean;
-  hidden?: boolean;
-  options?: SelectOption[];
-  placeholder?: string;
-  // Slider-specific properties
-  min?: number;
-  max?: number;
-  step?: number;
-}
-
-export interface SelectOption {
-  label: string;
-  value: string;
-}
-
-export interface ResultField {
-  key: string;
-  label?: string;
-  type?: 'text' | 'ref' | 'link' | 'currency' | 'code' | 'table' | 'json' | 'mono' | 'relative_time';
-  link?: string;           // Link handler name (e.g., 'github', 'polygonscan')
-  link_key?: string;       // Key within handler (e.g., 'user', 'address', 'tx')
-  format?: string;
-  columns?: TableColumn[];
-  // JSON viewer options
-  expandedDepth?: number;  // How many levels to auto-expand (default: 2)
-}
-
-export interface TableColumn {
-  key: string;
-  label: string;
-}
+// Supporting types (FormField, ResultField, SelectOption, TableColumn imported from @demoscript/shared)
 
 export interface PollingConfig {
   endpoint: string;
