@@ -58,8 +58,9 @@ steps:
         expandedDepth: 1
       - key: login
         label: "Username"
-        type: address
+        type: ref
         link: github
+        link_key: user
       - key: name
         label: "Name"
       - key: public_repos
@@ -123,8 +124,9 @@ steps:
       ```yaml
       results:
         - key: login
-          type: address
+          type: ref
           link: github
+          link_key: user
       ```
 
       The `{value}` placeholder is replaced with the actual value.

@@ -311,8 +311,9 @@ Make HTTP API calls:
     - key: id
       label: "ID"
     - key: txHash
-      type: tx             # Special type with explorer link
+      type: ref            # Truncated identifier with copy button
       link: polygonscan    # Links to configured explorer
+      link_key: tx         # Key within handler (uses polygonscan.tx template)
   poll:
     endpoint: "/api/status/$jobId"
     success_when: "response.status == 'complete'"
@@ -333,14 +334,14 @@ Make HTTP API calls:
 | Type | Description |
 |------|-------------|
 | `text` | Plain text (default) |
-| `address` | Identifier with copy button and optional link |
-| `tx` | Transaction/reference ID with optional link |
-| `token` | Token/resource identifier with optional link |
+| `ref` | Truncated identifier with copy button and optional link |
 | `currency` | Formatted currency value |
 | `code` | Syntax-highlighted code block |
 | `json` | Formatted JSON with syntax highlighting |
 | `table` | Render array data as a table |
 | `link` | Clickable URL |
+| `mono` | Monospace text (no truncation) |
+| `relative_time` | Human-readable relative time (e.g., "2 hours ago") |
 
 **Custom link handlers:**
 
@@ -363,19 +364,22 @@ settings:
       tx: "https://amoy.polygonscan.com/tx/{value}"
 ```
 
-Then reference in results:
+Then reference in results with `link` and `link_key`:
 
 ```yaml
 results:
   - key: username
-    type: address
-    link: github       # Opens https://github.com/{username}
+    type: ref
+    link: github       # Link handler name
+    link_key: user     # Key within handler (uses github.user template)
   - key: issueNumber
-    type: tx
-    link: jira         # Opens Jira issue
+    type: ref
+    link: jira         # Link handler name
+    link_key: issue    # Key within handler (uses jira.issue template)
   - key: contractAddress
-    type: address
-    link: polygonscan  # Opens blockchain explorer
+    type: ref
+    link: polygonscan  # Link handler name
+    link_key: address  # Key within handler (uses polygonscan.address template)
 ```
 
 #### Shell Step
@@ -890,7 +894,7 @@ See [ROADMAP.md](ROADMAP.md) for the full improvement guide including architectu
 - **Enhanced visual effects** - Neon glow, animated grid background, floating orbs
 - **Tunnel support** - Public URLs via ngrok or Cloudflare tunnels
 - **cURL display** - Show curl commands for REST steps with `show_curl: true`
-- **Result types** - Rich rendering for addresses, transactions, code, tables, JSON
+- **Result types** - Rich rendering for identifiers, code, tables, JSON, and more
 - **Custom link handlers** - Configurable links for any service (GitHub, Jira, blockchain explorers)
 - **Gallery metadata** - Duration, difficulty badges in gallery index
 - **Sound controls** - Volume control and additional sound effects
