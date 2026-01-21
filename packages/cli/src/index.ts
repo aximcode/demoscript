@@ -5,6 +5,7 @@ import { createRequire } from 'module';
 import { serve } from './commands/serve.js';
 import { push } from './commands/push.js';
 import { login, logout, whoami } from './commands/login.js';
+import { builder } from '@demoscript/builder/cli';
 
 // Read version from package.json at runtime
 const require = createRequire(import.meta.url);
@@ -60,6 +61,17 @@ program
   .option('--private', 'Make demo private')
   .action(async (demo: string, options: { slug?: string; title?: string; public?: boolean; private?: boolean }) => {
     await push(demo, options);
+  });
+
+program
+  .command('builder')
+  .description('Open the visual demo builder')
+  .option('-p, --port <port>', 'Port to run on', '3002')
+  .option('-H, --host [host]', 'Host to bind to (use --host for 0.0.0.0)')
+  .option('--no-open', 'Do not open browser automatically')
+  .action(async (options: { port: string; host?: string | boolean; open: boolean }) => {
+    const host = options.host === true ? '0.0.0.0' : (typeof options.host === 'string' ? options.host : undefined);
+    await builder({ port: parseInt(options.port, 10), host, open: options.open });
   });
 
 program.parse();
