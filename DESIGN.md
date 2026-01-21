@@ -60,6 +60,60 @@ DemoScript is a framework for creating scripted, shareable product demonstration
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+## Visual Demo Builder
+
+The DemoScript Builder is a CLI-based tool for creating demos interactively without writing YAML by hand.
+
+```
+$ demoscript builder
+  → Opens browser to http://localhost:3002/builder
+
+┌─────────────────────────────────────────────────────────────────┐
+│ Mode: (•) OpenAPI  ( ) Custom                    [Clear All]    │
+├─────────────────────────────────────────────────────────────────┤
+│ OPENAPI MODE:                  │ CUSTOM MODE:                   │
+│ URL: [spec url______] [Fetch]  │ Base URL: [https://api...]     │
+│                                │ Method:   [POST ▼]             │
+│ ENDPOINTS        EXECUTION     │ Path:     [/users]             │
+│ [Search...]      ┌──────────┐  │ Headers:  [textarea]           │
+│                  │ Form     │  │ Body:     [JSON textarea]      │
+│ Users            │ fields   │  │                                │
+│  ├ GET /users    │ from     │  │ [Execute]                      │
+│  └ POST /users   │ OpenAPI  │  │                                │
+│                  └──────────┘  │                                │
+│ [Execute] [+ Add to Demo]      │ [+ Add to Demo]                │
+├────────────────────────────────┴────────────────────────────────┤
+│ DEMO STEPS                     │ EXPORT                         │
+│ [1] POST /users    [Edit][Del] │ [Copy YAML]                    │
+│ [2] GET /users/$id [Edit][Del] │ [Download YAML]                │
+│                                │                                │
+│ Variables: $userId = 123       │                                │
+└────────────────────────────────┴────────────────────────────────┘
+```
+
+### Builder Components
+
+- **EndpointBrowser**: Fetches OpenAPI spec, groups endpoints by tag, provides search
+- **ExecutionPanel**: Generates forms from OpenAPI, executes requests, displays responses
+- **CustomEndpoint**: Manual mode for entering method/URL/body without OpenAPI
+- **StepSequence**: Drag-and-drop list of demo steps with edit/delete
+- **ExportPanel**: YAML generation with copy/download functionality
+
+### Shared Package (`@demoscript/shared/builder`)
+
+Types and utilities:
+- `BuilderStep`, `BuilderState`: Type definitions
+- `generateDemoYaml()`: Converts builder state to YAML format
+- `stepToYaml()`: Converts individual step to YAML lines
+
+### OpenAPI Utilities (`@demoscript/shared/openapi`)
+
+Endpoint browser functions:
+- `groupEndpointsByTag()`: Groups endpoints by their first tag
+- `searchEndpoints()`: Filters endpoints by query string
+- `getAllEndpoints()`: Extracts all endpoints from spec
+- `getParameterFields()`: Generates form fields for path/query params
+
 ## Project Structure
 
 ```

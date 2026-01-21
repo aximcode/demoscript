@@ -1,9 +1,21 @@
 /**
  * OpenAPI processing utilities for DemoScript
  * Generates form fields and result fields from OpenAPI specs
+ * Provides endpoint browsing and search functionality
  */
 
 import type { FormField, ResultField } from '../types/index.js';
+
+// Endpoint info for browser display
+export interface EndpointInfo {
+  method: string;
+  path: string;
+  summary?: string;
+  description?: string;
+  operationId?: string;
+  tags: string[];
+  deprecated?: boolean;
+}
 
 // OpenAPI 3.0 Types
 
@@ -533,4 +545,158 @@ function generateResultFieldsFromPath(
     type: 'json',
     expandedDepth: 2
   }];
+}
+
+// --- Endpoint Browser Utilities ---
+
+const HTTP_METHODS = ['get', 'post', 'put', 'delete', 'patch'] as const;
+
+/**
+ * Extract all endpoints from an OpenAPI spec
+ */
+export function getAllEndpoints(spec: OpenApiSpec): EndpointInfo[] {
+  const endpoints: EndpointInfo[] = [];
+
+  for (const [path, pathObj] of Object.entries(spec.paths)) {
+    for (const method of HTTP_METHODS) {
+      const operation = pathObj[method];
+      if (operation) {
+        endpoints.push({
+          method: method.toUpperCase(),
+          path,
+          summary: operation.summary,
+          description: operation.description,
+          operationId: operation.operationId,
+          tags: operation.tags || ['Untagged'],
+          deprecated: false, // OpenAPI 3.0 has deprecated field on operation
+        });
+      }
+    }
+  }
+
+  return endpoints;
+}
+
+/**
+ * Group endpoints by their first tag
+ * Returns a Map where keys are tag names and values are arrays of endpoints
+ */
+export function groupEndpointsByTag(spec: OpenApiSpec): Map<string, EndpointInfo[]> {
+  const endpoints = getAllEndpoints(spec);
+  const grouped = new Map<string, EndpointInfo[]>();
+
+  for (const endpoint of endpoints) {
+    // Use first tag, or 'Untagged' if no tags
+    const tag = endpoint.tags[0] || 'Untagged';
+
+    if (!grouped.has(tag)) {
+      grouped.set(tag, []);
+    }
+    grouped.get(tag)!.push(endpoint);
+  }
+
+  // Sort endpoints within each tag by path, then method
+  for (const [, tagEndpoints] of grouped) {
+    tagEndpoints.sort((a, b) => {
+      const pathCompare = a.path.localeCompare(b.path);
+      if (pathCompare !== 0) return pathCompare;
+      return HTTP_METHODS.indexOf(a.method.toLowerCase() as typeof HTTP_METHODS[number]) -
+             HTTP_METHODS.indexOf(b.method.toLowerCase() as typeof HTTP_METHODS[number]);
+    });
+  }
+
+  // Sort tags alphabetically, but put 'Untagged' last
+  const sortedMap = new Map<string, EndpointInfo[]>();
+  const sortedKeys = Array.from(grouped.keys()).sort((a, b) => {
+    if (a === 'Untagged') return 1;
+    if (b === 'Untagged') return -1;
+    return a.localeCompare(b);
+  });
+
+  for (const key of sortedKeys) {
+    sortedMap.set(key, grouped.get(key)!);
+  }
+
+  return sortedMap;
+}
+
+/**
+ * Search endpoints by query string
+ * Searches in path, method, summary, description, and operationId
+ */
+export function searchEndpoints(spec: OpenApiSpec, query: string): EndpointInfo[] {
+  if (!query.trim()) {
+    return getAllEndpoints(spec);
+  }
+
+  const q = query.toLowerCase().trim();
+  const endpoints = getAllEndpoints(spec);
+
+  return endpoints.filter(endpoint => {
+    return (
+      endpoint.path.toLowerCase().includes(q) ||
+      endpoint.method.toLowerCase().includes(q) ||
+      endpoint.summary?.toLowerCase().includes(q) ||
+      endpoint.description?.toLowerCase().includes(q) ||
+      endpoint.operationId?.toLowerCase().includes(q) ||
+      endpoint.tags.some(tag => tag.toLowerCase().includes(q))
+    );
+  });
+}
+
+/**
+ * Get operation details for a specific endpoint
+ */
+export function getOperationDetails(
+  spec: OpenApiSpec,
+  method: string,
+  path: string
+): OpenApiOperation | null {
+  const pathObj = spec.paths[path];
+  if (!pathObj) return null;
+
+  return pathObj[method.toLowerCase() as keyof OpenApiPath] || null;
+}
+
+/**
+ * Get parameter fields for an endpoint (path, query, header params)
+ */
+export function getParameterFields(
+  spec: OpenApiSpec,
+  method: string,
+  path: string
+): FormField[] {
+  const operation = getOperationDetails(spec, method, path);
+  if (!operation?.parameters) return [];
+
+  const fields: FormField[] = [];
+
+  for (const param of operation.parameters) {
+    // Skip body parameters (handled separately)
+    if (param.in === 'body') continue;
+
+    const schema = param.schema || { type: 'string' };
+    const resolved = resolveSchema(spec, schema);
+
+    const field: FormField = {
+      name: param.name,
+      label: param.description || formatLabel(param.name),
+      type: mapType(resolved),
+      required: param.required || false,
+      placeholder: `${param.in} parameter`,
+    };
+
+    if (resolved.default !== undefined) {
+      field.default = resolved.default as string | number;
+    }
+
+    const options = generateOptions(resolved);
+    if (options) {
+      field.options = options;
+    }
+
+    fields.push(field);
+  }
+
+  return fields;
 }
