@@ -153,27 +153,37 @@ export function RestStep({ step }: Props) {
     throw new Error(`Polling timeout after ${maxAttempts} attempts`);
   };
 
+  // Extract error message from response body or return default HTTP status message
+  function extractErrorMessage(body: unknown, httpStatus: number): string {
+    if (typeof body === 'object' && body !== null) {
+      const obj = body as Record<string, unknown>;
+      return String(obj.error || obj.detail || obj.message || `HTTP ${httpStatus}`);
+    }
+    return `HTTP ${httpStatus}`;
+  }
+
   // Save variables from response
   // Supported special keywords: _status (HTTP status code)
-  const saveVariables = (responseData: unknown, httpStatus?: number) => {
-    if (step.save) {
-      const newVars: Record<string, unknown> = {};
-      for (const [varName, path] of Object.entries(step.save)) {
-        if (path === '_status') {
-          // Special keyword: capture HTTP status code (200, 404, etc.)
-          if (httpStatus !== undefined) {
-            newVars[varName] = httpStatus;
-          }
-        } else if (responseData) {
-          // JSON path extraction from response body
-          newVars[varName] = extractValueByPath(responseData, path);
+  function saveVariables(responseData: unknown, httpStatus?: number): void {
+    if (!step.save) return;
+
+    const newVars: Record<string, unknown> = {};
+    for (const [varName, path] of Object.entries(step.save)) {
+      if (path === '_status') {
+        // Special keyword: capture HTTP status code (200, 404, etc.)
+        if (httpStatus !== undefined) {
+          newVars[varName] = httpStatus;
         }
-      }
-      if (Object.keys(newVars).length > 0) {
-        dispatch({ type: 'SET_VARIABLES', payload: newVars });
+      } else if (responseData) {
+        // JSON path extraction from response body
+        newVars[varName] = extractValueByPath(responseData, path);
       }
     }
-  };
+
+    if (Object.keys(newVars).length > 0) {
+      dispatch({ type: 'SET_VARIABLES', payload: newVars });
+    }
+  }
 
   const handleExecute = async () => {
     // Clear any previous error before executing
@@ -225,10 +235,7 @@ export function RestStep({ step }: Props) {
 
         // Check if the API returned an error status code
         if (result.status >= 400) {
-          const errorMsg = typeof finalResponse === 'object' && finalResponse !== null
-            ? (finalResponse as Record<string, unknown>).error || (finalResponse as Record<string, unknown>).detail || (finalResponse as Record<string, unknown>).message || `HTTP ${result.status}`
-            : `HTTP ${result.status}`;
-          dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: String(errorMsg) } });
+          dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: extractErrorMessage(finalResponse, result.status) } });
           dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'error' } });
         } else {
           dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'complete' } });
@@ -245,11 +252,7 @@ export function RestStep({ step }: Props) {
 
           // Check if the recorded response was an error
           if (recording.response.status && recording.response.status >= 400) {
-            const body = recording.response.body;
-            const errorMsg = typeof body === 'object' && body !== null
-              ? (body as Record<string, unknown>).error || (body as Record<string, unknown>).detail || (body as Record<string, unknown>).message || `HTTP ${recording.response.status}`
-              : `HTTP ${recording.response.status}`;
-            dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: String(errorMsg) } });
+            dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: extractErrorMessage(recording.response.body, recording.response.status) } });
             dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'error' } });
           } else {
             dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'complete' } });
@@ -270,8 +273,15 @@ export function RestStep({ step }: Props) {
   };
 
   const isExecuting = status === 'executing';
-  const glowColor = isExecuting ? 'blue' : status === 'complete' ? 'green' : status === 'error' ? 'orange' : 'blue';
   const showTryIt = state.mode === 'recorded' && hasModifications && !isTryItMode && state.isLiveAvailable;
+
+  function getGlowColor(): 'blue' | 'green' | 'orange' {
+    if (isExecuting) return 'blue';
+    if (status === 'complete') return 'green';
+    if (status === 'error') return 'orange';
+    return 'blue';
+  }
+  const glowColor = getGlowColor();
 
   // Check if we have output to show (for two-column layout)
   const hasOutput = (response !== null && response !== undefined && !isTryItMode) || isTryItMode;

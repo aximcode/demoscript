@@ -17,53 +17,43 @@ export function evaluateCondition(condition: string, data: unknown): boolean {
   return false;
 }
 
+// Error patterns ordered by priority (415 before 404 to avoid false matches)
+const ERROR_PATTERNS: Array<{ patterns: string[]; regex?: RegExp; type: string }> = [
+  { patterns: ['timeout', 'timed out'], type: 'Request Timeout' },
+  { patterns: ['network', 'failed to fetch', 'connection'], type: 'Network Error' },
+  { patterns: ['401', 'unauthorized'], type: 'Authentication Error' },
+  { patterns: ['403', 'forbidden'], type: 'Access Denied' },
+  { patterns: ['415', 'unsupported media type', 'mime'], type: 'Invalid Content-Type' },
+  { patterns: ['404'], regex: /\bnot found\b/, type: 'Not Found' },
+  { patterns: ['500', 'internal server'], type: 'Server Error' },
+  { patterns: ['polling'], type: 'Polling Failed' },
+  { patterns: ['recording'], type: 'Recording Missing' },
+];
+
 export function getErrorType(error: string): string {
   const lowerError = error.toLowerCase();
-  if (lowerError.includes('timeout') || lowerError.includes('timed out')) {
-    return 'Request Timeout';
+
+  for (const { patterns, regex, type } of ERROR_PATTERNS) {
+    const matchesPattern = patterns.some(p => lowerError.includes(p));
+    const matchesRegex = regex ? regex.test(lowerError) : false;
+    if (matchesPattern || matchesRegex) {
+      return type;
+    }
   }
-  if (lowerError.includes('network') || lowerError.includes('failed to fetch') || lowerError.includes('connection')) {
-    return 'Network Error';
-  }
-  if (lowerError.includes('401') || lowerError.includes('unauthorized')) {
-    return 'Authentication Error';
-  }
-  if (lowerError.includes('403') || lowerError.includes('forbidden')) {
-    return 'Access Denied';
-  }
-  // Check 415 before 404 - "unsupported media type" errors often contain "not found" in the message
-  if (lowerError.includes('415') || lowerError.includes('unsupported media type') || lowerError.includes('mime')) {
-    return 'Invalid Content-Type';
-  }
-  // Use word boundary match to avoid false positives like "was not found"
-  if (lowerError.includes('404') || /\bnot found\b/.test(lowerError)) {
-    return 'Not Found';
-  }
-  if (lowerError.includes('500') || lowerError.includes('internal server')) {
-    return 'Server Error';
-  }
-  if (lowerError.includes('polling')) {
-    return 'Polling Failed';
-  }
-  if (lowerError.includes('recording')) {
-    return 'Recording Missing';
-  }
+
   return 'Request Error';
 }
 
+const METHOD_COLORS: Record<string, string> = {
+  GET: 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-500/30',
+  POST: 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 border border-cyan-300 dark:border-cyan-500/30',
+  PUT: 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-500/30',
+  PATCH: 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-500/30',
+  DELETE: 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30',
+};
+
+const DEFAULT_METHOD_COLOR = 'bg-gray-100 dark:bg-slate-500/20 text-gray-700 dark:text-slate-400 border border-gray-300 dark:border-slate-500/30';
+
 export function getMethodColor(method: string): string {
-  switch (method) {
-    case 'GET':
-      return 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-500/30';
-    case 'POST':
-      return 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 border border-cyan-300 dark:border-cyan-500/30';
-    case 'PUT':
-      return 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-500/30';
-    case 'PATCH':
-      return 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 border border-orange-300 dark:border-orange-500/30';
-    case 'DELETE':
-      return 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30';
-    default:
-      return 'bg-gray-100 dark:bg-slate-500/20 text-gray-700 dark:text-slate-400 border border-gray-300 dark:border-slate-500/30';
-  }
+  return METHOD_COLORS[method] || DEFAULT_METHOD_COLOR;
 }

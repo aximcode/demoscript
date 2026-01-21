@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useDemo } from '../../context/DemoContext';
 import { AnimatedCounter, CurrencyCounter } from '../effects';
 import { formatRelativeTime } from '../../lib/format-time';
-import { buildLink } from '../../lib/result-formatting';
+import { buildLink, truncateRef } from '../../lib/result-formatting';
 
 import type { TableColumn } from '../../types/schema';
 
@@ -13,6 +13,32 @@ interface Props {
   linkKey?: string;
   expandedDepth?: number;
   columns?: TableColumn[];
+}
+
+// Chevron icon for expand/collapse buttons
+const ChevronIcon = ({ expanded }: { expanded: boolean }) => (
+  <svg className={`w-3 h-3 mr-1 transition-transform ${expanded ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+  </svg>
+);
+
+// Expand/collapse button for JSON tree nodes
+interface ExpandButtonProps {
+  expanded: boolean;
+  onToggle: () => void;
+  label: string;
+}
+
+function ExpandButton({ expanded, onToggle, label }: ExpandButtonProps) {
+  return (
+    <button
+      onClick={onToggle}
+      className="inline-flex items-center text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 focus:outline-none"
+    >
+      <ChevronIcon expanded={expanded} />
+      <span className="text-gray-500 dark:text-slate-400">{label}</span>
+    </button>
+  );
 }
 
 // JSON Tree Viewer component
@@ -46,15 +72,7 @@ function JsonTreeNode({ data, depth = 0, expandedDepth = 2 }: { data: unknown; d
 
     return (
       <span>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="inline-flex items-center text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 focus:outline-none"
-        >
-          <svg className={`w-3 h-3 mr-1 transition-transform ${expanded ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
-          <span className="text-gray-500 dark:text-slate-400">[{data.length}]</span>
-        </button>
+        <ExpandButton expanded={expanded} onToggle={() => setExpanded(!expanded)} label={`[${data.length}]`} />
         {expanded && (
           <div className="ml-4 pl-2 border-l-2 border-gray-200 dark:border-slate-600">
             {data.map((item, index) => (
@@ -77,15 +95,7 @@ function JsonTreeNode({ data, depth = 0, expandedDepth = 2 }: { data: unknown; d
 
     return (
       <span>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="inline-flex items-center text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300 focus:outline-none"
-        >
-          <svg className={`w-3 h-3 mr-1 transition-transform ${expanded ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
-          <span className="text-gray-500 dark:text-slate-400">{`{${entries.length}}`}</span>
-        </button>
+        <ExpandButton expanded={expanded} onToggle={() => setExpanded(!expanded)} label={`{${entries.length}}`} />
         {expanded && (
           <div className="ml-4 pl-2 border-l-2 border-gray-200 dark:border-slate-600">
             {entries.map(([key, val]) => (
@@ -158,10 +168,7 @@ export function ResultValue({ value, type, link, linkKey, expandedDepth, columns
   }
 
   if (type === 'ref') {
-    const truncated =
-      stringValue.length > 16
-        ? `${stringValue.slice(0, 10)}...${stringValue.slice(-8)}`
-        : stringValue;
+    const truncated = truncateRef(stringValue);
 
     // Build URL from settings.links config or use direct URL
     let explorerUrl: string | undefined;
