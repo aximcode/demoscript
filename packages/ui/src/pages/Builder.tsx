@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
-import { CustomEndpoint } from '../components/builder/CustomEndpoint';
-import { EndpointBrowser } from '../components/builder/EndpointBrowser';
-import { ExecutionPanel } from '../components/builder/ExecutionPanel';
-import { StepSequence } from '../components/builder/StepSequence';
-import { ExportPanel } from '../components/builder/ExportPanel';
-import type { BuilderStep, BuilderState } from '../components/builder/types';
+import { CustomEndpoint } from '../components/editor/CustomEndpoint';
+import { EndpointBrowser } from '../components/editor/EndpointBrowser';
+import { ExecutionPanel } from '../components/editor/ExecutionPanel';
+import { StepSequence } from '../components/editor/StepSequence';
+import { ExportPanel } from '../components/editor/ExportPanel';
+import type { BuilderStep, BuilderState } from '../components/editor/types';
 import type { EndpointInfo, OpenApiSpec } from '@demoscript/shared/openapi';
 
 const STORAGE_KEY = 'demoscript-builder-state';

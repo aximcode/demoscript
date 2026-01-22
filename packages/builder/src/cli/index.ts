@@ -127,7 +127,7 @@ function createRestProxy(): express.RequestHandler {
 export async function builder(options: BuilderOptions): Promise<void> {
   const { port, host, open } = options;
 
-  console.log(chalk.blue('Starting DemoScript Builder...'));
+  console.log(chalk.blue('Starting DemoScript Visual Editor...'));
 
   const app = express();
   app.use(express.json());
@@ -406,25 +406,7 @@ export async function builder(options: BuilderOptions): Promise<void> {
       appType: 'spa',
     });
 
-    // Serve /builder with injected flag (before vite middlewares)
-    app.get('/builder', async (_req, res) => {
-      const indexPath = resolve(uiSourcePath, 'index.html');
-      let html = readFileSync(indexPath, 'utf-8');
-      html = await vite.transformIndexHtml('/builder', html);
-      html = html.replace('</head>', '<script>window.__DEMOSCRIPT_BUILDER__ = true;</script></head>');
-      res.type('html').send(html);
-    });
-
-    // Serve /builder-embed for iframe embedding (cloud dashboard)
-    app.get('/builder-embed', async (_req, res) => {
-      const indexPath = resolve(uiSourcePath, 'index.html');
-      let html = readFileSync(indexPath, 'utf-8');
-      html = await vite.transformIndexHtml('/builder-embed', html);
-      html = html.replace('</head>', '<script>window.__DEMOSCRIPT_BUILDER__ = true; window.__DEMOSCRIPT_BUILDER_EMBEDDED__ = true;</script></head>');
-      res.type('html').send(html);
-    });
-
-    // Serve /editor (new unified editor)
+    // Serve /editor
     app.get('/editor', async (_req, res) => {
       const indexPath = resolve(uiSourcePath, 'index.html');
       let html = readFileSync(indexPath, 'utf-8');
@@ -451,26 +433,8 @@ export async function builder(options: BuilderOptions): Promise<void> {
   } else if (existsSync(uiDistPath)) {
     // Published package mode: serve pre-built UI
     const indexHtml = readFileSync(join(uiDistPath, 'index.html'), 'utf-8');
-    const injectedHtml = indexHtml.replace(
-      '</head>',
-      `<script>window.__DEMOSCRIPT_BUILDER__ = true;</script></head>`
-    );
 
-    // Serve /builder path
-    app.get('/builder', (_req, res) => {
-      res.type('html').send(injectedHtml);
-    });
-
-    // Serve /builder-embed for iframe embedding (cloud dashboard)
-    const embeddedHtml = indexHtml.replace(
-      '</head>',
-      `<script>window.__DEMOSCRIPT_BUILDER__ = true; window.__DEMOSCRIPT_BUILDER_EMBEDDED__ = true;</script></head>`
-    );
-    app.get('/builder-embed', (_req, res) => {
-      res.type('html').send(embeddedHtml);
-    });
-
-    // Serve /editor (new unified editor)
+    // Serve /editor
     const editorHtml = indexHtml.replace(
       '</head>',
       `<script>window.__DEMOSCRIPT_EDITOR__ = true; window.__DEMOSCRIPT_CLI_MODE__ = true; window.__DEMOSCRIPT_CLOUD_ENABLED__ = true;</script></head>`
@@ -503,10 +467,9 @@ export async function builder(options: BuilderOptions): Promise<void> {
   const listenHost = host || 'localhost';
   const server = app.listen(port, listenHost, async () => {
     console.log();
-    console.log(chalk.green.bold('  DemoScript Builder is running!'));
+    console.log(chalk.green.bold('  DemoScript Visual Editor is running!'));
     console.log();
-    console.log(`  ${chalk.cyan('Editor:')}  http://localhost:${port}/editor ${chalk.gray('(new)')}`);
-    console.log(`  ${chalk.cyan('Builder:')} http://localhost:${port}/builder ${chalk.gray('(legacy)')}`);
+    console.log(`  ${chalk.cyan('Editor:')} http://localhost:${port}/editor`);
     if (host === '0.0.0.0') {
       const networkUrl = getNetworkUrl(port);
       if (networkUrl) {

@@ -60,13 +60,13 @@ DemoScript is a framework for creating scripted, shareable product demonstration
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Visual Demo Builder
+## Visual Demo Editor
 
-The DemoScript Builder is a CLI-based tool for creating demos interactively without writing YAML by hand.
+The DemoScript Visual Editor is a CLI-based tool for creating demos interactively without writing YAML by hand.
 
 ```
-$ demoscript builder
-  → Opens browser to http://localhost:3002/builder
+$ demoscript edit
+  → Opens browser to http://localhost:3002/editor
 
 ┌─────────────────────────────────────────────────────────────────┐
 │ Mode: (•) OpenAPI  ( ) Custom                    [Clear All]    │
