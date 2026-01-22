@@ -1,5 +1,5 @@
 /**
- * YAML Parser for Visual Builder V2
+ * YAML Parser for Visual Editor
  *
  * Provides bidirectional conversion between YAML strings and EditorState.
  * - parseYaml: Parse YAML string to DemoConfig

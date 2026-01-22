@@ -1,5 +1,5 @@
 /**
- * Client-side file service for Visual Builder
+ * Client-side file service for Visual Editor
  * Encapsulates all file API calls to avoid duplication across components
  */
 

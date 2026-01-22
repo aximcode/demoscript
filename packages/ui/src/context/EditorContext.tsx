@@ -1,5 +1,5 @@
 /**
- * EditorContext - State management for the Visual Builder V2
+ * EditorContext - State management for the Visual Editor
  *
  * Provides:
  * - Editor state (steps, settings, current step, variables)

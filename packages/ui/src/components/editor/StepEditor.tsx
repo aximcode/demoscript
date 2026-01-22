@@ -1,5 +1,5 @@
 /**
- * StepEditor - Form-based step editing for Visual Builder
+ * StepEditor - Form-based step editing for Visual Editor
  * Provides editable verb dropdown, endpoint field, and auto-generated form fields
  */
 

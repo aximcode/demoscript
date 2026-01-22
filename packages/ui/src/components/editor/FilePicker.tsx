@@ -1,5 +1,5 @@
 /**
- * FilePicker - File browser modal for Visual Builder
+ * FilePicker - File browser modal for Visual Editor
  * Supports both Open and Save modes
  */
 

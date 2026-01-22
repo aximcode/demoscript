@@ -1,5 +1,5 @@
 /**
- * FileMenu - File operations dropdown for Visual Builder (CLI mode only)
+ * FileMenu - File operations dropdown for Visual Editor (CLI mode only)
  * Provides New, Open, Save, Save As, and Push to Cloud options
  */
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Capture Visual Builder screenshots and create animated GIF
+ * Capture Visual Editor screenshots and create animated GIF
  *
  * Usage: npx tsx scripts/capture-builder-gif.ts
  *        npx tsx scripts/capture-builder-gif.ts --cloud  # Capture from cloud dashboard
