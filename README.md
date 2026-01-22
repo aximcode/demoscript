@@ -29,7 +29,6 @@ A framework for creating scripted, shareable product demonstrations. Write YAML 
 - **Keyboard navigation** - Arrow keys, space, and shortcuts (press `?` for help)
 - **Dark/Light mode** - Toggle theme support
 - **Mobile responsive** - Works on tablets and phones
-- **Visual Builder** - Create demos interactively without writing YAML
 
 ## Try It Online
 
@@ -77,16 +76,6 @@ sudo dpkg -i demoscript_1.0.0_all.deb
 **Requires:** Node.js >= 18
 
 ## Quick Start
-
-**Option A: Visual Builder** (no YAML required)
-
-```bash
-demoscript builder
-```
-
-This opens a visual interface to create demos interactively by browsing your API endpoints.
-
-**Option B: Write YAML** (full control)
 
 1. Create a demo file `demo.yaml`:
 
@@ -248,30 +237,6 @@ Options:
 - `--optimize` - Use two-pass encoding with palette generation (slower but better quality)
 
 **Note:** Requires a static build first (`demoscript build`).
-
-### `demoscript builder`
-
-Open the Visual Builder to create demos interactively without writing YAML.
-
-```bash
-# Open builder (default: localhost:3002)
-demoscript builder
-
-# Custom port and accessible from LAN
-demoscript builder --port 3838 --host
-```
-
-Options:
-- `-p, --port <port>` - Port number (default: 3002)
-- `-H, --host [host]` - Bind to 0.0.0.0 for LAN access
-- `--no-open` - Don't auto-open browser
-
-The Visual Builder provides:
-- **OpenAPI Integration** - Browse endpoints from your API spec
-- **Custom Endpoints** - Add endpoints without an OpenAPI spec
-- **Live Execution** - Execute requests and see responses in real-time
-- **Step Sequencing** - Build demo steps by selecting from executed requests
-- **YAML Export** - Export your demo as a complete YAML file
 
 ## YAML Schema
 
@@ -919,7 +884,6 @@ See [ROADMAP.md](ROADMAP.md) for the full improvement guide including architectu
 
 ### Recently Added
 
-- **Visual Builder** - Create demos interactively with `demoscript builder`
 - **Authentication** - Password-protect demos with SHA-256 hashing
 - **Dashboard** - Overview screen with health checks and demo statistics
 - **Sidebar navigation** - Collapsible step list with completion status
@@ -975,9 +939,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
 ```
 demoscript/
 ├── packages/
-│   ├── builder/      # Visual Builder (CLI server + YAML generation)
 │   ├── cli/          # CLI tool (serve, record, build, export)
-│   ├── shared/       # Shared utilities and types
 │   └── ui/           # React web interface
 ├── examples/
 │   ├── hello-world/       # Minimal starter demo

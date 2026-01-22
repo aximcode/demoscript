@@ -159,9 +159,27 @@ export async function builder(options: BuilderOptions): Promise<void> {
       res.type('html').send(html);
     });
 
-    // Redirect root to builder
+    // Serve /editor (new unified editor)
+    app.get('/editor', async (_req, res) => {
+      const indexPath = resolve(uiSourcePath, 'index.html');
+      let html = readFileSync(indexPath, 'utf-8');
+      html = await vite.transformIndexHtml('/editor', html);
+      html = html.replace('</head>', '<script>window.__DEMOSCRIPT_EDITOR__ = true;</script></head>');
+      res.type('html').send(html);
+    });
+
+    // Serve /editor-embed for iframe embedding (cloud dashboard)
+    app.get('/editor-embed', async (_req, res) => {
+      const indexPath = resolve(uiSourcePath, 'index.html');
+      let html = readFileSync(indexPath, 'utf-8');
+      html = await vite.transformIndexHtml('/editor-embed', html);
+      html = html.replace('</head>', '<script>window.__DEMOSCRIPT_EDITOR__ = true; window.__DEMOSCRIPT_EDITOR_EMBEDDED__ = true;</script></head>');
+      res.type('html').send(html);
+    });
+
+    // Redirect root to editor (new default)
     app.get('/', (_req, res) => {
-      res.redirect('/builder');
+      res.redirect('/editor');
     });
 
     app.use(vite.middlewares);
@@ -187,9 +205,27 @@ export async function builder(options: BuilderOptions): Promise<void> {
       res.type('html').send(embeddedHtml);
     });
 
-    // Redirect root to builder
+    // Serve /editor (new unified editor)
+    const editorHtml = indexHtml.replace(
+      '</head>',
+      `<script>window.__DEMOSCRIPT_EDITOR__ = true;</script></head>`
+    );
+    app.get('/editor', (_req, res) => {
+      res.type('html').send(editorHtml);
+    });
+
+    // Serve /editor-embed for iframe embedding
+    const editorEmbeddedHtml = indexHtml.replace(
+      '</head>',
+      `<script>window.__DEMOSCRIPT_EDITOR__ = true; window.__DEMOSCRIPT_EDITOR_EMBEDDED__ = true;</script></head>`
+    );
+    app.get('/editor-embed', (_req, res) => {
+      res.type('html').send(editorEmbeddedHtml);
+    });
+
+    // Redirect root to editor (new default)
     app.get('/', (_req, res) => {
-      res.redirect('/builder');
+      res.redirect('/editor');
     });
 
     app.use(express.static(uiDistPath));
@@ -204,11 +240,12 @@ export async function builder(options: BuilderOptions): Promise<void> {
     console.log();
     console.log(chalk.green.bold('  DemoScript Builder is running!'));
     console.log();
-    console.log(`  ${chalk.cyan('Local:')}   http://localhost:${port}/builder`);
+    console.log(`  ${chalk.cyan('Editor:')}  http://localhost:${port}/editor ${chalk.gray('(new)')}`);
+    console.log(`  ${chalk.cyan('Builder:')} http://localhost:${port}/builder ${chalk.gray('(legacy)')}`);
     if (host === '0.0.0.0') {
       const networkUrl = getNetworkUrl(port);
       if (networkUrl) {
-        console.log(`  ${chalk.cyan('Network:')} ${networkUrl}/builder`);
+        console.log(`  ${chalk.cyan('Network:')} ${networkUrl}/editor`);
       }
     }
     console.log();
@@ -216,7 +253,7 @@ export async function builder(options: BuilderOptions): Promise<void> {
     console.log();
 
     if (open) {
-      import('open').then((mod) => mod.default(`http://localhost:${port}/builder`)).catch(() => {
+      import('open').then((mod) => mod.default(`http://localhost:${port}/editor`)).catch(() => {
         // Ignore if open fails
       });
     }

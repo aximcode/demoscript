@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useMemo } from 'react';
 import { useDemo } from '../context/DemoContext';
 import { substituteVariables, substituteInObject, extractValueByPath, findVariablesInObject, findMissingVariables } from '../lib/variable-substitution';
-import { evaluateCondition } from '../lib/rest-helpers';
+import { extractErrorMessage, buildRequestBody } from '../lib/rest-helpers';
 import { executeRequest } from '../lib/execute-adapter';
 import { parseRestMethod } from '../types/schema';
 import type { RestStep as RestStepType, ExplicitRestStep } from '../types/schema';
@@ -9,7 +9,8 @@ import { GlowingCard } from './effects';
 
 import { useRestFormState } from '../hooks/useRestFormState';
 import { useTryItMode } from '../hooks/useTryItMode';
-import type { PollingState } from '../hooks/usePolling';
+import { usePolling } from '../hooks/usePolling';
+import { useOpenApiForm } from '../hooks/useOpenApiForm';
 
 import {
   RestStepHeader,
@@ -24,28 +25,53 @@ import {
   MissingVariablesBanner,
 } from './rest';
 
+export type StepMode = 'view' | 'edit' | 'preview';
+
 interface Props {
   step: RestStepType | ExplicitRestStep;
+  mode?: StepMode;
+  onChange?: (step: RestStepType | ExplicitRestStep) => void;
+  onDelete?: () => void;
 }
 
-export function RestStep({ step }: Props) {
-  const { state, dispatch, getStepStatus, getVariableProvider } = useDemo();
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const [pollingState, setPollingState] = useState<PollingState | null>(null);
+// Glow color lookup by status
+const GLOW_COLORS: Record<string, 'blue' | 'green' | 'orange'> = {
+  executing: 'blue',
+  complete: 'green',
+  error: 'orange',
+};
 
-  // Use form state hook
-  const {
-    formValues,
-    setFormValues,
-    hasModifications,
-    isFieldModified,
-  } = useRestFormState({ form: step.form, variables: state.variables });
+export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }: Props) {
+  const { state, dispatch, getStepStatus, getVariableProvider } = useDemo();
 
   // Parse method and URL
   const { method, endpoint } = parseRestMethod(step);
   const resolvedEndpoint = substituteVariables(endpoint, state.variables);
   const baseUrl = step.base_url || state.config?.settings?.base_url || '';
   const fullUrl = `${baseUrl}${resolvedEndpoint}`;
+
+  // Get OpenAPI URL from step or settings
+  const openapiUrl = step.openapi || state.config?.settings?.openapi;
+
+  // Generate form fields from OpenAPI if needed
+  const { formFields: generatedForm, isLoading: isLoadingForm } = useOpenApiForm({
+    openapiUrl,
+    method,
+    path: endpoint,
+    defaults: step.defaults,
+    manualForm: step.form,
+  });
+
+  // Use generated form or manual form
+  const effectiveForm = generatedForm || step.form;
+
+  // Use form state hook with effective form
+  const {
+    formValues,
+    setFormValues,
+    hasModifications,
+    isFieldModified,
+  } = useRestFormState({ form: effectiveForm, variables: state.variables });
 
   // Use try-it mode hook
   const {
@@ -63,119 +89,57 @@ export function RestStep({ step }: Props) {
     fullUrl,
   });
 
+  // Use polling hook
+  const defaultInterval = state.config?.settings?.polling?.interval || 2000;
+  const defaultMaxAttempts = state.config?.settings?.polling?.max_attempts || 30;
+  const { pollingState, pollForResult, abortControllerRef } = usePolling({
+    pollConfig: step.poll,
+    defaultInterval,
+    defaultMaxAttempts,
+  });
+
   const status = getStepStatus(state.currentStep);
   const response = state.stepResponses[state.currentStep];
   const error = state.stepErrors[state.currentStep];
 
-  // Calculate missing variables for this step
-  const usedVariables = [
-    ...findVariablesInObject(endpoint),
-    ...findVariablesInObject(step.body),
-    ...findVariablesInObject(step.headers),
-    ...findVariablesInObject(step.form?.map(f => f.default)),
-  ];
-  const missingVarNames = findMissingVariables(usedVariables, state.variables);
-  const missingVariables = missingVarNames.map(name => ({
-    name,
-    provider: getVariableProvider(name),
-  }));
+  // Calculate missing variables for this step (memoized)
+  const missingVariables = useMemo(() => {
+    const usedVariables = [
+      ...findVariablesInObject(endpoint),
+      ...findVariablesInObject(step.body),
+      ...findVariablesInObject(step.headers),
+      ...findVariablesInObject(effectiveForm?.map(f => f.default)),
+    ];
+    const missingVarNames = findMissingVariables(usedVariables, state.variables);
+    return missingVarNames.map(name => ({
+      name,
+      provider: getVariableProvider(name),
+    }));
+  }, [endpoint, step.body, step.headers, effectiveForm, state.variables, getVariableProvider]);
 
-  const getRequestBodyPreview = (): string => {
-    if (!step.form) return '';
-    const body: Record<string, string | number | boolean> = {};
-    for (const f of step.form.filter((field) => !field.hidden)) {
-      const value = formValues[f.name];
-      // Only include required fields or fields with non-empty values
-      if (f.required || (value !== '' && value !== undefined && value !== null)) {
-        body[f.name] = value ?? '';
-      }
+  // Build request body preview for display
+  function getRequestBodyPreview(): string {
+    // Use effective form (includes OpenAPI-generated fields)
+    if (effectiveForm && effectiveForm.length > 0) {
+      const body = buildRequestBody(effectiveForm, formValues);
+      return body ? JSON.stringify(body, null, 2) : '';
     }
-    return JSON.stringify(body, null, 2);
-  };
-
-  const pollForResult = async (
-    jobId: string,
-    variables: Record<string, unknown>
-  ): Promise<unknown> => {
-    if (!step.poll) {
-      throw new Error('No poll configuration');
+    if (step.body) {
+      const body = substituteInObject(step.body, state.variables);
+      return body ? JSON.stringify(body, null, 2) : '';
     }
-
-    const pollConfig = step.poll;
-    const interval = pollConfig.interval || state.config?.settings?.polling?.interval || 2000;
-    const maxAttempts = pollConfig.max_attempts || state.config?.settings?.polling?.max_attempts || 30;
-
-    const pollEndpoint = substituteVariables(
-      pollConfig.endpoint.replace('$jobId', jobId),
-      { ...variables, jobId }
-    );
-
-    setPollingState({ isPolling: true, attempt: 0, maxAttempts, status: 'polling' });
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      if (abortControllerRef.current?.signal.aborted) {
-        throw new Error('Polling cancelled');
-      }
-
-      setPollingState({ isPolling: true, attempt, maxAttempts, status: 'polling' });
-
-      await new Promise((resolve) => setTimeout(resolve, interval));
-
-      const pollResult = await executeRequest({
-        method: 'GET',
-        url: pollEndpoint,
-      });
-
-      if (pollResult.status >= 400) {
-        continue;
-      }
-
-      const data = pollResult.data;
-
-      if (pollConfig.success_when) {
-        const isSuccess = evaluateCondition(pollConfig.success_when, data);
-        if (isSuccess) {
-          setPollingState(null);
-          return data;
-        }
-      }
-
-      if (pollConfig.failure_when) {
-        const isFailure = evaluateCondition(pollConfig.failure_when, data);
-        if (isFailure) {
-          setPollingState(null);
-          throw new Error(`Job failed: ${JSON.stringify(data)}`);
-        }
-      }
-    }
-
-    setPollingState(null);
-    throw new Error(`Polling timeout after ${maxAttempts} attempts`);
-  };
-
-  // Extract error message from response body or return default HTTP status message
-  function extractErrorMessage(body: unknown, httpStatus: number): string {
-    if (typeof body === 'object' && body !== null) {
-      const obj = body as Record<string, unknown>;
-      return String(obj.error || obj.detail || obj.message || `HTTP ${httpStatus}`);
-    }
-    return `HTTP ${httpStatus}`;
+    return '';
   }
 
-  // Save variables from response
-  // Supported special keywords: _status (HTTP status code)
+  // Save variables from response (supports _status for HTTP status code)
   function saveVariables(responseData: unknown, httpStatus?: number): void {
     if (!step.save) return;
 
     const newVars: Record<string, unknown> = {};
     for (const [varName, path] of Object.entries(step.save)) {
-      if (path === '_status') {
-        // Special keyword: capture HTTP status code (200, 404, etc.)
-        if (httpStatus !== undefined) {
-          newVars[varName] = httpStatus;
-        }
+      if (path === '_status' && httpStatus !== undefined) {
+        newVars[varName] = httpStatus;
       } else if (responseData) {
-        // JSON path extraction from response body
         newVars[varName] = extractValueByPath(responseData, path);
       }
     }
@@ -185,25 +149,31 @@ export function RestStep({ step }: Props) {
     }
   }
 
-  const handleExecute = async () => {
-    // Clear any previous error before executing
+  // Handle execution result and update state
+  function handleExecutionResult(responseData: unknown, httpStatus: number): void {
+    dispatch({ type: 'SET_STEP_RESPONSE', payload: { step: state.currentStep, response: responseData } });
+    saveVariables(responseData, httpStatus);
+
+    if (httpStatus >= 400) {
+      dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: extractErrorMessage(responseData, httpStatus) } });
+      dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'error' } });
+    } else {
+      dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'complete' } });
+    }
+  }
+
+  async function handleExecute(): Promise<void> {
     dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: null } });
     dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'executing' } });
     abortControllerRef.current = new AbortController();
 
     try {
-      const body = step.form
-        ? Object.fromEntries(
-            step.form
-              .filter((f) => !f.hidden)
-              .filter((f) => {
-                const value = formValues[f.name];
-                // Keep required fields, or fields with non-empty values
-                return f.required || (value !== '' && value !== undefined && value !== null);
-              })
-              .map((f) => [f.name, formValues[f.name]])
-          )
-        : substituteInObject(step.body, state.variables);
+      // Build request body from effective form (includes OpenAPI-generated fields) or explicit body
+      const body = effectiveForm && effectiveForm.length > 0
+        ? buildRequestBody(effectiveForm, formValues)
+        : step.body
+          ? substituteInObject(step.body, state.variables)
+          : undefined;
 
       if (state.mode === 'live') {
         const result = await executeRequest({
@@ -219,6 +189,7 @@ export function RestStep({ step }: Props) {
 
         let finalResponse = result.data;
 
+        // Handle polling for async operations
         if (step.wait_for && step.poll && result.data) {
           const jobId = extractValueByPath(result.data, step.wait_for);
           if (jobId) {
@@ -230,64 +201,39 @@ export function RestStep({ step }: Props) {
           }
         }
 
-        dispatch({ type: 'SET_STEP_RESPONSE', payload: { step: state.currentStep, response: finalResponse } });
-        saveVariables(finalResponse, result.status);
-
-        // Check if the API returned an error status code
-        if (result.status >= 400) {
-          dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: extractErrorMessage(finalResponse, result.status) } });
-          dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'error' } });
-        } else {
-          dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'complete' } });
-        }
+        handleExecutionResult(finalResponse, result.status);
       } else {
+        // Recorded mode: use pre-recorded response
         const recording = state.recordings?.recordings.find(
           (r) => r.stepId === `step-${state.currentStep}`
         );
 
-        if (recording?.response?.body) {
-          await new Promise((r) => setTimeout(r, 500));
-          dispatch({ type: 'SET_STEP_RESPONSE', payload: { step: state.currentStep, response: recording.response.body } });
-          saveVariables(recording.response.body, recording.response.status);
-
-          // Check if the recorded response was an error
-          if (recording.response.status && recording.response.status >= 400) {
-            dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: extractErrorMessage(recording.response.body, recording.response.status) } });
-            dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'error' } });
-          } else {
-            dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'complete' } });
-          }
-        } else {
+        if (!recording?.response?.body) {
           throw new Error('No recording available for this step');
         }
+
+        await new Promise((r) => setTimeout(r, 500));
+        handleExecutionResult(recording.response.body, recording.response.status || 200);
       }
     } catch (err) {
-      setPollingState(null);
       dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: err instanceof Error ? err.message : 'Unknown error' } });
       dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'error' } });
     }
-  };
+  }
 
-  const handleFormChange = (name: string, value: string | number | boolean) => {
+  function handleFormChange(name: string, value: string | number | boolean): void {
     setFormValues((prev) => ({ ...prev, [name]: value }));
-  };
+  }
 
   const isExecuting = status === 'executing';
   const showTryIt = state.mode === 'recorded' && hasModifications && !isTryItMode && state.isLiveAvailable;
-
-  function getGlowColor(): 'blue' | 'green' | 'orange' {
-    if (isExecuting) return 'blue';
-    if (status === 'complete') return 'green';
-    if (status === 'error') return 'orange';
-    return 'blue';
-  }
-  const glowColor = getGlowColor();
+  const glowColor = GLOW_COLORS[status] || 'blue';
 
   // Check if we have output to show (for two-column layout)
   const hasOutput = (response !== null && response !== undefined && !isTryItMode) || isTryItMode;
 
   // Check if we have form fields (affects Results placement)
-  const hasFormFields = step.form && step.form.length > 0;
+  const hasFormFields = effectiveForm && effectiveForm.length > 0;
 
   return (
     <GlowingCard isActive={isExecuting || status === 'complete'} color={glowColor} intensity="medium">
@@ -298,15 +244,24 @@ export function RestStep({ step }: Props) {
           description={step.description}
           status={status}
           pollingState={pollingState}
+          mode={mode}
+          onDelete={onDelete}
         />
+
+        {/* Show loading state while fetching OpenAPI spec */}
+        {isLoadingForm && (
+          <div className="px-4 py-2 text-sm text-gray-500 dark:text-slate-400">
+            Loading form fields...
+          </div>
+        )}
 
         {/* Two-column layout on desktop when there's output */}
         <div className={hasOutput ? 'xl:grid xl:grid-cols-2' : ''}>
           {/* Left column: inputs and controls */}
           <div className={hasOutput ? 'xl:pr-4' : ''}>
-            {step.form && (
+            {effectiveForm && effectiveForm.length > 0 && (
               <RestFormFields
-                fields={step.form}
+                fields={effectiveForm}
                 values={formValues}
                 onChange={handleFormChange}
                 isFieldModified={isFieldModified}
@@ -317,7 +272,7 @@ export function RestStep({ step }: Props) {
             <RequestPreview
               method={method}
               url={fullUrl}
-              body={method !== 'GET' && step.form ? getRequestBodyPreview() : undefined}
+              body={method !== 'GET' && (effectiveForm || step.body) ? getRequestBodyPreview() : undefined}
               headers={step.headers ? substituteInObject(step.headers, state.variables) as Record<string, string> : undefined}
               showCurl={step.show_curl}
             />
@@ -330,17 +285,19 @@ export function RestStep({ step }: Props) {
               </div>
             )}
 
-            <ExecuteButtons
-              onExecute={handleExecute}
-              onTryIt={handleTryIt}
-              status={status}
-              isExecuting={isExecuting}
-              isTryItExecuting={isTryItExecuting}
-              pollingState={pollingState}
-              showTryIt={showTryIt}
-            />
+            {mode === 'view' && (
+              <ExecuteButtons
+                onExecute={handleExecute}
+                onTryIt={handleTryIt}
+                status={status}
+                isExecuting={isExecuting}
+                isTryItExecuting={isTryItExecuting}
+                pollingState={pollingState}
+                showTryIt={showTryIt}
+              />
+            )}
 
-            {error && (
+            {mode === 'view' && error && (
               <ErrorDisplay
                 error={error}
                 onRetry={handleExecute}

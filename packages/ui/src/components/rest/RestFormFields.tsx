@@ -18,12 +18,12 @@ export function RestFormFields({ fields, values, onChange, isFieldModified, disa
   return (
     <div className="border-b border-gray-200 dark:border-slate-700/50 p-4 bg-gray-50/50 dark:bg-slate-900/30">
       <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">Request Parameters</h3>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-x-4 gap-y-4 md:grid-cols-2">
         {visibleFields.map((field) => (
-          <div key={field.name} className="relative">
-            <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">
+          <div key={field.name}>
+            <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1 min-h-[2.5rem]">
               {field.label || field.name}
-              {field.required && <span className="text-red-500 dark:text-red-400 ml-1">*</span>}
+              {field.required && <span className="text-red-500 dark:text-red-400 ml-0.5">*</span>}
               {isFieldModified(field.name) && (
                 <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-500/30">
                   modified

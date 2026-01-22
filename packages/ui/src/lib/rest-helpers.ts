@@ -57,3 +57,34 @@ const DEFAULT_METHOD_COLOR = 'bg-gray-100 dark:bg-slate-500/20 text-gray-700 dar
 export function getMethodColor(method: string): string {
   return METHOD_COLORS[method] || DEFAULT_METHOD_COLOR;
 }
+
+/**
+ * Extract error message from response body or return default HTTP status message.
+ */
+export function extractErrorMessage(body: unknown, httpStatus: number): string {
+  if (typeof body === 'object' && body !== null) {
+    const obj = body as Record<string, unknown>;
+    return String(obj.error || obj.detail || obj.message || `HTTP ${httpStatus}`);
+  }
+  return `HTTP ${httpStatus}`;
+}
+
+/**
+ * Build request body from form fields, filtering out hidden and empty optional fields.
+ */
+export function buildRequestBody(
+  form: Array<{ name: string; hidden?: boolean; required?: boolean }> | undefined,
+  formValues: Record<string, unknown>
+): Record<string, unknown> | undefined {
+  if (!form) return undefined;
+
+  return Object.fromEntries(
+    form
+      .filter((f) => !f.hidden)
+      .filter((f) => {
+        const value = formValues[f.name];
+        return f.required || (value !== '' && value !== undefined && value !== null);
+      })
+      .map((f) => [f.name, formValues[f.name]])
+  );
+}

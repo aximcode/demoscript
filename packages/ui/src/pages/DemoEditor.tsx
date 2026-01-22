@@ -1,0 +1,950 @@
+import { useState, useCallback, useEffect, useRef } from 'react';
+import * as jsYaml from 'js-yaml';
+import { EditorProvider, useEditor, type EditorStep } from '../context/EditorContext';
+import { useDemo } from '../context/DemoContext';
+import { SortableStepList } from '../components/builder/SortableStepList';
+import { SplitView } from '../components/builder/SplitView';
+import { usePlayback } from '../hooks/usePlayback';
+import { useStepEffects } from '../hooks/useStepEffects';
+import { parseYaml, generateYaml, validateYaml } from '../lib/yaml-parser';
+import { RestStep } from '../components/RestStep';
+import { SlideStep } from '../components/SlideStep';
+import { ShellStep } from '../components/ShellStep';
+import { isRestStep, isSlideStep, isShellStep, isStepGroup, type StepOrGroup, type DemoConfig } from '../types/schema';
+
+// Generate YAML for a single step
+function stepToYaml(step: StepOrGroup): string {
+  try {
+    return jsYaml.dump([step], { indent: 2, lineWidth: -1 }).trim();
+  } catch {
+    return '# Error generating YAML';
+  }
+}
+
+// Storage key for editor state
+const STORAGE_KEY = 'demoscript-editor-state';
+
+// Embedded mode detection for cloud integration
+const isEmbedded = (window as unknown as { __DEMOSCRIPT_EDITOR_EMBEDDED__?: boolean }).__DEMOSCRIPT_EDITOR_EMBEDDED__;
+
+// Default config for cloud mode with sandbox API
+const DEFAULT_CLOUD_CONFIG: DemoConfig = {
+  title: 'Untitled Demo',
+  description: '',
+  settings: {
+    base_url: 'https://demoscript.app/api/sandbox',
+    openapi: 'https://demoscript.app/api/sandbox/openapi.json',
+  },
+  steps: [],
+};
+
+// Load state from localStorage
+function loadSavedState(): DemoConfig | null {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
+
+// Save state to localStorage
+function saveState(config: DemoConfig): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+// Step type selector for adding new steps
+interface AddStepMenuProps {
+  onAddStep: (type: 'rest' | 'slide' | 'shell') => void;
+}
+
+function AddStepMenu({ onAddStep }: AddStepMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded font-medium transition-colors text-sm"
+        title="Add Step"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        <span className="hidden sm:inline">Add</span>
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 py-1 z-20">
+            <button
+              onClick={() => { onAddStep('rest'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              REST Request
+            </button>
+            <button
+              onClick={() => { onAddStep('slide'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-purple-500" />
+              Slide
+            </button>
+            <button
+              onClick={() => { onAddStep('shell'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-orange-500" />
+              Shell Command
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Playback controls component
+interface PlaybackControlsProps {
+  isPlaying: boolean;
+  currentStep: number;
+  totalSteps: number;
+  speed: number;
+  onPlay: () => void;
+  onPause: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onReset: () => void;
+  onSpeedChange: (speed: number) => void;
+}
+
+function PlaybackControls({
+  isPlaying,
+  currentStep,
+  totalSteps,
+  speed,
+  onPlay,
+  onPause,
+  onPrev,
+  onNext,
+  onReset,
+  onSpeedChange,
+}: PlaybackControlsProps) {
+  return (
+    <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-100 dark:bg-slate-800 rounded">
+      {/* Reset */}
+      <button
+        onClick={onReset}
+        className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+        title="Reset"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+
+      {/* Prev */}
+      <button
+        onClick={onPrev}
+        disabled={currentStep === 0}
+        className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50"
+        title="Previous step"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      {/* Play/Pause */}
+      <button
+        onClick={isPlaying ? onPause : onPlay}
+        className="p-1.5 bg-primary-600 text-white rounded-full hover:bg-primary-700"
+        title={isPlaying ? 'Pause' : 'Play'}
+      >
+        {isPlaying ? (
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        )}
+      </button>
+
+      {/* Next */}
+      <button
+        onClick={onNext}
+        disabled={currentStep >= totalSteps - 1}
+        className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50"
+        title="Next step"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* Step counter */}
+      <span className="text-xs text-gray-600 dark:text-slate-400 ml-1 tabular-nums">
+        {currentStep + 1}/{totalSteps}
+      </span>
+
+      {/* Speed selector */}
+      <select
+        value={speed}
+        onChange={(e) => onSpeedChange(Number(e.target.value))}
+        className="ml-1 px-1 py-0.5 text-xs bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-600 rounded"
+      >
+        <option value={0.5}>0.5x</option>
+        <option value={1}>1x</option>
+        <option value={1.5}>1.5x</option>
+        <option value={2}>2x</option>
+      </select>
+    </div>
+  );
+}
+
+// YAML import/export panel
+interface YamlPanelProps {
+  onImport: (yaml: string) => void;
+  onExport: () => string;
+}
+
+function YamlPanel({ onImport, onExport }: YamlPanelProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [yamlContent, setYamlContent] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const handleImport = () => {
+    const validationError = validateYaml(yamlContent);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    onImport(yamlContent);
+    setIsOpen(false);
+    setYamlContent('');
+  };
+
+  const handleExport = () => {
+    const yaml = onExport();
+    setYamlContent(yaml);
+    setError(null);
+  };
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="px-2.5 py-1.5 text-xs bg-slate-600 hover:bg-slate-700 text-white rounded font-medium transition-colors whitespace-nowrap flex items-center gap-1"
+        title="Import or export YAML manually"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+        YAML
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700">
+          <h3 className="font-medium text-gray-900 dark:text-slate-100">Import / Export YAML</h3>
+          <button
+            onClick={() => { setIsOpen(false); setError(null); }}
+            className="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-4">
+          <textarea
+            value={yamlContent}
+            onChange={(e) => setYamlContent(e.target.value)}
+            placeholder="Paste YAML here to import, or click Export to get current demo YAML"
+            className="w-full h-64 px-3 py-2 font-mono text-sm bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+
+          {error && (
+            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-200 dark:border-slate-700">
+          <button
+            onClick={handleExport}
+            className="px-4 py-2 text-sm text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"
+          >
+            Export
+          </button>
+          <button
+            onClick={handleImport}
+            disabled={!yamlContent.trim()}
+            className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+          >
+            Import
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Collapsible section component for settings
+interface CollapsibleSectionProps {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}
+
+function CollapsibleSection({ title, defaultOpen = true, children }: CollapsibleSectionProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-slate-300"
+      >
+        {title}
+        <svg
+          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && <div className="p-3 space-y-3">{children}</div>}
+    </div>
+  );
+}
+
+// Toggle switch component
+interface ToggleSwitchProps {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  description?: string;
+}
+
+function ToggleSwitch({ label, checked, onChange, description }: ToggleSwitchProps) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <span className="text-sm text-gray-700 dark:text-slate-300">{label}</span>
+        {description && (
+          <p className="text-xs text-gray-500 dark:text-slate-400">{description}</p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+          checked ? 'bg-primary-600' : 'bg-gray-200 dark:bg-slate-600'
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+            checked ? 'translate-x-4' : 'translate-x-0'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+// Settings panel for configuring demo settings
+interface SettingsPanelProps {
+  settings: DemoConfig['settings'] | undefined;
+  title: string;
+  description: string;
+  onSettingsChange: (settings: Partial<NonNullable<DemoConfig['settings']>>) => void;
+  onTitleChange: (title: string) => void;
+  onDescriptionChange: (description: string) => void;
+}
+
+function SettingsPanel({
+  settings,
+  title,
+  description,
+  onSettingsChange,
+  onTitleChange,
+  onDescriptionChange,
+}: SettingsPanelProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Helper to update nested effects settings
+  const updateEffects = (key: string, value: boolean | number) => {
+    onSettingsChange({
+      effects: { ...settings?.effects, [key]: value },
+    });
+  };
+
+  // Helper to update nested theme settings
+  const updateTheme = (key: string, value: string) => {
+    onSettingsChange({
+      theme: { ...settings?.theme, [key]: value },
+    });
+  };
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 rounded transition-colors"
+        title="Demo Settings"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
+          <h3 className="font-medium text-gray-900 dark:text-slate-100">Demo Settings</h3>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4 overflow-y-auto flex-1">
+          {/* General Settings */}
+          <CollapsibleSection title="General" defaultOpen={true}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Title
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => onTitleChange(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="My API Demo"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => onDescriptionChange(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                placeholder="A brief description of your demo"
+              />
+            </div>
+          </CollapsibleSection>
+
+          {/* API Configuration */}
+          <CollapsibleSection title="API Configuration" defaultOpen={true}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Base URL
+              </label>
+              <input
+                type="text"
+                value={settings?.base_url || ''}
+                onChange={(e) => onSettingsChange({ base_url: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="https://api.example.com"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                Base URL prepended to all REST endpoints
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                OpenAPI Spec URL
+              </label>
+              <input
+                type="text"
+                value={settings?.openapi || ''}
+                onChange={(e) => onSettingsChange({ openapi: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="https://api.example.com/openapi.json"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                Auto-generate form fields from OpenAPI/Swagger spec
+              </p>
+            </div>
+          </CollapsibleSection>
+
+          {/* Theme Settings */}
+          <CollapsibleSection title="Theme" defaultOpen={false}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Color Preset
+              </label>
+              <select
+                value={settings?.theme?.preset || 'purple'}
+                onChange={(e) => updateTheme('preset', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="purple">Purple (Default)</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+                <option value="teal">Teal</option>
+                <option value="orange">Orange</option>
+                <option value="rose">Rose</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Color Mode
+              </label>
+              <select
+                value={settings?.theme?.mode || 'auto'}
+                onChange={(e) => updateTheme('mode', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="auto">Auto (System)</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+          </CollapsibleSection>
+
+          {/* Visual Effects */}
+          <CollapsibleSection title="Visual Effects" defaultOpen={false}>
+            <ToggleSwitch
+              label="Confetti"
+              checked={settings?.effects?.confetti !== false}
+              onChange={(v) => updateEffects('confetti', v)}
+              description="Fire confetti on step completion"
+            />
+            <ToggleSwitch
+              label="Sounds"
+              checked={settings?.effects?.sounds !== false}
+              onChange={(v) => updateEffects('sounds', v)}
+              description="Play success/error sounds"
+            />
+            <ToggleSwitch
+              label="Transitions"
+              checked={settings?.effects?.transitions !== false}
+              onChange={(v) => updateEffects('transitions', v)}
+              description="Animate step changes"
+            />
+            <ToggleSwitch
+              label="Neon Glow"
+              checked={settings?.effects?.neon_glow !== false}
+              onChange={(v) => updateEffects('neon_glow', v)}
+              description="Neon text effects (dark mode)"
+            />
+            <ToggleSwitch
+              label="Grid Background"
+              checked={settings?.effects?.grid_background !== false}
+              onChange={(v) => updateEffects('grid_background', v)}
+              description="Animated grid background"
+            />
+            <ToggleSwitch
+              label="Glow Orbs"
+              checked={settings?.effects?.glow_orbs !== false}
+              onChange={(v) => updateEffects('glow_orbs', v)}
+              description="Floating glow orbs (dark mode)"
+            />
+          </CollapsibleSection>
+
+          {/* Display Options */}
+          <CollapsibleSection title="Display Options" defaultOpen={false}>
+            <ToggleSwitch
+              label="Dashboard"
+              checked={settings?.dashboard?.enabled === true}
+              onChange={(v) => onSettingsChange({ dashboard: { ...settings?.dashboard, enabled: v } })}
+              description="Show overview dashboard on load"
+            />
+            <ToggleSwitch
+              label="Sidebar"
+              checked={settings?.sidebar?.enabled === true}
+              onChange={(v) => onSettingsChange({ sidebar: { ...settings?.sidebar, enabled: v } })}
+              description="Show step navigation sidebar"
+            />
+          </CollapsibleSection>
+        </div>
+
+        <div className="flex items-center justify-end px-4 py-3 border-t border-gray-200 dark:border-slate-700 flex-shrink-0">
+          <button
+            onClick={() => setIsOpen(false)}
+            className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Step preview component (view mode with Execute button)
+interface StepPreviewProps {
+  step: EditorStep;
+}
+
+function StepPreview({ step }: StepPreviewProps) {
+  const stepData = step.step;
+
+  if (isStepGroup(stepData)) {
+    return (
+      <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+        <h3 className="font-medium">Group: {stepData.group}</h3>
+      </div>
+    );
+  }
+
+  // Use mode="view" to show Execute button for testing
+  if (isRestStep(stepData)) {
+    return <RestStep step={stepData} mode="view" />;
+  }
+
+  if (isSlideStep(stepData)) {
+    return <SlideStep step={stepData} mode="view" />;
+  }
+
+  if (isShellStep(stepData)) {
+    return <ShellStep step={stepData} mode="view" />;
+  }
+
+  return (
+    <div className="p-4 text-gray-500">
+      Unsupported step type
+    </div>
+  );
+}
+
+// Step YAML panel - editable YAML for current step
+interface StepYamlPanelProps {
+  step: EditorStep;
+  stepIndex: number;
+  onUpdate: (step: StepOrGroup) => void;
+}
+
+function StepYamlPanel({ step, stepIndex, onUpdate }: StepYamlPanelProps) {
+  const initialYaml = stepToYaml(step.step);
+  const [yamlContent, setYamlContent] = useState(initialYaml);
+  const [error, setError] = useState<string | null>(null);
+
+  // Update local state when step changes externally
+  useEffect(() => {
+    setYamlContent(stepToYaml(step.step));
+    setError(null);
+  }, [step.step]);
+
+  const handleChange = (value: string) => {
+    setYamlContent(value);
+    setError(null);
+  };
+
+  const handleBlur = () => {
+    try {
+      // Parse YAML - it's wrapped in array
+      const parsed = jsYaml.load(yamlContent) as StepOrGroup[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        onUpdate(parsed[0]);
+        setError(null);
+      } else {
+        setError('Invalid step format');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Invalid YAML');
+    }
+  };
+
+  return (
+    <div className="border-t border-gray-200 dark:border-slate-700 bg-slate-900 flex flex-col">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-700">
+        <span className="text-xs font-medium text-slate-400">
+          Step {stepIndex + 1} YAML
+          {error && <span className="text-red-400 ml-2">({error})</span>}
+        </span>
+        <button
+          onClick={() => navigator.clipboard.writeText(yamlContent)}
+          className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+          title="Copy to clipboard"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        </button>
+      </div>
+      <textarea
+        value={yamlContent}
+        onChange={(e) => handleChange(e.target.value)}
+        onBlur={handleBlur}
+        className={`flex-1 p-3 text-xs font-mono bg-slate-900 text-slate-300 resize-none focus:outline-none focus:ring-1 focus:ring-inset min-h-[120px] ${
+          error ? 'focus:ring-red-500' : 'focus:ring-primary-500'
+        }`}
+        spellCheck={false}
+      />
+    </div>
+  );
+}
+
+// Main editor content (uses EditorContext)
+function EditorContent() {
+  const { state, addStep, removeStep, updateStep, reorderSteps, setCurrentStep, loadFromConfig, toConfig, dispatch } = useEditor();
+  const { dispatch: demoDispatch } = useDemo();
+  const lastSyncedConfig = useRef<string>('');
+
+  // Enable step effects (confetti, sounds) on step completion
+  useStepEffects();
+
+  // Playback hook
+  const {
+    playbackState,
+    play,
+    pause,
+    toggle: _toggle,
+    goToStep: _goToStep,
+    nextStep,
+    prevStep,
+    setSpeed,
+    reset,
+  } = usePlayback({
+    totalSteps: state.steps.length,
+    onStepChange: setCurrentStep,
+    autoAdvanceDelay: 2000,
+  });
+
+  // Sync editor config to DemoContext for live execution
+  useEffect(() => {
+    const config = toConfig();
+    const configKey = JSON.stringify(config);
+
+    // Only sync if config actually changed
+    if (configKey !== lastSyncedConfig.current) {
+      lastSyncedConfig.current = configKey;
+      demoDispatch({ type: 'SET_CONFIG', payload: config });
+      demoDispatch({ type: 'SET_MODE', payload: 'live' });
+    }
+  }, [state.steps, state.settings, state.title, toConfig, demoDispatch]);
+
+  // Sync current step to DemoContext
+  useEffect(() => {
+    demoDispatch({ type: 'SET_STEP', payload: state.currentStep });
+  }, [state.currentStep, demoDispatch]);
+
+  // Auto-save to localStorage on changes
+  useEffect(() => {
+    if (state.isDirty) {
+      const config = toConfig();
+      saveState(config);
+    }
+  }, [state, toConfig]);
+
+  // Handle adding new step
+  const handleAddStep = useCallback((type: 'rest' | 'slide' | 'shell') => {
+    let newStep: StepOrGroup;
+
+    switch (type) {
+      case 'rest':
+        newStep = { rest: 'GET /health', title: 'New Request' };
+        break;
+      case 'slide':
+        newStep = { slide: '# New Slide\n\nAdd your content here.' };
+        break;
+      case 'shell':
+        newStep = { shell: 'echo "Hello, World!"', title: 'New Command' };
+        break;
+    }
+
+    addStep(newStep, state.currentStep);
+  }, [addStep, state.currentStep]);
+
+  // Handle YAML import
+  const handleYamlImport = useCallback((yaml: string) => {
+    try {
+      const config = parseYaml(yaml);
+      loadFromConfig(config);
+    } catch (error) {
+      console.error('Failed to import YAML:', error);
+    }
+  }, [loadFromConfig]);
+
+  // Listen for YAML import from parent window (for embedded mode)
+  useEffect(() => {
+    if (!isEmbedded) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'demoscript-yaml-import' && event.data.yaml) {
+        handleYamlImport(event.data.yaml);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [handleYamlImport]);
+
+  // Handle YAML export
+  const handleYamlExport = useCallback(() => {
+    const config = toConfig();
+    return generateYaml(config);
+  }, [toConfig]);
+
+  // Handle export to parent window (for embedded mode)
+  const handleExportToParent = useCallback(() => {
+    const yaml = handleYamlExport();
+    window.parent.postMessage({ type: 'demoscript-builder-export', yaml }, '*');
+  }, [handleYamlExport]);
+
+  // Current step data
+  const currentStepData = state.steps[state.currentStep];
+
+  // Editor panel (left side)
+  const editorPanel = (
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-slate-900">
+      {/* Header - responsive layout */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <div className="flex items-center min-w-0 overflow-hidden">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate" title={state.title}>
+            {state.title || 'Untitled Demo'}
+          </h2>
+          {state.isDirty && (
+            <span className="ml-1 text-xs text-gray-400 flex-shrink-0">•</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <SettingsPanel
+            settings={state.settings}
+            title={state.title}
+            description={state.description}
+            onSettingsChange={(settings) => dispatch({ type: 'SET_SETTINGS', payload: settings })}
+            onTitleChange={(title) => dispatch({ type: 'SET_TITLE', payload: title })}
+            onDescriptionChange={(desc) => dispatch({ type: 'SET_DESCRIPTION', payload: desc })}
+          />
+          <YamlPanel onImport={handleYamlImport} onExport={handleYamlExport} />
+          {isEmbedded && (
+            <button
+              onClick={handleExportToParent}
+              className="px-2.5 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded font-medium transition-colors whitespace-nowrap flex items-center gap-1"
+              title="Update the YAML Editor with your changes"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Update
+            </button>
+          )}
+          <AddStepMenu onAddStep={handleAddStep} />
+        </div>
+      </div>
+
+      {/* Step list */}
+      <div className="flex-1 overflow-auto p-2">
+        <SortableStepList
+          steps={state.steps}
+          currentStep={state.currentStep}
+          onReorder={reorderSteps}
+          onSelect={setCurrentStep}
+          onDelete={removeStep}
+        />
+      </div>
+
+      {/* Step YAML panel */}
+      {currentStepData && (
+        <StepYamlPanel
+          step={currentStepData}
+          stepIndex={state.currentStep}
+          onUpdate={(step) => updateStep(state.currentStep, step)}
+        />
+      )}
+    </div>
+  );
+
+  // Preview panel (right side)
+  const previewPanel = (
+    <div className="h-full flex flex-col bg-white dark:bg-slate-950">
+      {/* Header with playback controls */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-slate-800">
+        <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
+          Live Preview
+        </span>
+
+        {state.steps.length > 0 && (
+          <PlaybackControls
+            isPlaying={playbackState.isPlaying}
+            currentStep={playbackState.currentStep}
+            totalSteps={state.steps.length}
+            speed={playbackState.speed}
+            onPlay={play}
+            onPause={pause}
+            onPrev={prevStep}
+            onNext={nextStep}
+            onReset={reset}
+            onSpeedChange={setSpeed}
+          />
+        )}
+      </div>
+
+      {/* Step preview */}
+      <div className="flex-1 overflow-auto p-4">
+        {currentStepData ? (
+          <StepPreview step={currentStepData} />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-slate-500">
+            <svg className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <p className="text-sm font-medium">No steps yet</p>
+            <p className="text-xs mt-1">Add a step to start building your demo</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="h-screen">
+      <SplitView
+        left={editorPanel}
+        right={previewPanel}
+        defaultLeftWidth={35}
+        minLeftWidth={25}
+        maxLeftWidth={60}
+      />
+    </div>
+  );
+}
+
+// Main DemoEditor component with provider
+export function DemoEditor() {
+  const savedConfig = loadSavedState();
+
+  // Use default cloud config when starting fresh in embedded mode
+  const initialConfig = savedConfig || (isEmbedded ? DEFAULT_CLOUD_CONFIG : undefined);
+
+  return (
+    <EditorProvider initialConfig={initialConfig}>
+      <EditorContent />
+    </EditorProvider>
+  );
+}

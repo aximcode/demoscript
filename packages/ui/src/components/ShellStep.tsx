@@ -5,8 +5,13 @@ import { isStepTypeSupported, getUnsupportedMessage } from '../lib/execute-adapt
 import { ErrorDisplay } from './rest/ErrorDisplay';
 import type { ShellStep as ShellStepType, ExplicitShellStep } from '../types/schema';
 
+export type StepMode = 'view' | 'edit' | 'preview';
+
 interface Props {
   step: ShellStepType | ExplicitShellStep;
+  mode?: StepMode;
+  onChange?: (step: ShellStepType | ExplicitShellStep) => void;
+  onDelete?: () => void;
 }
 
 interface ShellResponse {
@@ -16,10 +21,11 @@ interface ShellResponse {
   output: string; // Legacy alias for stdout
 }
 
-export function ShellStep({ step }: Props) {
+export function ShellStep({ step, mode = 'view', onChange: _onChange, onDelete }: Props) {
   const { state, dispatch, getStepStatus } = useDemo();
   const [displayedCommand, setDisplayedCommand] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const isEditMode = mode === 'edit';
 
   const status = getStepStatus(state.currentStep);
   const response = state.stepResponses[state.currentStep] as ShellResponse | undefined;
@@ -150,14 +156,27 @@ export function ShellStep({ step }: Props) {
     <div className="bg-white dark:bg-slate-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-[rgba(var(--color-primary-rgb),0.2)]">
       {/* Header */}
       <div className="border-b border-gray-200 dark:border-slate-700 p-4">
-        <div className="flex items-center gap-3">
-          <span className="px-2 py-1 rounded text-sm font-bold bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300">
-            {step.shell_type?.toUpperCase() || 'SHELL'}
-          </span>
-          {step.workdir && (
-            <span className="text-gray-500 dark:text-gray-400 text-sm">
-              in <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">{step.workdir}</code>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="px-2 py-1 rounded text-sm font-bold bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300">
+              {step.shell_type?.toUpperCase() || 'SHELL'}
             </span>
+            {step.workdir && (
+              <span className="text-gray-500 dark:text-gray-400 text-sm">
+                in <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">{step.workdir}</code>
+              </span>
+            )}
+          </div>
+          {isEditMode && onDelete && (
+            <button
+              onClick={onDelete}
+              className="p-1.5 text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors"
+              title="Delete step"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
           )}
         </div>
         {step.description && <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">{step.description}</p>}
@@ -202,24 +221,25 @@ export function ShellStep({ step }: Props) {
       </div>
 
       {/* Execute Button */}
-      <div className="p-4 flex items-center gap-4 bg-white dark:bg-slate-800/30">
-        {step.confirm && status === 'pending' && (
-          <span className="text-amber-600 text-sm flex items-center gap-1">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Requires confirmation
-          </span>
-        )}
-        <button
-          onClick={handleExecute}
-          disabled={status === 'executing' || (!isStepTypeSupported('shell') && state.mode === 'live')}
-          className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
+      {mode === 'view' && (
+        <div className="p-4 flex items-center gap-4 bg-white dark:bg-slate-800/30">
+          {step.confirm && status === 'pending' && (
+            <span className="text-amber-600 text-sm flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Requires confirmation
+            </span>
+          )}
+          <button
+            onClick={handleExecute}
+            disabled={status === 'executing' || (!isStepTypeSupported('shell') && state.mode === 'live')}
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
           {status === 'executing' ? (
             <>
               <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
@@ -268,10 +288,11 @@ export function ShellStep({ step }: Props) {
             Failed
           </span>
         )}
-      </div>
+        </div>
+      )}
 
       {/* Error */}
-      {error && (
+      {mode === 'view' && error && (
         <ErrorDisplay
           error={error}
           onRetry={handleExecute}

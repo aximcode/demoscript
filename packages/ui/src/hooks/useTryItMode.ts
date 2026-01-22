@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { substituteInObject } from '../lib/variable-substitution';
 import { executeRequest } from '../lib/execute-adapter';
+import { buildRequestBody } from '../lib/rest-helpers';
 import type { RestStep as RestStepType, ExplicitRestStep } from '../types/schema';
 
 interface UseTryItModeProps {
@@ -40,11 +41,7 @@ export function useTryItMode({
 
     try {
       const body = step.form
-        ? Object.fromEntries(
-            step.form
-              .filter((f) => !f.hidden)
-              .map((f) => [f.name, formValues[f.name]])
-          )
+        ? buildRequestBody(step.form, formValues)
         : substituteInObject(step.body, variables);
 
       const result = await executeRequest({
