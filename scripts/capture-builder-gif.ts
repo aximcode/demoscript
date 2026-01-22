@@ -151,12 +151,12 @@ async function captureCloudBuilder(): Promise<string[]> {
     });
     await sleep(500);
 
-    // Frame 1: Click on Visual Builder tab
-    console.log('Switching to Visual Builder tab...');
+    // Frame 1: Click on Visual Editor tab
+    console.log('Switching to Visual Editor tab...');
     const tabs = await page.$$('button.tab');
     for (const tab of tabs) {
       const text = await tab.evaluate(el => el.textContent?.trim() || '');
-      if (text === 'Visual Builder') {
+      if (text === 'Visual Editor') {
         await tab.click();
         break;
       }
@@ -168,7 +168,7 @@ async function captureCloudBuilder(): Promise<string[]> {
       document.documentElement.classList.add('dark');
     });
     await sleep(500);
-    await capture('Visual Builder - step list');
+    await capture('Visual Editor - step list');
 
     // Click on the preview area to give it focus, then use keyboard navigation
     // Preview panel is on the right side, roughly center of the screen

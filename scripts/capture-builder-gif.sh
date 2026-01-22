@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Capture Visual Builder screenshots and create animated GIF
+# Capture Visual Editor screenshots and create animated GIF
 #
 # Usage: ./scripts/capture-builder-gif.sh
 #
