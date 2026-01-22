@@ -7,6 +7,7 @@ import {
   generateResultFields,
 } from '@demoscript/shared/openapi';
 import type { StepOrGroup, FormField, ResultField } from '../../types/schema';
+import { useDraggable } from '../../hooks/useDraggable';
 
 const METHOD_COLORS: Record<string, string> = {
   GET: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -36,6 +37,9 @@ export function EndpointExplorerModal({
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [expandedEndpoint, setExpandedEndpoint] = useState<string | null>(null);
 
+  // Draggable modal
+  const { position, isDragging, handleMouseDown, resetPosition } = useDraggable();
+
   // Fetch spec when modal opens
   useEffect(() => {
     if (!isOpen || !openapiUrl || spec) return;
@@ -45,9 +49,12 @@ export function EndpointExplorerModal({
       setError(null);
 
       try {
-        // Use the proxy endpoint to bypass CORS
-        const proxyUrl = `/api/openapi?url=${encodeURIComponent(openapiUrl)}`;
-        const response = await fetch(proxyUrl);
+        // For local paths (starting with /), fetch directly; for external URLs, use proxy
+        const isLocalPath = openapiUrl.startsWith('/');
+        const fetchUrl = isLocalPath
+          ? openapiUrl
+          : `/api/openapi?url=${encodeURIComponent(openapiUrl)}`;
+        const response = await fetch(fetchUrl);
 
         if (!response.ok) {
           const data = await response.json();
@@ -139,20 +146,28 @@ export function EndpointExplorerModal({
       setSearchQuery('');
       setSelectedTag(null);
       setExpandedEndpoint(null);
+      resetPosition();
     }
-  }, [isOpen]);
+  }, [isOpen, resetPosition]);
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
+      <div
+        data-draggable-modal
+        className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
+        style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+      >
+        {/* Header - Drag Handle */}
+        <div
+          onMouseDown={handleMouseDown}
+          className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        >
           <div>
-            <h3 className="font-medium text-gray-900 dark:text-slate-100">Browse API Endpoints</h3>
+            <h3 className="font-medium text-gray-900 dark:text-slate-100 select-none">Browse API Endpoints</h3>
             {spec && (
-              <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5 select-none">
                 {spec.info.title} v{spec.info.version} - {filteredEndpoints.length} endpoints
               </p>
             )}

@@ -8,11 +8,13 @@ import { EndpointExplorerModal } from '../components/builder/EndpointExplorerMod
 import { usePlayback } from '../hooks/usePlayback';
 import { useStepEffects } from '../hooks/useStepEffects';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
+import { useDraggable } from '../hooks/useDraggable';
 import { parseYaml, generateYaml, validateYaml } from '../lib/yaml-parser';
 import { RestStep } from '../components/RestStep';
 import { SlideStep } from '../components/SlideStep';
 import { ShellStep } from '../components/ShellStep';
 import { isRestStep, isSlideStep, isShellStep, isStepGroup, type StepOrGroup, type DemoConfig, type DemoMetadata } from '../types/schema';
+import { getThemeColors, applyThemeColors, type ThemePreset } from '../lib/theme-colors';
 
 // Generate YAML for a single step
 function stepToYaml(step: StepOrGroup): string {
@@ -396,6 +398,9 @@ function SettingsPanel({
 }: SettingsPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Draggable modal
+  const { position, isDragging, handleMouseDown, resetPosition } = useDraggable();
+
   // Helper to update nested effects settings
   const updateEffects = (key: string, value: boolean | number) => {
     onSettingsChange({
@@ -432,13 +437,25 @@ function SettingsPanel({
     );
   }
 
+  const handleClose = () => {
+    setIsOpen(false);
+    resetPosition();
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex-shrink-0">
-          <h3 className="font-medium text-gray-900 dark:text-slate-100">Demo Settings</h3>
+      <div
+        data-draggable-modal
+        className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col"
+        style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+      >
+        <div
+          onMouseDown={handleMouseDown}
+          className={`flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700 flex-shrink-0 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        >
+          <h3 className="font-medium text-gray-900 dark:text-slate-100 select-none">Demo Settings</h3>
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
             className="text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -683,7 +700,7 @@ function SettingsPanel({
 
         <div className="flex items-center justify-end px-4 py-3 border-t border-gray-200 dark:border-slate-700 flex-shrink-0">
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
             className="px-4 py-2 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700"
           >
             Done
@@ -882,6 +899,38 @@ function EditorContent() {
       saveState(config);
     }
   }, [state, toConfig]);
+
+  // Apply theme from settings - runs after ThemeProvider to override its default
+  const themeMode = state.settings.theme?.mode;
+  useEffect(() => {
+    const root = document.documentElement;
+    console.log('[DemoEditor] Applying theme mode:', themeMode);
+
+    if (themeMode === 'dark') {
+      root.classList.add('dark');
+      console.log('[DemoEditor] Added dark class');
+    } else if (themeMode === 'light') {
+      root.classList.remove('dark');
+      console.log('[DemoEditor] Removed dark class');
+    } else {
+      // Auto mode: use system preference
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        root.classList.add('dark');
+        console.log('[DemoEditor] Auto: added dark class (system prefers dark)');
+      } else {
+        root.classList.remove('dark');
+        console.log('[DemoEditor] Auto: removed dark class (system prefers light)');
+      }
+    }
+  }, [themeMode]);
+
+  // Apply theme colors (preset) from settings
+  const themeSettings = state.settings.theme;
+  useEffect(() => {
+    const colors = getThemeColors(themeSettings);
+    applyThemeColors(colors, themeSettings?.preset as ThemePreset);
+    console.log('[DemoEditor] Applied theme colors:', themeSettings?.preset || 'purple');
+  }, [themeSettings]);
 
   // Handle adding new step
   const handleAddStep = useCallback((type: 'rest' | 'slide' | 'shell') => {

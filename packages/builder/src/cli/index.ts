@@ -6,8 +6,10 @@
 import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync } from 'fs';
+import { networkInterfaces } from 'os';
 import express from 'express';
 import chalk from 'chalk';
+import { handleSandboxRequest, sandboxOpenApiSpec } from '@demoscript/shared/sandbox';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -18,7 +20,6 @@ export interface BuilderOptions {
 }
 
 function getNetworkUrl(port: number): string | null {
-  const { networkInterfaces } = require('os');
   const nets = networkInterfaces();
   for (const name of Object.keys(nets)) {
     for (const net of nets[name] || []) {
@@ -42,6 +43,23 @@ function createRestProxy(): express.RequestHandler {
     }
 
     try {
+      // Handle local sandbox paths directly without external fetch
+      if (url.startsWith('/sandbox')) {
+        const sandboxPath = url.replace('/sandbox', '') || '/';
+        const result = await handleSandboxRequest({
+          method: method || 'GET',
+          path: sandboxPath,
+          params: {},
+          query: {},
+          body: body,
+        });
+        return res.json({
+          status: result.status,
+          headers: { 'content-type': 'application/json' },
+          data: result.body,
+        });
+      }
+
       const fetchHeaders: Record<string, string> = {};
       if (headers) {
         Object.assign(fetchHeaders, headers);
@@ -106,6 +124,27 @@ export async function builder(options: BuilderOptions): Promise<void> {
       res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to fetch OpenAPI spec' });
     }
   });
+
+  // Sandbox API - self-contained mock API for demos
+  app.get('/sandbox/openapi.json', (_req, res) => {
+    res.json(sandboxOpenApiSpec);
+  });
+
+  // Sandbox API handler - handles both /sandbox and /sandbox/* routes
+  async function sandboxHandler(req: express.Request, res: express.Response): Promise<void> {
+    const sandboxPath = req.path.replace('/sandbox', '') || '/';
+    const result = await handleSandboxRequest({
+      method: req.method,
+      path: sandboxPath,
+      params: req.params,
+      query: req.query as Record<string, string | string[]>,
+      body: req.body,
+    });
+    res.status(result.status).json(result.body);
+  }
+
+  app.all('/sandbox', sandboxHandler);
+  app.all('/sandbox/*', sandboxHandler);
 
   // Determine UI serving mode
   // When bundled with esbuild, __dirname is packages/cli/dist
