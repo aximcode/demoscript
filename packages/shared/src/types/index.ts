@@ -29,6 +29,10 @@ export interface FormField {
   min?: number;
   max?: number;
   step?: number;
+  // Textarea-specific properties
+  rows?: number;  // Default number of rows for textarea (default: 2)
+  // Parameter location (from OpenAPI)
+  paramIn?: 'query' | 'path' | 'body';  // Where parameter is sent (default: body)
 }
 
 /**

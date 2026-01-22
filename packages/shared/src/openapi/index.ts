@@ -204,6 +204,36 @@ function mapType(schema: JsonSchema): FormField['type'] {
 }
 
 /**
+ * Determine appropriate textarea rows based on schema complexity
+ * Simple objects/arrays get fewer rows, complex nested structures get more
+ */
+function getTextareaRows(schema: JsonSchema): number {
+  // Arrays of primitives: compact
+  if (schema.type === 'array') {
+    const itemType = schema.items?.type;
+    if (itemType === 'string' || itemType === 'number' || itemType === 'integer') {
+      return 2; // e.g., ["item1", "item2"]
+    }
+    // Arrays of objects need more space
+    return 3;
+  }
+
+  // Objects: check number of properties
+  if (schema.type === 'object' && schema.properties) {
+    const propCount = Object.keys(schema.properties).length;
+    if (propCount <= 2) {
+      return 2; // e.g., { "id": 1, "name": "test" }
+    }
+    if (propCount <= 4) {
+      return 3;
+    }
+    return 4; // Complex objects with many properties
+  }
+
+  return 2; // Default for other cases
+}
+
+/**
  * Generate select options from schema
  */
 function generateOptions(schema: JsonSchema): Array<{ value: string; label: string }> | undefined {
@@ -259,6 +289,49 @@ function generateFormFieldsFromPath(
     return [];
   }
 
+  const fields: FormField[] = [];
+
+  // Extract query and path parameters
+  if (operation.parameters) {
+    for (const param of operation.parameters) {
+      if (param.in === 'query' || param.in === 'path') {
+        const schema = param.schema ? resolveSchema(spec, param.schema) : { type: 'string' };
+        const fieldType = mapType(schema);
+        const field: FormField = {
+          name: param.name,
+          label: param.description || param.name,
+          type: fieldType,
+          required: param.required ?? false,
+          paramIn: param.in,
+        };
+
+        // Add default if present in schema
+        if (schema.default !== undefined) {
+          field.default = schema.default as string | number;
+        }
+
+        // Add options for select fields
+        const options = generateOptions(schema);
+        if (options) {
+          field.options = options;
+        }
+
+        // Add placeholder from description
+        if (param.description) {
+          field.placeholder = param.description;
+        }
+
+        // Set appropriate textarea rows
+        if (fieldType === 'textarea') {
+          field.rows = getTextareaRows(schema);
+        }
+
+        fields.push(field);
+      }
+    }
+  }
+
+  // Extract request body fields
   let bodySchema: JsonSchema | null = null;
 
   // OpenAPI 3.0: requestBody.content['application/json'].schema
@@ -277,44 +350,46 @@ function generateFormFieldsFromPath(
     }
   }
 
-  if (!bodySchema) {
-    return [];
-  }
+  if (bodySchema) {
+    const schema = resolveSchema(spec, bodySchema);
+    if (schema.properties) {
+      const requiredFields = schema.required || [];
 
-  const schema = resolveSchema(spec, bodySchema);
-  if (!schema.properties) {
-    return [];
-  }
+      for (const [name, propSchema] of Object.entries(schema.properties)) {
+        const resolved = resolveSchema(spec, propSchema);
+        const fieldType = mapType(resolved);
+        const field: FormField = {
+          name,
+          label: resolved.description || name,
+          type: fieldType,
+          required: requiredFields.includes(name),
+          paramIn: 'body',
+        };
 
-  const requiredFields = schema.required || [];
-  const fields: FormField[] = [];
+        // Add default if present
+        if (resolved.default !== undefined) {
+          field.default = resolved.default as string | number;
+        }
 
-  for (const [name, propSchema] of Object.entries(schema.properties)) {
-    const resolved = resolveSchema(spec, propSchema);
-    const field: FormField = {
-      name,
-      label: resolved.description || name,
-      type: mapType(resolved),
-      required: requiredFields.includes(name),
-    };
+        // Add options for select fields
+        const options = generateOptions(resolved);
+        if (options) {
+          field.options = options;
+        }
 
-    // Add default if present
-    if (resolved.default !== undefined) {
-      field.default = resolved.default as string | number;
+        // Add placeholder from description if no label override
+        if (resolved.description && field.label === name) {
+          field.placeholder = resolved.description;
+        }
+
+        // Set appropriate textarea rows based on schema complexity
+        if (fieldType === 'textarea') {
+          field.rows = getTextareaRows(resolved);
+        }
+
+        fields.push(field);
+      }
     }
-
-    // Add options for select fields
-    const options = generateOptions(resolved);
-    if (options) {
-      field.options = options;
-    }
-
-    // Add placeholder from description if no label override
-    if (resolved.description && field.label === name) {
-      field.placeholder = resolved.description;
-    }
-
-    fields.push(field);
   }
 
   return fields;
@@ -684,6 +759,7 @@ export function getParameterFields(
       type: mapType(resolved),
       required: param.required || false,
       placeholder: `${param.in} parameter`,
+      paramIn: param.in as 'path' | 'query',
     };
 
     if (resolved.default !== undefined) {

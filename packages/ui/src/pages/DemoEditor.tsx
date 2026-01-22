@@ -4,13 +4,14 @@ import { EditorProvider, useEditor, type EditorStep } from '../context/EditorCon
 import { useDemo } from '../context/DemoContext';
 import { SortableStepList } from '../components/builder/SortableStepList';
 import { SplitView } from '../components/builder/SplitView';
+import { EndpointExplorerModal } from '../components/builder/EndpointExplorerModal';
 import { usePlayback } from '../hooks/usePlayback';
 import { useStepEffects } from '../hooks/useStepEffects';
 import { parseYaml, generateYaml, validateYaml } from '../lib/yaml-parser';
 import { RestStep } from '../components/RestStep';
 import { SlideStep } from '../components/SlideStep';
 import { ShellStep } from '../components/ShellStep';
-import { isRestStep, isSlideStep, isShellStep, isStepGroup, type StepOrGroup, type DemoConfig } from '../types/schema';
+import { isRestStep, isSlideStep, isShellStep, isStepGroup, type StepOrGroup, type DemoConfig, type DemoMetadata } from '../types/schema';
 
 // Generate YAML for a single step
 function stepToYaml(step: StepOrGroup): string {
@@ -373,18 +374,22 @@ function ToggleSwitch({ label, checked, onChange, description }: ToggleSwitchPro
 // Settings panel for configuring demo settings
 interface SettingsPanelProps {
   settings: DemoConfig['settings'] | undefined;
+  metadata: DemoMetadata | undefined;
   title: string;
   description: string;
   onSettingsChange: (settings: Partial<NonNullable<DemoConfig['settings']>>) => void;
+  onMetadataChange: (metadata: Partial<DemoMetadata>) => void;
   onTitleChange: (title: string) => void;
   onDescriptionChange: (description: string) => void;
 }
 
 function SettingsPanel({
   settings,
+  metadata,
   title,
   description,
   onSettingsChange,
+  onMetadataChange,
   onTitleChange,
   onDescriptionChange,
 }: SettingsPanelProps) {
@@ -401,6 +406,13 @@ function SettingsPanel({
   const updateTheme = (key: string, value: string) => {
     onSettingsChange({
       theme: { ...settings?.theme, [key]: value },
+    });
+  };
+
+  // Helper to update nested dashboard settings
+  const updateDashboard = (key: string, value: boolean) => {
+    onSettingsChange({
+      dashboard: { ...settings?.dashboard, [key]: value },
     });
   };
 
@@ -461,6 +473,60 @@ function SettingsPanel({
                 className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
                 placeholder="A brief description of your demo"
               />
+            </div>
+          </CollapsibleSection>
+
+          {/* Metadata */}
+          <CollapsibleSection title="Metadata" defaultOpen={false}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Duration
+              </label>
+              <input
+                type="text"
+                value={metadata?.duration || ''}
+                onChange={(e) => onMetadataChange({ duration: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="e.g., 5 minutes"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                Estimated time to complete the demo
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Difficulty
+              </label>
+              <select
+                value={metadata?.difficulty || ''}
+                onChange={(e) => onMetadataChange({ difficulty: e.target.value as DemoMetadata['difficulty'] })}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">Not set</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                Skill level required for this demo
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                Category
+              </label>
+              <input
+                type="text"
+                value={metadata?.category || ''}
+                onChange={(e) => onMetadataChange({ category: e.target.value })}
+                className="w-full px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="e.g., Tutorial, API, Authentication"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
+                Category for gallery organization
+              </p>
             </div>
           </CollapsibleSection>
 
@@ -580,9 +646,31 @@ function SettingsPanel({
             <ToggleSwitch
               label="Dashboard"
               checked={settings?.dashboard?.enabled === true}
-              onChange={(v) => onSettingsChange({ dashboard: { ...settings?.dashboard, enabled: v } })}
+              onChange={(v) => updateDashboard('enabled', v)}
               description="Show overview dashboard on load"
             />
+            {settings?.dashboard?.enabled && (
+              <div className="ml-4 pl-3 border-l-2 border-gray-200 dark:border-slate-700 space-y-3">
+                <ToggleSwitch
+                  label="Show Stats"
+                  checked={settings?.dashboard?.show_stats !== false}
+                  onChange={(v) => updateDashboard('show_stats', v)}
+                  description="Display step count and duration"
+                />
+                <ToggleSwitch
+                  label="Show Health"
+                  checked={settings?.dashboard?.show_health !== false}
+                  onChange={(v) => updateDashboard('show_health', v)}
+                  description="Display service health status"
+                />
+                <ToggleSwitch
+                  label="Show Description"
+                  checked={settings?.dashboard?.show_description !== false}
+                  onChange={(v) => updateDashboard('show_description', v)}
+                  description="Display demo description"
+                />
+              </div>
+            )}
             <ToggleSwitch
               label="Sidebar"
               checked={settings?.sidebar?.enabled === true}
@@ -680,8 +768,8 @@ function StepYamlPanel({ step, stepIndex, onUpdate }: StepYamlPanelProps) {
   };
 
   return (
-    <div className="border-t border-gray-200 dark:border-slate-700 bg-slate-900 flex flex-col">
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-700">
+    <div className="h-full bg-slate-900 flex flex-col">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-700 flex-shrink-0">
         <span className="text-xs font-medium text-slate-400">
           Step {stepIndex + 1} YAML
           {error && <span className="text-red-400 ml-2">({error})</span>}
@@ -700,7 +788,7 @@ function StepYamlPanel({ step, stepIndex, onUpdate }: StepYamlPanelProps) {
         value={yamlContent}
         onChange={(e) => handleChange(e.target.value)}
         onBlur={handleBlur}
-        className={`flex-1 p-3 text-xs font-mono bg-slate-900 text-slate-300 resize-none focus:outline-none focus:ring-1 focus:ring-inset min-h-[120px] ${
+        className={`flex-1 p-3 text-xs font-mono bg-slate-900 text-slate-300 resize-none focus:outline-none focus:ring-1 focus:ring-inset ${
           error ? 'focus:ring-red-500' : 'focus:ring-primary-500'
         }`}
         spellCheck={false}
@@ -714,6 +802,33 @@ function EditorContent() {
   const { state, addStep, removeStep, updateStep, reorderSteps, setCurrentStep, loadFromConfig, toConfig, dispatch } = useEditor();
   const { dispatch: demoDispatch } = useDemo();
   const lastSyncedConfig = useRef<string>('');
+  const [isEndpointExplorerOpen, setIsEndpointExplorerOpen] = useState(false);
+  const [yamlPanelHeight, setYamlPanelHeight] = useState(180);
+  const [isDraggingDivider, setIsDraggingDivider] = useState(false);
+  const editorPanelRef = useRef<HTMLDivElement>(null);
+
+  // Handle divider drag for resizable YAML panel
+  useEffect(() => {
+    if (!isDraggingDivider) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!editorPanelRef.current) return;
+      const rect = editorPanelRef.current.getBoundingClientRect();
+      const newHeight = rect.bottom - e.clientY;
+      setYamlPanelHeight(Math.max(80, Math.min(400, newHeight)));
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingDivider(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingDivider]);
 
   // Enable step effects (confetti, sounds) on step completion
   useStepEffects();
@@ -746,7 +861,7 @@ function EditorContent() {
       demoDispatch({ type: 'SET_CONFIG', payload: config });
       demoDispatch({ type: 'SET_MODE', payload: 'live' });
     }
-  }, [state.steps, state.settings, state.title, toConfig, demoDispatch]);
+  }, [state.steps, state.settings, state.metadata, state.title, toConfig, demoDispatch]);
 
   // Sync current step to DemoContext
   useEffect(() => {
@@ -778,6 +893,11 @@ function EditorContent() {
     }
 
     addStep(newStep, state.currentStep);
+  }, [addStep, state.currentStep]);
+
+  // Handle adding endpoint from explorer
+  const handleAddEndpoint = useCallback((step: StepOrGroup) => {
+    addStep(step, state.currentStep);
   }, [addStep, state.currentStep]);
 
   // Handle YAML import
@@ -821,26 +941,30 @@ function EditorContent() {
 
   // Editor panel (left side)
   const editorPanel = (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-slate-900">
+    <div ref={editorPanelRef} className="h-full flex flex-col bg-gray-50 dark:bg-slate-900">
       {/* Header - responsive layout */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-        <div className="flex items-center min-w-0 overflow-hidden">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate" title={state.title}>
-            {state.title || 'Untitled Demo'}
-          </h2>
-          {state.isDirty && (
-            <span className="ml-1 text-xs text-gray-400 flex-shrink-0">•</span>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex flex-col gap-2 px-3 py-2 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <div className="flex items-center justify-between min-w-0">
+          <div className="flex items-center min-w-0 overflow-hidden">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate" title={state.title}>
+              {state.title || 'Untitled Demo'}
+            </h2>
+            {state.isDirty && (
+              <span className="ml-1 text-xs text-gray-400 flex-shrink-0">•</span>
+            )}
+          </div>
           <SettingsPanel
             settings={state.settings}
+            metadata={state.metadata}
             title={state.title}
             description={state.description}
             onSettingsChange={(settings) => dispatch({ type: 'SET_SETTINGS', payload: settings })}
+            onMetadataChange={(metadata) => dispatch({ type: 'SET_METADATA', payload: metadata })}
             onTitleChange={(title) => dispatch({ type: 'SET_TITLE', payload: title })}
             onDescriptionChange={(desc) => dispatch({ type: 'SET_DESCRIPTION', payload: desc })}
           />
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
           <YamlPanel onImport={handleYamlImport} onExport={handleYamlExport} />
           {isEmbedded && (
             <button
@@ -855,11 +979,23 @@ function EditorContent() {
             </button>
           )}
           <AddStepMenu onAddStep={handleAddStep} />
+          {state.settings?.openapi && (
+            <button
+              onClick={() => setIsEndpointExplorerOpen(true)}
+              className="px-2.5 py-1.5 text-xs bg-purple-600 hover:bg-purple-700 text-white rounded font-medium transition-colors whitespace-nowrap flex items-center gap-1"
+              title="Browse API endpoints from OpenAPI spec"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              Browse API
+            </button>
+          )}
         </div>
       </div>
 
       {/* Step list */}
-      <div className="flex-1 overflow-auto p-2">
+      <div className="flex-1 overflow-auto p-2 min-h-0">
         <SortableStepList
           steps={state.steps}
           currentStep={state.currentStep}
@@ -869,13 +1005,23 @@ function EditorContent() {
         />
       </div>
 
+      {/* Resizable divider */}
+      {currentStepData && (
+        <div
+          className="h-1.5 bg-gray-200 dark:bg-slate-700 hover:bg-primary-400 dark:hover:bg-primary-500 cursor-ns-resize transition-colors flex-shrink-0"
+          onMouseDown={() => setIsDraggingDivider(true)}
+        />
+      )}
+
       {/* Step YAML panel */}
       {currentStepData && (
-        <StepYamlPanel
-          step={currentStepData}
-          stepIndex={state.currentStep}
-          onUpdate={(step) => updateStep(state.currentStep, step)}
-        />
+        <div style={{ height: yamlPanelHeight }} className="flex-shrink-0">
+          <StepYamlPanel
+            step={currentStepData}
+            stepIndex={state.currentStep}
+            onUpdate={(step) => updateStep(state.currentStep, step)}
+          />
+        </div>
       )}
     </div>
   );
@@ -923,15 +1069,27 @@ function EditorContent() {
   );
 
   return (
-    <div className="h-screen">
-      <SplitView
-        left={editorPanel}
-        right={previewPanel}
-        defaultLeftWidth={35}
-        minLeftWidth={25}
-        maxLeftWidth={60}
-      />
-    </div>
+    <>
+      <div className="h-screen">
+        <SplitView
+          left={editorPanel}
+          right={previewPanel}
+          defaultLeftWidth={35}
+          minLeftWidth={25}
+          maxLeftWidth={60}
+        />
+      </div>
+
+      {/* Endpoint Explorer Modal */}
+      {state.settings?.openapi && (
+        <EndpointExplorerModal
+          isOpen={isEndpointExplorerOpen}
+          onClose={() => setIsEndpointExplorerOpen(false)}
+          onAddEndpoint={handleAddEndpoint}
+          openapiUrl={state.settings.openapi}
+        />
+      )}
+    </>
   );
 }
 

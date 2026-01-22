@@ -8,7 +8,7 @@
  */
 
 import { createContext, useContext, useReducer, useCallback, type ReactNode } from 'react';
-import type { StepOrGroup, DemoConfig, DemoSettings } from '../types/schema';
+import type { StepOrGroup, DemoConfig, DemoSettings, DemoMetadata } from '../types/schema';
 
 // Editor step wraps a StepOrGroup with an ID for reordering
 export interface EditorStep {
@@ -21,6 +21,7 @@ export interface EditorState {
   title: string;
   description: string;
   settings: DemoSettings;
+  metadata: DemoMetadata;
   steps: EditorStep[];
   currentStep: number;
   variables: Record<string, unknown>;
@@ -32,6 +33,7 @@ type EditorAction =
   | { type: 'SET_TITLE'; payload: string }
   | { type: 'SET_DESCRIPTION'; payload: string }
   | { type: 'SET_SETTINGS'; payload: Partial<DemoSettings> }
+  | { type: 'SET_METADATA'; payload: Partial<DemoMetadata> }
   | { type: 'ADD_STEP'; payload: { step: StepOrGroup; afterIndex?: number } }
   | { type: 'REMOVE_STEP'; payload: number }
   | { type: 'UPDATE_STEP'; payload: { index: number; step: StepOrGroup } }
@@ -60,6 +62,13 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return {
         ...state,
         settings: { ...state.settings, ...action.payload },
+        isDirty: true,
+      };
+
+    case 'SET_METADATA':
+      return {
+        ...state,
+        metadata: { ...state.metadata, ...action.payload },
         isDirty: true,
       };
 
@@ -154,6 +163,7 @@ function createInitialState(): EditorState {
     title: 'Untitled Demo',
     description: '',
     settings: {},
+    metadata: {},
     steps: [],
     currentStep: 0,
     variables: {},
@@ -190,6 +200,7 @@ function configToState(config: DemoConfig): EditorState {
     title: config.title || 'Untitled Demo',
     description: config.description || '',
     settings: config.settings || {},
+    metadata: config.metadata || {},
     steps: (config.steps || []).map((step, index) => ({
       id: `step-${index}`,
       step,
@@ -206,6 +217,7 @@ function stateToConfig(state: EditorState): DemoConfig {
     title: state.title,
     description: state.description,
     settings: state.settings,
+    metadata: state.metadata,
     steps: state.steps.map((s) => s.step),
   };
 }

@@ -7,7 +7,7 @@
  */
 
 import * as jsYaml from 'js-yaml';
-import type { DemoConfig, StepOrGroup, DemoSettings } from '../types/schema';
+import type { DemoConfig, StepOrGroup, DemoSettings, DemoMetadata } from '../types/schema';
 import type { EditorState } from '../context/EditorContext';
 
 /**
@@ -28,6 +28,7 @@ export function parseYaml(yaml: string): DemoConfig {
       version: parsed.version ? String(parsed.version) : undefined,
       author: parsed.author ? String(parsed.author) : undefined,
       tags: Array.isArray(parsed.tags) ? parsed.tags.map(String) : undefined,
+      metadata: (parsed.metadata as DemoMetadata) || {},
       settings: (parsed.settings as DemoSettings) || {},
       steps: Array.isArray(parsed.steps) ? (parsed.steps as StepOrGroup[]) : [],
     };
@@ -62,6 +63,7 @@ export function configToEditorState(config: DemoConfig): EditorState {
     title: config.title || 'Untitled Demo',
     description: config.description || '',
     settings: config.settings || {},
+    metadata: config.metadata || {},
     steps: flatSteps.map((step, index) => ({
       id: `step-${index}-${Date.now()}`,
       step,
@@ -79,6 +81,7 @@ export function editorStateToConfig(state: EditorState): DemoConfig {
   return {
     title: state.title,
     description: state.description || undefined,
+    metadata: state.metadata && Object.keys(state.metadata).length > 0 ? state.metadata : undefined,
     settings: Object.keys(state.settings).length > 0 ? state.settings : undefined,
     steps: state.steps.map((s) => s.step),
   };
@@ -159,6 +162,19 @@ export function generateYaml(config: DemoConfig): string {
     lines.push('tags:');
     for (const tag of config.tags) {
       lines.push(`  - ${yamlEscape(tag)}`);
+    }
+  }
+
+  // Metadata
+  if (config.metadata && Object.keys(config.metadata).length > 0) {
+    lines.push('');
+    lines.push('metadata:');
+    const metadataYaml = jsYaml.dump(config.metadata, {
+      indent: 2,
+      noRefs: true,
+    }).trim();
+    for (const line of metadataYaml.split('\n')) {
+      lines.push(`  ${line}`);
     }
   }
 

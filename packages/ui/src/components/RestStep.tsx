@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useDemo } from '../context/DemoContext';
 import { substituteVariables, substituteInObject, extractValueByPath, findVariablesInObject, findMissingVariables } from '../lib/variable-substitution';
-import { extractErrorMessage, buildRequestBody } from '../lib/rest-helpers';
+import { extractErrorMessage, buildRequestBody, buildQueryString } from '../lib/rest-helpers';
 import { executeRequest } from '../lib/execute-adapter';
 import { parseRestMethod } from '../types/schema';
 import type { RestStep as RestStepType, ExplicitRestStep } from '../types/schema';
@@ -175,10 +175,14 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
           ? substituteInObject(step.body, state.variables)
           : undefined;
 
+      // Build query string from query parameters
+      const queryString = effectiveForm ? buildQueryString(effectiveForm, formValues) : '';
+      const requestUrl = fullUrl + queryString;
+
       if (state.mode === 'live') {
         const result = await executeRequest({
           method,
-          url: fullUrl,
+          url: requestUrl,
           headers: substituteInObject(step.headers, state.variables) as Record<string, string>,
           body: method !== 'GET' ? body : undefined,
         });
@@ -271,7 +275,7 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
 
             <RequestPreview
               method={method}
-              url={fullUrl}
+              url={fullUrl + (effectiveForm ? buildQueryString(effectiveForm, formValues) : '')}
               body={method !== 'GET' && (effectiveForm || step.body) ? getRequestBodyPreview() : undefined}
               headers={step.headers ? substituteInObject(step.headers, state.variables) as Record<string, string> : undefined}
               showCurl={step.show_curl}

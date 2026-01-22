@@ -70,21 +70,46 @@ export function extractErrorMessage(body: unknown, httpStatus: number): string {
 }
 
 /**
- * Build request body from form fields, filtering out hidden and empty optional fields.
+ * Build request body from form fields, filtering out hidden, empty optional, and non-body fields.
  */
 export function buildRequestBody(
-  form: Array<{ name: string; hidden?: boolean; required?: boolean }> | undefined,
+  form: Array<{ name: string; hidden?: boolean; required?: boolean; paramIn?: string }> | undefined,
   formValues: Record<string, unknown>
 ): Record<string, unknown> | undefined {
   if (!form) return undefined;
 
-  return Object.fromEntries(
-    form
-      .filter((f) => !f.hidden)
-      .filter((f) => {
-        const value = formValues[f.name];
-        return f.required || (value !== '' && value !== undefined && value !== null);
-      })
-      .map((f) => [f.name, formValues[f.name]])
-  );
+  const bodyFields = form
+    .filter((f) => !f.hidden)
+    .filter((f) => !f.paramIn || f.paramIn === 'body') // Only body params
+    .filter((f) => {
+      const value = formValues[f.name];
+      return f.required || (value !== '' && value !== undefined && value !== null);
+    })
+    .map((f) => [f.name, formValues[f.name]]);
+
+  return bodyFields.length > 0 ? Object.fromEntries(bodyFields) : undefined;
+}
+
+/**
+ * Build query string from form fields with paramIn: 'query'.
+ * Returns empty string if no query params.
+ */
+export function buildQueryString(
+  form: Array<{ name: string; hidden?: boolean; paramIn?: string }> | undefined,
+  formValues: Record<string, unknown>
+): string {
+  if (!form) return '';
+
+  const queryParams = form
+    .filter((f) => !f.hidden && f.paramIn === 'query')
+    .filter((f) => {
+      const value = formValues[f.name];
+      return value !== '' && value !== undefined && value !== null;
+    })
+    .map((f) => [f.name, String(formValues[f.name])]);
+
+  if (queryParams.length === 0) return '';
+
+  const params = new URLSearchParams(queryParams);
+  return `?${params.toString()}`;
 }

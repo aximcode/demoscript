@@ -80,7 +80,7 @@ export function ExecutionPanel({
     });
   }, [variables]);
 
-  // Build URL with path parameters
+  // Build URL with path and query parameters
   const buildUrl = useCallback((): string => {
     let path = endpoint.path;
 
@@ -93,8 +93,21 @@ export function ExecutionPanel({
     // Substitute $variables
     path = substituteVariables(path);
 
-    return `${baseUrl}${path}`;
-  }, [endpoint.path, formValues, baseUrl, substituteVariables]);
+    // Build query string from query parameters
+    const queryParams = paramFields
+      .filter(f => f.paramIn === 'query')
+      .filter(f => {
+        const value = formValues[f.name];
+        return value !== '' && value !== undefined && value !== null;
+      })
+      .map(f => [f.name, String(formValues[f.name])]);
+
+    const queryString = queryParams.length > 0
+      ? `?${new URLSearchParams(queryParams).toString()}`
+      : '';
+
+    return `${baseUrl}${path}${queryString}`;
+  }, [endpoint.path, formValues, baseUrl, substituteVariables, paramFields]);
 
   const handleExecute = async () => {
     setIsExecuting(true);
