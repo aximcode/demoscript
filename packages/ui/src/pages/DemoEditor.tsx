@@ -7,6 +7,7 @@ import { SplitView } from '../components/builder/SplitView';
 import { EndpointExplorerModal } from '../components/builder/EndpointExplorerModal';
 import { usePlayback } from '../hooks/usePlayback';
 import { useStepEffects } from '../hooks/useStepEffects';
+import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { parseYaml, generateYaml, validateYaml } from '../lib/yaml-parser';
 import { RestStep } from '../components/RestStep';
 import { SlideStep } from '../components/SlideStep';
@@ -848,6 +849,12 @@ function EditorContent() {
     totalSteps: state.steps.length,
     onStepChange: setCurrentStep,
     autoAdvanceDelay: 2000,
+  });
+
+  // Keyboard shortcuts for navigation (Arrow keys) - shared with DemoRunner
+  useKeyboardNavigation({
+    onNext: nextStep,
+    onPrev: prevStep,
   });
 
   // Sync editor config to DemoContext for live execution

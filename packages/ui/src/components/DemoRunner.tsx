@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import yaml from 'js-yaml';
 import { useDemo } from '../context/DemoContext';
 import { useTheme } from '../context/ThemeContext';
+import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { Stepper } from './Stepper';
 import { StepViewer } from './StepViewer';
 import { Controls } from './Controls';
@@ -52,33 +53,16 @@ function DemoContent() {
   const dashboardEnabled = state.config?.settings?.dashboard?.enabled === true;
 
   // Keyboard shortcuts - only active when not on dashboard
-  useEffect(() => {
-    if (dashboardEnabled && showDashboard) return;
+  const handleNext = useCallback(() => dispatch({ type: 'NEXT_STEP' }), [dispatch]);
+  const handlePrev = useCallback(() => dispatch({ type: 'PREV_STEP' }), [dispatch]);
+  const handleReset = useCallback(() => dispatch({ type: 'RESET' }), [dispatch]);
 
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      switch (e.key) {
-        case 'ArrowRight':
-        case ' ':
-          e.preventDefault();
-          dispatch({ type: 'NEXT_STEP' });
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          dispatch({ type: 'PREV_STEP' });
-          break;
-        case 'r':
-          dispatch({ type: 'RESET' });
-          break;
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [dispatch, dashboardEnabled, showDashboard]);
+  useKeyboardNavigation({
+    onNext: handleNext,
+    onPrev: handlePrev,
+    onReset: handleReset,
+    enabled: !(dashboardEnabled && showDashboard),
+  });
 
   // Show login screen if auth is required and user is not authenticated
   if (isAuthRequired && !isAuthenticated) {
