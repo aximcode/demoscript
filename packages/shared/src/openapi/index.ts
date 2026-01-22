@@ -64,6 +64,13 @@ export interface OpenApiParameter {
   required?: boolean;
   schema?: JsonSchema;
   description?: string;
+  // Swagger 2.0 inline properties (not nested in schema)
+  type?: string;
+  enum?: unknown[];
+  default?: unknown;
+  format?: string;
+  items?: JsonSchema;  // For array types
+  collectionFormat?: string;  // multi, csv, etc.
 }
 
 export interface JsonSchema {
@@ -295,7 +302,29 @@ function generateFormFieldsFromPath(
   if (operation.parameters) {
     for (const param of operation.parameters) {
       if (param.in === 'query' || param.in === 'path') {
-        const schema = param.schema ? resolveSchema(spec, param.schema) : { type: 'string' };
+        // OpenAPI 3.0: schema is nested in param.schema
+        // Swagger 2.0: type/enum/default are directly on param
+        let schema: JsonSchema;
+        if (param.schema) {
+          schema = resolveSchema(spec, param.schema);
+        } else {
+          // Swagger 2.0 style - build schema from param properties
+          // For array types with items containing enum, use the items schema
+          if (param.type === 'array' && param.items?.enum) {
+            schema = {
+              type: 'string',
+              enum: param.items.enum,
+              default: param.items.default ?? param.default,
+            };
+          } else {
+            schema = {
+              type: param.type || 'string',
+              enum: param.enum,
+              default: param.default,
+              format: param.format,
+            };
+          }
+        }
         const fieldType = mapType(schema);
         const field: FormField = {
           name: param.name,
