@@ -71,6 +71,8 @@ export function configToEditorState(config: DemoConfig): EditorState {
     currentStep: 0,
     variables: {},
     isDirty: false,
+    currentFilePath: null,
+    isNewFile: true,
   };
 }
 

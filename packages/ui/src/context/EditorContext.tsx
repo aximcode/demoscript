@@ -26,6 +26,8 @@ export interface EditorState {
   currentStep: number;
   variables: Record<string, unknown>;
   isDirty: boolean; // Track unsaved changes
+  currentFilePath: string | null; // Path to currently open file (CLI mode)
+  isNewFile: boolean; // True if never saved (CLI mode)
 }
 
 // Action types
@@ -42,7 +44,9 @@ type EditorAction =
   | { type: 'SET_EXECUTION_RESULT'; payload: { index: number; result: unknown } }
   | { type: 'SET_VARIABLES'; payload: Record<string, unknown> }
   | { type: 'LOAD_STATE'; payload: EditorState }
-  | { type: 'MARK_SAVED' };
+  | { type: 'MARK_SAVED'; payload?: string } // Optional path for Save As
+  | { type: 'SET_FILE_PATH'; payload: string | null }
+  | { type: 'NEW_FILE' };
 
 // Generate unique step ID
 function generateStepId(): string {
@@ -150,7 +154,23 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       return { ...action.payload, isDirty: false };
 
     case 'MARK_SAVED':
-      return { ...state, isDirty: false };
+      return {
+        ...state,
+        isDirty: false,
+        currentFilePath: action.payload ?? state.currentFilePath,
+        isNewFile: false,
+      };
+
+    case 'SET_FILE_PATH':
+      return { ...state, currentFilePath: action.payload, isNewFile: false };
+
+    case 'NEW_FILE':
+      return {
+        ...createInitialState(),
+        isDirty: false,
+        isNewFile: true,
+        currentFilePath: null,
+      };
 
     default:
       return state;
@@ -168,6 +188,8 @@ function createInitialState(): EditorState {
     currentStep: 0,
     variables: {},
     isDirty: false,
+    currentFilePath: null,
+    isNewFile: true,
   };
 }
 
@@ -182,8 +204,12 @@ interface EditorContextValue {
   reorderSteps: (fromIndex: number, toIndex: number) => void;
   setCurrentStep: (index: number) => void;
   setExecutionResult: (index: number, result: unknown) => void;
-  loadFromConfig: (config: DemoConfig) => void;
+  loadFromConfig: (config: DemoConfig, filePath?: string) => void;
   toConfig: () => DemoConfig;
+  // File operations (CLI mode)
+  setFilePath: (path: string | null) => void;
+  newFile: () => void;
+  markSaved: (path?: string) => void;
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);
@@ -195,7 +221,7 @@ interface EditorProviderProps {
 }
 
 // Convert DemoConfig to EditorState
-function configToState(config: DemoConfig): EditorState {
+function configToState(config: DemoConfig, filePath?: string): EditorState {
   return {
     title: config.title || 'Untitled Demo',
     description: config.description || '',
@@ -208,6 +234,8 @@ function configToState(config: DemoConfig): EditorState {
     currentStep: 0,
     variables: {},
     isDirty: false,
+    currentFilePath: filePath ?? null,
+    isNewFile: !filePath,
   };
 }
 
@@ -253,13 +281,26 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     dispatch({ type: 'SET_EXECUTION_RESULT', payload: { index, result } });
   }, []);
 
-  const loadFromConfig = useCallback((config: DemoConfig) => {
-    dispatch({ type: 'LOAD_STATE', payload: configToState(config) });
+  const loadFromConfig = useCallback((config: DemoConfig, filePath?: string) => {
+    dispatch({ type: 'LOAD_STATE', payload: configToState(config, filePath) });
   }, []);
 
   const toConfig = useCallback(() => {
     return stateToConfig(state);
   }, [state]);
+
+  // File operations (CLI mode)
+  const setFilePath = useCallback((path: string | null) => {
+    dispatch({ type: 'SET_FILE_PATH', payload: path });
+  }, []);
+
+  const newFile = useCallback(() => {
+    dispatch({ type: 'NEW_FILE' });
+  }, []);
+
+  const markSaved = useCallback((path?: string) => {
+    dispatch({ type: 'MARK_SAVED', payload: path });
+  }, []);
 
   const value: EditorContextValue = {
     state,
@@ -272,6 +313,9 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     setExecutionResult,
     loadFromConfig,
     toConfig,
+    setFilePath,
+    newFile,
+    markSaved,
   };
 
   return <EditorContext.Provider value={value}>{children}</EditorContext.Provider>;

@@ -5,11 +5,16 @@ import { useDemo } from '../context/DemoContext';
 import { SortableStepList } from '../components/builder/SortableStepList';
 import { SplitView } from '../components/builder/SplitView';
 import { EndpointExplorerModal } from '../components/builder/EndpointExplorerModal';
+import { FileMenu } from '../components/builder/FileMenu';
+import { FilePicker } from '../components/builder/FilePicker';
+import { PushToCloud } from '../components/builder/PushToCloud';
+import { StepEditor } from '../components/builder/StepEditor';
 import { usePlayback } from '../hooks/usePlayback';
 import { useStepEffects } from '../hooks/useStepEffects';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { useDraggable } from '../hooks/useDraggable';
 import { parseYaml, generateYaml, validateYaml } from '../lib/yaml-parser';
+import { fileService, isCliMode, isCloudEnabled } from '../lib/file-service';
 import { RestStep } from '../components/RestStep';
 import { SlideStep } from '../components/SlideStep';
 import { ShellStep } from '../components/ShellStep';
@@ -817,13 +822,75 @@ function StepYamlPanel({ step, stepIndex, onUpdate }: StepYamlPanelProps) {
 
 // Main editor content (uses EditorContext)
 function EditorContent() {
-  const { state, addStep, removeStep, updateStep, reorderSteps, setCurrentStep, loadFromConfig, toConfig, dispatch } = useEditor();
+  const { state, addStep, removeStep, updateStep, reorderSteps, setCurrentStep, loadFromConfig, toConfig, dispatch, markSaved } = useEditor();
   const { dispatch: demoDispatch } = useDemo();
   const lastSyncedConfig = useRef<string>('');
   const [isEndpointExplorerOpen, setIsEndpointExplorerOpen] = useState(false);
   const [yamlPanelHeight, setYamlPanelHeight] = useState(180);
   const [isDraggingDivider, setIsDraggingDivider] = useState(false);
   const editorPanelRef = useRef<HTMLDivElement>(null);
+
+  // File operations state (CLI mode only)
+  const [filePickerMode, setFilePickerMode] = useState<'open' | 'save' | null>(null);
+  const [isPushModalOpen, setIsPushModalOpen] = useState(false);
+  const cliMode = isCliMode();
+  const cloudEnabled = isCloudEnabled();
+  const initialLoadDone = useRef(false);
+
+  // Edit mode toggle for right panel
+  const [isEditMode, setIsEditMode] = useState(true);
+
+  // Load initial demo from CLI argument (CLI mode only)
+  useEffect(() => {
+    if (!cliMode || initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
+    fileService.getInitialDemo().then((data) => {
+      if (data.config) {
+        loadFromConfig(data.config as DemoConfig, data.path ?? undefined);
+      }
+    }).catch(() => {
+      // Ignore errors, just use default state
+    });
+  }, [cliMode, loadFromConfig]);
+
+  // Warn before closing with unsaved changes (CLI mode)
+  useEffect(() => {
+    if (!cliMode || !state.isDirty) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [cliMode, state.isDirty]);
+
+  // Handle file open from FilePicker
+  const handleFileOpen = useCallback(async (path: string) => {
+    try {
+      const { content } = await fileService.readFile(path);
+      const config = parseYaml(content);
+      loadFromConfig(config, path);
+      setFilePickerMode(null);
+    } catch (err) {
+      alert(`Failed to open file: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  }, [loadFromConfig]);
+
+  // Handle file save from FilePicker
+  const handleFileSave = useCallback(async (path: string) => {
+    try {
+      const config = toConfig();
+      const yaml = generateYaml(config);
+      await fileService.saveFile(path, yaml);
+      markSaved(path);
+      setFilePickerMode(null);
+    } catch (err) {
+      alert(`Failed to save file: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  }, [toConfig, markSaved]);
 
   // Handle divider drag for resizable YAML panel
   useEffect(() => {
@@ -1001,13 +1068,27 @@ function EditorContent() {
       {/* Header - responsive layout */}
       <div className="flex flex-col gap-2 px-3 py-2 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <div className="flex items-center justify-between min-w-0">
-          <div className="flex items-center min-w-0 overflow-hidden">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate" title={state.title}>
-              {state.title || 'Untitled Demo'}
-            </h2>
-            {state.isDirty && (
-              <span className="ml-1 text-xs text-gray-400 flex-shrink-0">•</span>
+          <div className="flex items-center gap-2 min-w-0">
+            {/* File Menu (CLI mode only) */}
+            {cliMode && (
+              <FileMenu
+                onOpenFilePicker={(mode) => setFilePickerMode(mode)}
+                onPushToCloud={cloudEnabled ? () => setIsPushModalOpen(true) : undefined}
+              />
             )}
+            <div className="flex items-center min-w-0 overflow-hidden">
+              <h2
+                className="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate"
+                title={state.currentFilePath || state.title}
+              >
+                {state.currentFilePath
+                  ? state.currentFilePath.split('/').pop()
+                  : state.title || 'Untitled Demo'}
+              </h2>
+              {state.isDirty && (
+                <span className="ml-1 text-xs text-gray-400 flex-shrink-0">*</span>
+              )}
+            </div>
           </div>
           <SettingsPanel
             settings={state.settings}
@@ -1082,16 +1163,51 @@ function EditorContent() {
     </div>
   );
 
-  // Preview panel (right side)
+  // Handle step update from StepEditor
+  const handleStepChange = useCallback((updatedStep: StepOrGroup) => {
+    if (currentStepData) {
+      updateStep(state.currentStep, updatedStep);
+    }
+  }, [currentStepData, state.currentStep, updateStep]);
+
+  // Handle step delete from StepEditor
+  const handleStepDelete = useCallback(() => {
+    if (currentStepData) {
+      removeStep(state.currentStep);
+    }
+  }, [currentStepData, state.currentStep, removeStep]);
+
+  // Preview/Edit panel (right side)
   const previewPanel = (
     <div className="h-full flex flex-col bg-white dark:bg-slate-950">
-      {/* Header with playback controls */}
+      {/* Header with mode toggle and playback controls */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-slate-800">
-        <span className="text-xs font-medium text-gray-500 dark:text-slate-400">
-          Live Preview
-        </span>
+        {/* Edit/Preview toggle */}
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 rounded-lg p-0.5">
+          <button
+            onClick={() => setIsEditMode(true)}
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+              isEditMode
+                ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm'
+                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+            }`}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => setIsEditMode(false)}
+            className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+              !isEditMode
+                ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm'
+                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300'
+            }`}
+          >
+            Preview
+          </button>
+        </div>
 
-        {state.steps.length > 0 && (
+        {/* Playback controls (only in preview mode) */}
+        {!isEditMode && state.steps.length > 0 && (
           <PlaybackControls
             isPlaying={playbackState.isPlaying}
             currentStep={playbackState.currentStep}
@@ -1105,12 +1221,29 @@ function EditorContent() {
             onSpeedChange={setSpeed}
           />
         )}
+
+        {/* Step counter in edit mode */}
+        {isEditMode && state.steps.length > 0 && (
+          <span className="text-xs text-gray-500 dark:text-slate-400">
+            {state.currentStep + 1}/{state.steps.length}
+          </span>
+        )}
       </div>
 
-      {/* Step preview */}
-      <div className="flex-1 overflow-auto p-4">
+      {/* Step content - Edit or Preview */}
+      <div className="flex-1 overflow-auto">
         {currentStepData ? (
-          <StepPreview step={currentStepData} />
+          isEditMode ? (
+            <StepEditor
+              step={currentStepData.step}
+              onChange={handleStepChange}
+              onDelete={handleStepDelete}
+            />
+          ) : (
+            <div className="p-4">
+              <StepPreview step={currentStepData} />
+            </div>
+          )
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-slate-500">
             <svg className="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1143,6 +1276,26 @@ function EditorContent() {
           onClose={() => setIsEndpointExplorerOpen(false)}
           onAddEndpoint={handleAddEndpoint}
           openapiUrl={state.settings.openapi}
+        />
+      )}
+
+      {/* File Picker Modal (CLI mode) */}
+      {cliMode && (
+        <FilePicker
+          mode={filePickerMode || 'open'}
+          isOpen={filePickerMode !== null}
+          initialPath={state.currentFilePath || undefined}
+          defaultFileName={state.currentFilePath?.split('/').pop() || 'demo.yaml'}
+          onSelect={filePickerMode === 'save' ? handleFileSave : handleFileOpen}
+          onClose={() => setFilePickerMode(null)}
+        />
+      )}
+
+      {/* Push to Cloud Modal (CLI mode with cloud enabled) */}
+      {cliMode && cloudEnabled && (
+        <PushToCloud
+          isOpen={isPushModalOpen}
+          onClose={() => setIsPushModalOpen(false)}
         />
       )}
     </>
