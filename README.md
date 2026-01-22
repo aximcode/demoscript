@@ -861,6 +861,44 @@ demoscript build ./examples --all -o dist
 
 Creates a gallery page linking to all demos in the directory.
 
+## Try It Mode
+
+Try It mode allows viewers to experiment with live API calls while watching a recorded demo. This makes recorded demos interactive without losing reproducibility.
+
+### How It Works
+
+When viewing a recorded demo, viewers can modify form field values. If any values differ from the defaults, a **"Try It"** button appears:
+
+1. **Modify a field** - Change any form input from its default value
+2. **Click "Try It"** - Makes a live API request with the modified values
+3. **See real response** - Results display in a separate panel
+4. **Return to recorded** - Click to continue with the original demo flow
+
+### Example
+
+```
+Recorded demo: POST /users with { "name": "John" }
+                           ↓
+Viewer changes name to "Jane"
+                           ↓
+"Try It" button appears
+                           ↓
+Click → Live API call with { "name": "Jane" }
+                           ↓
+Real response: { "name": "Jane", "id": 42 }
+                           ↓
+"Return to recorded" → Continue demo
+```
+
+### Requirements
+
+Try It mode appears when:
+- Demo is in **recorded mode** (has `recordings.json`)
+- User has **modified form field values**
+- **Live execution is available** (API is reachable)
+
+This feature lets viewers explore your API with custom inputs while the original demo flow remains intact for consistent presentations.
+
 ## Keyboard Shortcuts
 
 | Key | Action |
