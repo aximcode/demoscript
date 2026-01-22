@@ -1,6 +1,6 @@
 {
   "name": "demoscript",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "A framework for creating scripted product demonstrations",
   "workspaces": [
     "packages/*"
