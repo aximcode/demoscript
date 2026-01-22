@@ -2,7 +2,7 @@
 #
 # Capture Visual Editor screenshots and create animated GIF
 #
-# Usage: ./scripts/capture-builder-gif.sh
+# Usage: ./scripts/capture-editor-gif.sh
 #
 # Requires:
 # - chromium or google-chrome
