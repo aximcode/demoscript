@@ -17,11 +17,23 @@ interface UseOpenApiFormReturn {
 }
 
 /**
+ * Strip query string from path for OpenAPI lookup
+ * e.g., "/pet/findByStatus?status=available" -> "/pet/findByStatus"
+ */
+function stripQueryString(path: string): string {
+  const queryIndex = path.indexOf('?');
+  return queryIndex >= 0 ? path.slice(0, queryIndex) : path;
+}
+
+/**
  * Hook to generate form fields from OpenAPI spec
  *
  * If manualForm is provided, returns it directly.
  * Otherwise, fetches the OpenAPI spec and generates form fields,
  * merging in any defaults.
+ *
+ * Supports both request body fields (POST/PUT/PATCH) and
+ * query/path parameters (GET and all methods).
  */
 export function useOpenApiForm({
   openapiUrl,
@@ -43,15 +55,8 @@ export function useOpenApiForm({
       return;
     }
 
-    // If no OpenAPI URL or no defaults, nothing to generate
-    if (!openapiUrl || !defaults) {
-      setFormFields(undefined);
-      setIsLoading(false);
-      return;
-    }
-
-    // Skip for GET requests (no body)
-    if (method.toUpperCase() === 'GET') {
+    // If no OpenAPI URL, nothing to generate
+    if (!openapiUrl) {
       setFormFields(undefined);
       setIsLoading(false);
       return;
@@ -73,12 +78,15 @@ export function useOpenApiForm({
           return;
         }
 
-        // Generate form fields from spec
-        const openapiFields = generateFormFields(spec, method, path);
+        // Strip query string from path for OpenAPI lookup
+        const cleanPath = stripQueryString(path);
 
-        if (openapiFields.length === 0) {
-          // No fields generated, but we have defaults - create simple fields from defaults
-          const fallbackFields: FormField[] = Object.entries(defaults!).map(([name, value]) => ({
+        // Generate form fields from spec (includes query/path params and body fields)
+        const openapiFields = generateFormFields(spec, method, cleanPath);
+
+        if (openapiFields.length === 0 && defaults) {
+          // No fields generated from OpenAPI, but we have defaults - create simple fields
+          const fallbackFields: FormField[] = Object.entries(defaults).map(([name, value]) => ({
             name,
             type: typeof value === 'number' ? 'number' : typeof value === 'boolean' ? 'toggle' : 'text',
             default: typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
@@ -86,10 +94,13 @@ export function useOpenApiForm({
               : String(value),
           }));
           setFormFields(fallbackFields);
-        } else {
-          // Merge OpenAPI fields with defaults
-          const merged = mergeFormFields(openapiFields, defaults);
+        } else if (openapiFields.length > 0) {
+          // Merge OpenAPI fields with defaults (if any)
+          const merged = defaults ? mergeFormFields(openapiFields, defaults) : openapiFields;
           setFormFields(merged);
+        } else {
+          // No fields and no defaults
+          setFormFields(undefined);
         }
 
         setIsLoading(false);
