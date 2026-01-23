@@ -44,3 +44,4 @@ coverage/
 *.temp
 demoscript-cli-*.tgz
 assets/builder-frames/
+packages/ui/index.build.html
