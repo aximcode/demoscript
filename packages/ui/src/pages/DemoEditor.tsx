@@ -70,8 +70,10 @@ function saveState(config: DemoConfig): void {
 }
 
 // Step type selector for adding new steps
+type StepTypeOption = 'rest' | 'slide' | 'shell' | 'group' | 'graphql' | 'code' | 'wait';
+
 interface AddStepMenuProps {
-  onAddStep: (type: 'rest' | 'slide' | 'shell') => void;
+  onAddStep: (type: StepTypeOption) => void;
 }
 
 function AddStepMenu({ onAddStep }: AddStepMenuProps) {
@@ -79,13 +81,27 @@ function AddStepMenu({ onAddStep }: AddStepMenuProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
-  // Calculate menu position when opening
+  // Calculate menu position when opening - prefer left-align, fallback to right-align
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const menuWidth = 192; // w-48 = 12rem
+      const viewportWidth = window.innerWidth;
+
+      // Try left-align first (menu left = button left)
+      let left = rect.left;
+
+      // If menu would overflow right edge, right-align instead
+      if (left + menuWidth > viewportWidth - 8) {
+        left = rect.right - menuWidth;
+      }
+
+      // Ensure minimum 8px from left edge
+      left = Math.max(8, left);
+
       setMenuPosition({
         top: rect.bottom + 4,
-        left: rect.right - 192, // 192 = w-48 (12rem)
+        left,
       });
     }
   }, [isOpen]);
@@ -109,7 +125,7 @@ function AddStepMenu({ onAddStep }: AddStepMenuProps) {
           <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
           <div
             className="fixed w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 py-1 z-[101]"
-            style={{ top: menuPosition.top, left: Math.max(8, menuPosition.left) }}
+            style={{ top: menuPosition.top, left: menuPosition.left }}
           >
             <button
               onClick={() => { onAddStep('rest'); setIsOpen(false); }}
@@ -131,6 +147,35 @@ function AddStepMenu({ onAddStep }: AddStepMenuProps) {
             >
               <span className="w-2 h-2 rounded-full bg-orange-500" />
               Shell Command
+            </button>
+            <button
+              onClick={() => { onAddStep('graphql'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-pink-500" />
+              GraphQL
+            </button>
+            <div className="border-t border-gray-200 dark:border-slate-700 my-1" />
+            <button
+              onClick={() => { onAddStep('code'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Code Block
+            </button>
+            <button
+              onClick={() => { onAddStep('wait'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              Wait/Delay
+            </button>
+            <button
+              onClick={() => { onAddStep('group'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-slate-500" />
+              Step Group
             </button>
           </div>
         </>
@@ -1017,7 +1062,7 @@ function EditorContent() {
   }, [themeSettings]);
 
   // Handle adding new step
-  const handleAddStep = useCallback((type: 'rest' | 'slide' | 'shell') => {
+  const handleAddStep = useCallback((type: StepTypeOption) => {
     let newStep: StepOrGroup;
 
     switch (type) {
@@ -1029,6 +1074,18 @@ function EditorContent() {
         break;
       case 'shell':
         newStep = { shell: 'echo "Hello, World!"', title: 'New Command' };
+        break;
+      case 'graphql':
+        newStep = { graphql: 'query {\n  hello\n}', title: 'GraphQL Query' };
+        break;
+      case 'code':
+        newStep = { code: '// Your code here\nconsole.log("Hello");', language: 'javascript', title: 'Code Example' };
+        break;
+      case 'wait':
+        newStep = { wait: 2000, message: 'Waiting...', title: 'Pause' };
+        break;
+      case 'group':
+        newStep = { group: 'New Group', steps: [] };
         break;
     }
 
