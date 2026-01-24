@@ -71,8 +71,13 @@ export function SlideStep({ step, mode = 'view', onChange, onDelete }: Props) {
               placeholder="Enter markdown content..."
             />
           ) : (
-            <div className="prose prose-lg max-w-none prose-headings:text-gray-900 dark:prose-invert dark:prose-headings:bg-gradient-to-r dark:prose-headings:from-theme-primary dark:prose-headings:to-theme-accent dark:prose-headings:bg-clip-text dark:prose-headings:text-transparent prose-strong:text-theme-primary dark:prose-strong:text-theme-primary prose-p:text-gray-700 dark:prose-p:text-slate-300 prose-li:text-gray-700 dark:prose-li:text-slate-300">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+            <div>
+              {step.title && (
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4">{step.title}</h2>
+              )}
+              <div className="prose prose-lg max-w-none prose-headings:text-gray-900 dark:prose-invert dark:prose-headings:bg-gradient-to-r dark:prose-headings:from-theme-primary dark:prose-headings:to-theme-accent dark:prose-headings:bg-clip-text dark:prose-headings:text-transparent prose-strong:text-theme-primary dark:prose-strong:text-theme-primary prose-p:text-gray-700 dark:prose-p:text-slate-300 prose-li:text-gray-700 dark:prose-li:text-slate-300">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+              </div>
             </div>
           )}
 

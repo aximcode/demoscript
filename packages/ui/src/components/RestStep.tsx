@@ -245,6 +245,7 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
         <RestStepHeader
           method={method}
           endpoint={resolvedEndpoint}
+          title={step.title}
           description={step.description}
           status={status}
           pollingState={pollingState}

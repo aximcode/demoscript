@@ -350,41 +350,60 @@ interface SlideStepEditorProps {
 function SlideStepEditor({ step, onChange, onDelete }: SlideStepEditorProps) {
   const content = getSlideContent(step);
   const [editContent, setEditContent] = useState(content);
+  const [title, setTitle] = useState(step.title || '');
 
   const handleContentChange = useCallback((newContent: string) => {
     setEditContent(newContent);
-    // Always use concise syntax for simplicity
     const newStep: SlideStep = { slide: newContent };
-    if (step.title) newStep.title = step.title;
+    if (title) newStep.title = title;
     onChange(newStep);
-  }, [step.title, onChange]);
+  }, [title, onChange]);
+
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    const newStep: SlideStep = { slide: editContent };
+    if (newTitle) newStep.title = newTitle;
+    onChange(newStep);
+  }, [editContent, onChange]);
 
   // Sync when step changes externally
   useEffect(() => {
     setEditContent(getSlideContent(step));
+    setTitle(step.title || '');
   }, [step]);
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded">
-            SLIDE
-          </span>
-          <span className="text-sm text-gray-600 dark:text-slate-400">Markdown Content</span>
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium rounded">
+              SLIDE
+            </span>
+            <span className="text-sm text-gray-600 dark:text-slate-400">Markdown Content</span>
+          </div>
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="p-1.5 text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors"
+              title="Delete step"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
         </div>
-        {onDelete && (
-          <button
-            onClick={onDelete}
-            className="p-1.5 text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors"
-            title="Delete step"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-        )}
+
+        {/* Title input */}
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => handleTitleChange(e.target.value)}
+          placeholder="Step title (optional)"
+          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
       </div>
 
       {/* Content editor */}

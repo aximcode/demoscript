@@ -161,6 +161,9 @@ export function ShellStep({ step, mode = 'view', onChange: _onChange, onDelete }
             <span className="px-2 py-1 rounded text-sm font-bold bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300">
               {step.shell_type?.toUpperCase() || 'SHELL'}
             </span>
+            {step.title && (
+              <span className="font-medium text-gray-900 dark:text-slate-100">{step.title}</span>
+            )}
             {step.workdir && (
               <span className="text-gray-500 dark:text-gray-400 text-sm">
                 in <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">{step.workdir}</code>

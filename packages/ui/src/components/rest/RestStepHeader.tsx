@@ -5,6 +5,7 @@ import type { PollingState } from '../../hooks/usePolling';
 interface Props {
   method: string;
   endpoint: string;
+  title?: string;
   description?: string;
   status: 'pending' | 'executing' | 'complete' | 'error';
   pollingState: PollingState | null;
@@ -12,7 +13,7 @@ interface Props {
   onDelete?: () => void;
 }
 
-export function RestStepHeader({ method, endpoint, description, status, pollingState, mode = 'view', onDelete }: Props) {
+export function RestStepHeader({ method, endpoint, title, description, status, pollingState, mode = 'view', onDelete }: Props) {
   const isExecuting = status === 'executing';
   const isEditMode = mode === 'edit';
 
@@ -23,15 +24,20 @@ export function RestStepHeader({ method, endpoint, description, status, pollingS
           <span className={`px-2 py-1 rounded text-sm font-bold ${getMethodColor(method)}`}>
             {method}
           </span>
-          <code className="text-gray-700 dark:text-slate-300 font-mono text-sm">
-            {status === 'complete' ? (
-              <GradientText variant="success">{endpoint}</GradientText>
-            ) : isExecuting ? (
-              <GradientText variant="primary">{endpoint}</GradientText>
-            ) : (
-              endpoint
+          <div className="min-w-0">
+            {title && (
+              <div className="font-medium text-gray-900 dark:text-slate-100 truncate">{title}</div>
             )}
-          </code>
+            <code className={`text-gray-700 dark:text-slate-300 font-mono ${title ? 'text-xs' : 'text-sm'}`}>
+              {status === 'complete' ? (
+                <GradientText variant="success">{endpoint}</GradientText>
+              ) : isExecuting ? (
+                <GradientText variant="primary">{endpoint}</GradientText>
+              ) : (
+                endpoint
+              )}
+            </code>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {status === 'complete' && (
