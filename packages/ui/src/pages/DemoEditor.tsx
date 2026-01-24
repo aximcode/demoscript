@@ -18,7 +18,13 @@ import { fileService, isCliMode, isCloudEnabled } from '../lib/file-service';
 import { RestStep } from '../components/RestStep';
 import { SlideStep } from '../components/SlideStep';
 import { ShellStep } from '../components/ShellStep';
-import { isRestStep, isSlideStep, isShellStep, isStepGroup, type StepOrGroup, type DemoConfig, type DemoMetadata } from '../types/schema';
+import { GraphQLStep } from '../components/GraphQLStep';
+import { CodeStep } from '../components/CodeStep';
+import { WaitStep } from '../components/WaitStep';
+import { BrowserStep } from '../components/BrowserStep';
+import { AssertStep } from '../components/AssertStep';
+import { DatabaseStep } from '../components/DatabaseStep';
+import { isRestStep, isSlideStep, isShellStep, isStepGroup, isGraphQLStep, isCodeStep, isWaitStep, isBrowserStep, isAssertStep, isDatabaseStep, type StepOrGroup, type DemoConfig, type DemoMetadata } from '../types/schema';
 import { getThemeColors, applyThemeColors, type ThemePreset } from '../lib/theme-colors';
 
 // Generate YAML for a single step
@@ -805,6 +811,30 @@ function StepPreview({ step }: StepPreviewProps) {
 
   if (isShellStep(stepData)) {
     return <ShellStep step={stepData} mode="view" />;
+  }
+
+  if (isGraphQLStep(stepData)) {
+    return <GraphQLStep step={stepData} />;
+  }
+
+  if (isCodeStep(stepData)) {
+    return <CodeStep step={stepData} />;
+  }
+
+  if (isWaitStep(stepData)) {
+    return <WaitStep step={stepData} />;
+  }
+
+  if (isBrowserStep(stepData)) {
+    return <BrowserStep step={stepData} />;
+  }
+
+  if (isAssertStep(stepData)) {
+    return <AssertStep step={stepData} />;
+  }
+
+  if (isDatabaseStep(stepData)) {
+    return <DatabaseStep step={stepData} />;
   }
 
   return (
