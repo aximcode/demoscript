@@ -108,12 +108,6 @@ steps:
 demoscript serve ./demo.yaml
 ```
 
-3. Or build a static site:
-
-```bash
-demoscript build ./demo.yaml -o dist
-```
-
 ## CLI Commands
 
 ### `demoscript serve <demo>`
@@ -129,114 +123,23 @@ Options:
 - `-H, --host [host]` - Bind to 0.0.0.0 for LAN access
 - `-w, --watch` - Watch demo files and auto-reload on changes
 - `--no-open` - Don't auto-open browser
-- `--tunnel [provider]` - Create public tunnel (ngrok or cloudflare)
-- `--tunnel-auth <user:pass>` - HTTP basic auth for tunnel (ngrok only)
-- `--tunnel-name <name>` - Named Cloudflare tunnel
-- `--tunnel-hostname <host>` - Custom hostname for named tunnel
 
-**Tunnel examples:**
+### `demoscript edit [demo]`
+
+Open the visual demo editor to create or edit demos interactively.
 
 ```bash
-# Quick public URL with ngrok (default)
-demoscript serve ./my-demo --tunnel
+# Open editor (creates new demo)
+demoscript edit
 
-# Public URL with Cloudflare (no account required)
-demoscript serve ./my-demo --tunnel cloudflare
-
-# Password-protected tunnel
-demoscript serve ./my-demo --tunnel --tunnel-auth "user:secret"
-
-# Named Cloudflare tunnel with custom domain
-demoscript serve ./my-demo --tunnel-name mytunnel --tunnel-hostname demo.example.com
-```
-
-### `demoscript record <demo>`
-
-Execute all steps and save responses to `recordings.json`.
-
-```bash
-demoscript record examples/hello-world -o recordings.json
+# Open editor with existing demo
+demoscript edit ./my-demo
 ```
 
 Options:
-- `-o, --output <file>` - Output filename (default: recordings.json)
-
-### `demoscript build <demo>`
-
-Export demo as a static site.
-
-```bash
-# Single demo
-demoscript build examples/hello-world -o dist
-
-# All demos with gallery index
-demoscript build examples --all -o dist
-```
-
-Options:
-- `-o, --output <dir>` - Output directory (default: dist)
-- `--all` - Build all demos in directory with gallery index
-
-### `demoscript deploy <demo>`
-
-Deploy demo to Netlify with one command.
-
-```bash
-# Draft deploy (preview URL)
-demoscript deploy examples/hello-world
-
-# Production deploy
-demoscript deploy examples/hello-world --prod
-
-# Deploy to specific site
-demoscript deploy examples/hello-world --prod --site my-demo-site
-```
-
-Options:
-- `-o, --output <dir>` - Build output directory (default: dist)
-- `--prod` - Deploy to production (default is draft preview)
-- `-s, --site <name>` - Netlify site name or ID
-
-The deploy command will:
-1. Check for Netlify CLI (installs if missing)
-2. Authenticate with Netlify (if not logged in)
-3. Record the demo (if no recordings.json exists)
-4. Build the static site
-5. Deploy to Netlify
-
-### `demoscript export-video <demo>`
-
-Export demo as an MP4 video.
-
-```bash
-demoscript export-video examples/browser-demo -o demo.mp4
-```
-
-Options:
-- `-o, --output <file>` - Output video file (default: demo.mp4)
-- `-w, --width <pixels>` - Video width (default: 1280)
-- `-h, --height <pixels>` - Video height (default: 720)
-- `-f, --fps <number>` - Frames per second (default: 30)
-- `--delay <ms>` - Delay between steps in milliseconds (default: 2000)
-
-**Note:** Requires a static build first (`demoscript build`).
-
-### `demoscript export-gif <demo>`
-
-Export demo as an animated GIF.
-
-```bash
-demoscript export-gif examples/browser-demo -o demo.gif --optimize
-```
-
-Options:
-- `-o, --output <file>` - Output GIF file (default: demo.gif)
-- `-w, --width <pixels>` - GIF width (default: 800)
-- `-f, --fps <number>` - Frames per second (default: 10)
-- `--delay <ms>` - Delay between steps in milliseconds (default: 2000)
-- `--optimize` - Use two-pass encoding with palette generation (slower but better quality)
-
-**Note:** Requires a static build first (`demoscript build`).
+- `-p, --port <port>` - Port number (default: 3002)
+- `-H, --host [host]` - Bind to 0.0.0.0 for LAN access
+- `--no-open` - Don't auto-open browser
 
 ## YAML Schema
 
@@ -266,7 +169,7 @@ steps:
   # Step definitions...
 ```
 
-Gallery metadata is displayed as badges when building with `--all`. Difficulty levels show colored badges (green/yellow/red).
+Gallery metadata is displayed as badges in the gallery view. Difficulty levels show colored badges (green/yellow/red).
 
 ### Step Types
 
@@ -426,8 +329,6 @@ Open URLs in the browser:
 ```
 
 In live mode, clicking "Open in Browser" launches the URL in the system default browser. Variables are substituted in the URL.
-
-During recording (`demoscript record`), browser steps automatically capture a screenshot of the page using Puppeteer. Screenshots are saved to `assets/screenshots/` and displayed in playback mode.
 
 #### Code Step
 
@@ -812,54 +713,22 @@ This binds to `0.0.0.0` and displays both local and network URLs. Share the netw
 **Pros:** Real-time execution, interactive, immediate updates
 **Cons:** Requires server running, only accessible on same network
 
-### Option 2: One-Command Deploy to Netlify
+### Option 2: DemoScript Cloud
 
-Deploy directly to Netlify with a single command:
-
-```bash
-# Draft deploy (get preview URL)
-demoscript deploy ./my-demo
-
-# Production deploy
-demoscript deploy ./my-demo --prod
-```
-
-This automatically records responses (if needed), builds, and deploys. Share the Netlify URL with anyone.
-
-**Pros:** One command, permanent URL, works anywhere, free hosting
-**Cons:** Requires Netlify account, pre-recorded responses only
-
-### Option 3: Manual Static Site Hosting
-
-Build a static site and host it anywhere:
+Push your demo to DemoScript Cloud for easy sharing:
 
 ```bash
-# Record responses first
-demoscript record ./my-demo
+# Login to DemoScript Cloud
+demoscript login
 
-# Build static site
-demoscript build ./my-demo -o dist
+# Push demo to cloud
+demoscript push ./my-demo
 ```
 
-Deploy the `dist` folder to any static hosting:
-- GitHub Pages
-- Netlify
-- Vercel
-- AWS S3
-- Any web server
+Get a permanent URL at demoscript.app that works from anywhere.
 
-**Pros:** Full control, works anywhere, permanent URL
-**Cons:** More manual steps, requires pre-recorded responses
-
-### Option 4: Gallery Site
-
-Build multiple demos with a gallery index:
-
-```bash
-demoscript build ./examples --all -o dist
-```
-
-Creates a gallery page linking to all demos in the directory.
+**Pros:** Easy sharing, permanent URL, works anywhere
+**Cons:** Requires DemoScript Cloud account
 
 ## Try It Mode
 
@@ -933,15 +802,12 @@ See [ROADMAP.md](ROADMAP.md) for the full improvement guide including architectu
 - **Gallery metadata** - Duration, difficulty badges in gallery index
 - **Sound controls** - Volume control and additional sound effects
 - **OpenAPI integration** - Auto-generate form fields from OpenAPI/Swagger specs
-- **Screenshot recording** - Browser steps now capture screenshots during recording
-- **Video export** - Generate MP4 videos with `demoscript export-video`
-- **GIF export** - Generate animated GIFs with `demoscript export-gif`
+- **Visual Editor** - Create demos interactively with `demoscript edit`
 
 ### Known Limitations
 
 - No integration tests for CLI commands
 - Shell commands require the server to be running locally
-- Video/GIF export requires static build first
 
 ## Development
 
@@ -977,7 +843,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
 ```
 demoscript/
 ├── packages/
-│   ├── cli/          # CLI tool (serve, record, build, export)
+│   ├── cli/          # CLI tool (serve, edit, push, login)
 │   └── ui/           # React web interface
 ├── examples/
 │   ├── hello-world/       # Minimal starter demo

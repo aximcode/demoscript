@@ -23,9 +23,9 @@ DemoScript is a framework for creating scripted, shareable product demonstration
 │                         User Workflow                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│   1. Write YAML ──► 2. Record ──► 3. Build ──► 4. Share         │
+│   1. Write YAML ──► 2. Serve/Edit ──► 3. Push to Cloud          │
 │                                                                  │
-│   demo.yaml         recordings.json   dist/index.html   URL/file │
+│   demo.yaml         localhost          demoscript.app/d/...     │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -34,13 +34,12 @@ DemoScript is a framework for creating scripted, shareable product demonstration
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
-│  │   CLI Tool   │  │  Dev Server  │  │   Static Builder     │   │
+│  │   CLI Tool   │  │  Dev Server  │  │    Cloud Platform    │   │
 │  │              │  │              │  │                      │   │
-│  │ - init       │  │ - REST proxy │  │ - Parse YAML         │   │
-│  │ - new        │  │ - Shell exec │  │ - Bundle React app   │   │
-│  │ - serve      │  │ - WebSocket  │  │ - Embed recordings   │   │
-│  │ - record     │  │   (live UI)  │  │ - Output static HTML │   │
-│  │ - build      │  │              │  │                      │   │
+│  │ - serve      │  │ - REST proxy │  │ - Host demos         │   │
+│  │ - edit       │  │ - Shell exec │  │ - Share via URL      │   │
+│  │ - login      │  │ - WebSocket  │  │ - Gallery            │   │
+│  │ - push       │  │   (live UI)  │  │ - Analytics          │   │
 │  └──────────────┘  └──────────────┘  └──────────────────────┘   │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
@@ -123,18 +122,13 @@ demoscript/
 │   │   ├── src/
 │   │   │   ├── index.ts        # Entry point
 │   │   │   ├── commands/
-│   │   │   │   ├── init.ts
-│   │   │   │   ├── new.ts
-│   │   │   │   ├── serve.ts
-│   │   │   │   ├── record.ts
-│   │   │   │   └── build.ts
-│   │   │   ├── server/         # Dev server for live execution
-│   │   │   │   ├── index.ts
-│   │   │   │   ├── rest-proxy.ts
-│   │   │   │   └── shell-executor.ts
-│   │   │   └── builder/        # Static site generator
+│   │   │   │   ├── serve.ts    # Dev server
+│   │   │   │   ├── login.ts    # Cloud auth
+│   │   │   │   └── push.ts     # Push to cloud
+│   │   │   └── server/         # Dev server for live execution
 │   │   │       ├── index.ts
-│   │   │       └── templates/
+│   │   │       ├── rest-proxy.ts
+│   │   │       └── shell-executor.ts
 │   │   └── package.json
 │   │
 │   └── ui/                     # React web UI
@@ -847,35 +841,6 @@ The `{value}` placeholder is replaced with the actual result value.
 
 ## CLI Commands
 
-### `demoscript init`
-Initialize a new DemoScript project.
-
-```bash
-$ demoscript init
-Creating new DemoScript project...
-? Project name: my-demos
-? Default base URL (optional): http://localhost:8000
-
-Created:
-  my-demos/
-  ├── demoscript.config.yaml
-  ├── demos/
-  │   └── example/
-  │       └── demo.yaml
-  └── package.json
-
-Run: cd my-demos && npm install
-```
-
-### `demoscript new <name>`
-Create a new demo from template.
-
-```bash
-$ demoscript new product-tour
-Created demos/product-tour/demo.yaml
-Edit the file and run: demoscript serve product-tour
-```
-
 ### `demoscript serve <name>`
 Start dev server for live demo presentation.
 
@@ -889,164 +854,40 @@ Starting DemoScript server...
 Press 'r' to reload, 'q' to quit
 ```
 
-### `demoscript record <name>`
-Execute all steps and save responses.
+### `demoscript edit [demo]`
+Open visual demo editor to create or edit demos interactively.
 
 ```bash
-$ demoscript record feature-showcase
-Recording demo: feature-showcase
+$ demoscript edit
+Starting DemoScript editor...
+  URL: http://localhost:3002/editor
 
-[1/6] Introduction (slide) - skipped
-[2/6] Create Token (rest) - POST /api/tokens
-      ✓ Response saved (234ms)
-[3/6] Create Vault (rest) - POST /api/vaults
-      ✓ Response saved (189ms)
-[4/6] Deposit Funds (rest) - POST /api/deposits
-      ✓ Polling complete (4.2s)
-[5/6] Check Balance (rest) - GET /api/plvs/xxx
-      ✓ Response saved (45ms)
-[6/6] Summary (slide) - skipped
-
-Saved: demos/feature-showcase/recordings.json
+$ demoscript edit ./my-demo
+Loading demo from: ./my-demo/demo.yaml
+  URL: http://localhost:3002/editor
 ```
 
-### `demoscript build <name>`
-Export demo as static site.
+### `demoscript login`
+Login to DemoScript Cloud.
 
 ```bash
-$ demoscript build feature-showcase
-Building demo: feature-showcase
-
-✓ Parsed demo.yaml
-✓ Loaded recordings.json
-✓ Bundled UI components
-✓ Generated static assets
-
-Output: dist/feature-showcase/
-  ├── index.html (487 KB)
-  ├── assets/
-  └── recordings.json
-
-Deploy anywhere or open index.html directly.
+$ demoscript login
+Opening browser for authentication...
+✓ Logged in as user@example.com
 ```
 
-### `demoscript build --all`
-Build all demos with gallery index.
+### `demoscript push <demo>`
+Push demo to DemoScript Cloud for sharing.
 
 ```bash
-$ demoscript build --all
-Building all demos...
+$ demoscript push ./my-demo
+Pushing demo: my-demo
 
-✓ feature-showcase
-✓ product-tour
-✓ api-overview
+✓ Uploaded demo.yaml
+✓ Demo published!
 
-Generated gallery: dist/index.html
-Total size: 1.4 MB
+URL: https://demoscript.app/d/my-demo
 ```
-
-### `demoscript export-video <demo>`
-Export demo as MP4 video.
-
-```bash
-$ demoscript export-video examples/browser-demo -o demo.mp4
-Exporting video: examples/browser-demo
-  Resolution: 1280x720
-  FPS: 30
-  Step delay: 2000ms
-
-Demo: Browser Step Demo
-Steps: 10
-
-Capturing frames...
-  Frame 1: Initial
-  Frame 31: Step 2
-  ...
-✓ Captured 300 frames
-
-Encoding video...
-✓ Video saved: demo.mp4
-```
-
-Uses Puppeteer to capture frames and ffmpeg to encode. Requires a static build first.
-
-### `demoscript export-gif <demo>`
-Export demo as animated GIF.
-
-```bash
-$ demoscript export-gif examples/browser-demo -o demo.gif --optimize
-Exporting GIF: examples/browser-demo
-  Width: 800px
-  FPS: 10
-  Step delay: 2000ms
-  Optimize: yes
-
-Demo: Browser Step Demo
-Steps: 10
-
-Capturing frames...
-✓ Captured 100 frames
-
-Encoding GIF (optimizing)...
-✓ GIF saved: demo.gif (2.35 MB)
-```
-
-With `--optimize`, uses two-pass encoding with palette generation for better quality.
-
-## Media Export Architecture
-
-### Screenshot Capture (Browser Steps)
-
-During `demoscript record`, browser steps are captured using Puppeteer:
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                     Recording Flow                             │
-├──────────────────────────────────────────────────────────────┤
-│                                                                │
-│   Browser Step ──► Puppeteer Launch ──► Navigate to URL       │
-│                                                                │
-│   Wait for page load ──► Capture Screenshot ──► Save PNG      │
-│                                                                │
-│   Output: assets/screenshots/step-<id>.png                    │
-│                                                                │
-└──────────────────────────────────────────────────────────────┘
-```
-
-Key files:
-- `packages/cli/src/lib/screenshot.ts` - Puppeteer wrapper
-- `packages/cli/src/commands/record.ts` - Browser step handling
-
-### Video/GIF Export
-
-Export commands use a frame-based approach:
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                     Export Flow                                │
-├──────────────────────────────────────────────────────────────┤
-│                                                                │
-│   1. Load static build ──► Open in Puppeteer                  │
-│                                                                │
-│   2. Navigate steps ──► Capture PNG frames                    │
-│      (use keyboard navigation, delay between steps)          │
-│                                                                │
-│   3. Encode frames ──► ffmpeg ──► MP4/GIF output             │
-│                                                                │
-│   4. Cleanup temp frames                                      │
-│                                                                │
-└──────────────────────────────────────────────────────────────┘
-```
-
-Key files:
-- `packages/cli/src/lib/video-encoder.ts` - ffmpeg wrapper
-- `packages/cli/src/commands/export-video.ts` - Video export
-- `packages/cli/src/commands/export-gif.ts` - GIF export
-
-Dependencies:
-- `puppeteer` - Browser automation for screenshot capture
-- `ffmpeg-static` - Bundled ffmpeg binary
-- `fluent-ffmpeg` - Node.js ffmpeg wrapper
 
 ## React UI Components
 
@@ -1206,4 +1047,5 @@ Or configure your IDE's YAML extension to associate `.yaml` files with the schem
 See the examples directory for complete demo implementations:
 - `examples/hello-world/` - Minimal 3-step intro
 - `examples/feature-showcase/` - Comprehensive feature demo
-- `examples/browser-demo/` - Browser automation demo
+- `examples/jsonplaceholder/` - REST API tutorial
+- `examples/github-api/` - Custom link handlers example
