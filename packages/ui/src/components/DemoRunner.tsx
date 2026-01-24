@@ -39,6 +39,7 @@ declare global {
     DEMO_RECORDINGS?: unknown;
     IS_CLOUD?: boolean;
     CLOUD_PROXY_URL?: string;
+    CLOUD_GRAPHQL_PROXY_URL?: string;
     DEMO_ID?: string;
     DEMO_MODE?: 'live' | 'recorded';
   }

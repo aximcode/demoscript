@@ -18,14 +18,38 @@ import {
   isSlideStep,
   isShellStep,
   isStepGroup,
+  isGraphQLStep,
+  isCodeStep,
+  isWaitStep,
+  isBrowserStep,
+  isAssertStep,
+  isDatabaseStep,
   getSlideContent,
   getShellCommand,
+  getGraphQLQuery,
+  getCodeSource,
+  getWaitDuration,
+  getBrowserUrl,
+  getAssertCondition,
+  getDatabaseOperation,
   type RestStep,
   type ExplicitRestStep,
   type SlideStep,
   type ExplicitSlideStep,
   type ShellStep,
   type ExplicitShellStep,
+  type GraphQLStep,
+  type ExplicitGraphQLStep,
+  type CodeStep,
+  type ExplicitCodeStep,
+  type WaitStep,
+  type ExplicitWaitStep,
+  type BrowserStep,
+  type ExplicitBrowserStep,
+  type AssertStep,
+  type ExplicitAssertStep,
+  type DatabaseStep,
+  type ExplicitDatabaseStep,
   type StepOrGroup,
   type StepGroup,
 } from '../../types/schema';
@@ -53,6 +77,30 @@ export function StepEditor({ step, onChange, onDelete }: StepEditorProps) {
 
   if (isShellStep(step)) {
     return <ShellStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
+  }
+
+  if (isGraphQLStep(step)) {
+    return <GraphQLStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
+  }
+
+  if (isCodeStep(step)) {
+    return <CodeStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
+  }
+
+  if (isWaitStep(step)) {
+    return <WaitStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
+  }
+
+  if (isBrowserStep(step)) {
+    return <BrowserStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
+  }
+
+  if (isAssertStep(step)) {
+    return <AssertStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
+  }
+
+  if (isDatabaseStep(step)) {
+    return <DatabaseStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
   }
 
   return (
@@ -561,6 +609,398 @@ function GroupEditor({ step, onChange, onDelete }: GroupEditorProps) {
         <p className="mt-2 text-xs text-gray-500 dark:text-slate-400">
           This group contains {step.steps.length} step{step.steps.length !== 1 ? 's' : ''}
         </p>
+      </div>
+    </div>
+  );
+}
+
+// GraphQL Step Editor
+interface GraphQLStepEditorProps {
+  step: GraphQLStep | ExplicitGraphQLStep;
+  onChange: (step: StepOrGroup) => void;
+  onDelete?: () => void;
+}
+
+function GraphQLStepEditor({ step, onChange, onDelete }: GraphQLStepEditorProps) {
+  const query = getGraphQLQuery(step);
+  const [editQuery, setEditQuery] = useState(query);
+  const [title, setTitle] = useState(step.title || '');
+  const [endpoint, setEndpoint] = useState(step.endpoint || '');
+
+  const handleQueryChange = useCallback((newQuery: string) => {
+    setEditQuery(newQuery);
+    const newStep: GraphQLStep = { graphql: newQuery };
+    if (title) newStep.title = title;
+    if (endpoint) newStep.endpoint = endpoint;
+    onChange(newStep);
+  }, [title, endpoint, onChange]);
+
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setTitle(newTitle);
+    const newStep: GraphQLStep = { graphql: editQuery };
+    if (newTitle) newStep.title = newTitle;
+    if (endpoint) newStep.endpoint = endpoint;
+    onChange(newStep);
+  }, [editQuery, endpoint, onChange]);
+
+  const handleEndpointChange = useCallback((newEndpoint: string) => {
+    setEndpoint(newEndpoint);
+    const newStep: GraphQLStep = { graphql: editQuery };
+    if (title) newStep.title = title;
+    if (newEndpoint) newStep.endpoint = newEndpoint;
+    onChange(newStep);
+  }, [editQuery, title, onChange]);
+
+  useEffect(() => {
+    setEditQuery(getGraphQLQuery(step));
+    setTitle(step.title || '');
+    setEndpoint(step.endpoint || '');
+  }, [step]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 text-xs font-medium rounded">
+              GRAPHQL
+            </span>
+          </div>
+          {onDelete && (
+            <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete step">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Step title (optional)"
+          className="w-full px-3 py-1.5 mb-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        <input type="text" value={endpoint} onChange={(e) => handleEndpointChange(e.target.value)} placeholder="GraphQL endpoint (optional)"
+          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      </div>
+      <div className="flex-1 p-4">
+        <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Query</label>
+        <textarea value={editQuery} onChange={(e) => handleQueryChange(e.target.value)} placeholder="query { ... }" rows={10}
+          className="w-full h-full min-h-[200px] px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      </div>
+    </div>
+  );
+}
+
+// Code Step Editor
+interface CodeStepEditorProps {
+  step: CodeStep | ExplicitCodeStep;
+  onChange: (step: StepOrGroup) => void;
+  onDelete?: () => void;
+}
+
+function CodeStepEditor({ step, onChange, onDelete }: CodeStepEditorProps) {
+  const source = getCodeSource(step);
+  const [editSource, setEditSource] = useState(source);
+  const [title, setTitle] = useState(step.title || '');
+  const [language, setLanguage] = useState(step.language || 'javascript');
+  const [filename, setFilename] = useState(step.filename || '');
+
+  const buildStep = useCallback((src: string, t: string, lang: string, fn: string): CodeStep => {
+    const newStep: CodeStep = { code: src };
+    if (t) newStep.title = t;
+    if (lang) newStep.language = lang;
+    if (fn) newStep.filename = fn;
+    return newStep;
+  }, []);
+
+  useEffect(() => {
+    setEditSource(getCodeSource(step));
+    setTitle(step.title || '');
+    setLanguage(step.language || 'javascript');
+    setFilename(step.filename || '');
+  }, [step]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-medium rounded">CODE</span>
+          </div>
+          {onDelete && (
+            <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete step">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); onChange(buildStep(editSource, e.target.value, language, filename)); }} placeholder="Title (optional)"
+            className="px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+          <input type="text" value={language} onChange={(e) => { setLanguage(e.target.value); onChange(buildStep(editSource, title, e.target.value, filename)); }} placeholder="Language"
+            className="px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+        <input type="text" value={filename} onChange={(e) => { setFilename(e.target.value); onChange(buildStep(editSource, title, language, e.target.value)); }} placeholder="Filename (optional)"
+          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      </div>
+      <div className="flex-1 p-4">
+        <textarea value={editSource} onChange={(e) => { setEditSource(e.target.value); onChange(buildStep(e.target.value, title, language, filename)); }} placeholder="// Your code here"
+          className="w-full h-full min-h-[200px] px-3 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      </div>
+    </div>
+  );
+}
+
+// Wait Step Editor
+interface WaitStepEditorProps {
+  step: WaitStep | ExplicitWaitStep;
+  onChange: (step: StepOrGroup) => void;
+  onDelete?: () => void;
+}
+
+function WaitStepEditor({ step, onChange, onDelete }: WaitStepEditorProps) {
+  const duration = getWaitDuration(step);
+  const [editDuration, setEditDuration] = useState(duration);
+  const [title, setTitle] = useState(step.title || '');
+  const [message, setMessage] = useState(step.message || '');
+
+  const buildStep = useCallback((dur: number, t: string, msg: string): WaitStep => {
+    const newStep: WaitStep = { wait: dur };
+    if (t) newStep.title = t;
+    if (msg) newStep.message = msg;
+    return newStep;
+  }, []);
+
+  useEffect(() => {
+    setEditDuration(getWaitDuration(step));
+    setTitle(step.title || '');
+    setMessage(step.message || '');
+  }, [step]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs font-medium rounded">WAIT</span>
+          </div>
+          {onDelete && (
+            <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete step">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); onChange(buildStep(editDuration, e.target.value, message)); }} placeholder="Title (optional)"
+          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      </div>
+      <div className="flex-1 p-4 space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Duration (ms)</label>
+          <input type="number" value={editDuration} onChange={(e) => { const d = parseInt(e.target.value) || 0; setEditDuration(d); onChange(buildStep(d, title, message)); }} min={0}
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Message (optional)</label>
+          <input type="text" value={message} onChange={(e) => { setMessage(e.target.value); onChange(buildStep(editDuration, title, e.target.value)); }} placeholder="Waiting..."
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Browser Step Editor
+interface BrowserStepEditorProps {
+  step: BrowserStep | ExplicitBrowserStep;
+  onChange: (step: StepOrGroup) => void;
+  onDelete?: () => void;
+}
+
+function BrowserStepEditor({ step, onChange, onDelete }: BrowserStepEditorProps) {
+  const url = getBrowserUrl(step);
+  const [editUrl, setEditUrl] = useState(url);
+  const [title, setTitle] = useState(step.title || '');
+  const [description, setDescription] = useState(step.description || '');
+
+  const buildStep = useCallback((u: string, t: string, desc: string): BrowserStep => {
+    const newStep: BrowserStep = { browser: u };
+    if (t) newStep.title = t;
+    if (desc) newStep.description = desc;
+    return newStep;
+  }, []);
+
+  useEffect(() => {
+    setEditUrl(getBrowserUrl(step));
+    setTitle(step.title || '');
+    setDescription(step.description || '');
+  }, [step]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-xs font-medium rounded">BROWSER</span>
+          </div>
+          {onDelete && (
+            <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete step">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); onChange(buildStep(editUrl, e.target.value, description)); }} placeholder="Title (optional)"
+          className="w-full px-3 py-1.5 mb-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      </div>
+      <div className="flex-1 p-4 space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">URL</label>
+          <input type="text" value={editUrl} onChange={(e) => { setEditUrl(e.target.value); onChange(buildStep(e.target.value, title, description)); }} placeholder="https://example.com"
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Description (optional)</label>
+          <input type="text" value={description} onChange={(e) => { setDescription(e.target.value); onChange(buildStep(editUrl, title, e.target.value)); }} placeholder="Navigate to..."
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Assert Step Editor
+interface AssertStepEditorProps {
+  step: AssertStep | ExplicitAssertStep;
+  onChange: (step: StepOrGroup) => void;
+  onDelete?: () => void;
+}
+
+function AssertStepEditor({ step, onChange, onDelete }: AssertStepEditorProps) {
+  const condition = getAssertCondition(step);
+  const [editCondition, setEditCondition] = useState(condition);
+  const [title, setTitle] = useState(step.title || '');
+  const [message, setMessage] = useState(step.message || '');
+
+  const buildStep = useCallback((cond: string, t: string, msg: string): AssertStep => {
+    const newStep: AssertStep = { assert: cond };
+    if (t) newStep.title = t;
+    if (msg) newStep.message = msg;
+    return newStep;
+  }, []);
+
+  useEffect(() => {
+    setEditCondition(getAssertCondition(step));
+    setTitle(step.title || '');
+    setMessage(step.message || '');
+  }, [step]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium rounded">ASSERT</span>
+          </div>
+          {onDelete && (
+            <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete step">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); onChange(buildStep(editCondition, e.target.value, message)); }} placeholder="Title (optional)"
+          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      </div>
+      <div className="flex-1 p-4 space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Condition</label>
+          <input type="text" value={editCondition} onChange={(e) => { setEditCondition(e.target.value); onChange(buildStep(e.target.value, title, message)); }} placeholder="$variable == 'expected'"
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Message (optional)</label>
+          <input type="text" value={message} onChange={(e) => { setMessage(e.target.value); onChange(buildStep(editCondition, title, e.target.value)); }} placeholder="Assertion message"
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Database Step Editor
+interface DatabaseStepEditorProps {
+  step: DatabaseStep | ExplicitDatabaseStep;
+  onChange: (step: StepOrGroup) => void;
+  onDelete?: () => void;
+}
+
+function DatabaseStepEditor({ step, onChange, onDelete }: DatabaseStepEditorProps) {
+  const operation = getDatabaseOperation(step);
+  const [editOperation, setEditOperation] = useState(operation);
+  const [title, setTitle] = useState(step.title || '');
+  const [dbType, setDbType] = useState<'mongodb' | 'postgres' | 'mysql'>(step.type || 'mongodb');
+  const [collection, setCollection] = useState(step.collection || step.table || '');
+
+  const buildStep = useCallback((op: string, t: string, type: string, coll: string): DatabaseStep => {
+    const newStep: DatabaseStep = { db: op };
+    if (t) newStep.title = t;
+    if (type) newStep.type = type as 'mongodb' | 'postgres' | 'mysql';
+    if (coll) {
+      if (type === 'mongodb') newStep.collection = coll;
+      else newStep.table = coll;
+    }
+    return newStep;
+  }, []);
+
+  useEffect(() => {
+    setEditOperation(getDatabaseOperation(step));
+    setTitle(step.title || '');
+    setDbType(step.type || 'mongodb');
+    setCollection(step.collection || step.table || '');
+  }, [step]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs font-medium rounded">DATABASE</span>
+          </div>
+          {onDelete && (
+            <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete step">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); onChange(buildStep(editOperation, e.target.value, dbType, collection)); }} placeholder="Title (optional)"
+          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+      </div>
+      <div className="flex-1 p-4 space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Operation</label>
+          <input type="text" value={editOperation} onChange={(e) => { setEditOperation(e.target.value); onChange(buildStep(e.target.value, title, dbType, collection)); }} placeholder="find, insert, update, delete"
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Type</label>
+            <select value={dbType} onChange={(e) => { const v = e.target.value as 'mongodb' | 'postgres' | 'mysql'; setDbType(v); onChange(buildStep(editOperation, title, v, collection)); }}
+              className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+              <option value="mongodb">MongoDB</option>
+              <option value="postgres">PostgreSQL</option>
+              <option value="mysql">MySQL</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">{dbType === 'mongodb' ? 'Collection' : 'Table'}</label>
+            <input type="text" value={collection} onChange={(e) => { setCollection(e.target.value); onChange(buildStep(editOperation, title, dbType, e.target.value)); }} placeholder={dbType === 'mongodb' ? 'users' : 'users_table'}
+              className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+          </div>
+        </div>
       </div>
     </div>
   );

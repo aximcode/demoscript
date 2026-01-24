@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDemo } from '../context/DemoContext';
 import { substituteVariables, substituteInObject, extractValueByPath } from '../lib/variable-substitution';
-import { isStepTypeSupported, getUnsupportedMessage } from '../lib/execute-adapter';
+import { isStepTypeSupported, getUnsupportedMessage, executeGraphQL } from '../lib/execute-adapter';
 import type { GraphQLStep as GraphQLStepType, ExplicitGraphQLStep } from '../types/schema';
 import { getGraphQLQuery } from '../types/schema';
 import { GlowingCard, SuccessCheck } from './effects';
@@ -72,28 +72,19 @@ export function GraphQLStep({ step }: Props) {
         const headers = substituteInObject(step.headers || {}, state.variables) as Record<string, string>;
         const variables = substituteInObject(variableValues, state.variables);
 
-        const res = await fetch('/api/execute-graphql', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true',
-          },
-          body: JSON.stringify({
-            endpoint: resolvedEndpoint,
-            query: getGraphQLQuery(step),
-            variables,
-            headers,
-          }),
+        const result = await executeGraphQL({
+          endpoint: resolvedEndpoint,
+          query: getGraphQLQuery(step),
+          variables,
+          headers,
         });
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || `Request failed with status ${res.status}`);
+        if (result.error) {
+          throw new Error(result.error);
         }
 
-        setResponse(data);
-        saveVariables(data);
+        setResponse(result.data);
+        saveVariables(result.data);
         dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'complete' } });
       }
     } catch (err) {
