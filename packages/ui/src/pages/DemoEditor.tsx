@@ -24,7 +24,10 @@ import { WaitStep } from '../components/WaitStep';
 import { BrowserStep } from '../components/BrowserStep';
 import { AssertStep } from '../components/AssertStep';
 import { DatabaseStep } from '../components/DatabaseStep';
-import { isRestStep, isSlideStep, isShellStep, isStepGroup, isGraphQLStep, isCodeStep, isWaitStep, isBrowserStep, isAssertStep, isDatabaseStep, type StepOrGroup, type DemoConfig, type DemoMetadata } from '../types/schema';
+import { FormStep } from '../components/FormStep';
+import { TerminalStep } from '../components/TerminalStep';
+import { PollStep } from '../components/PollStep';
+import { isRestStep, isSlideStep, isShellStep, isStepGroup, isGraphQLStep, isCodeStep, isWaitStep, isBrowserStep, isAssertStep, isDatabaseStep, isFormStep, isTerminalStep, isPollStep, type StepOrGroup, type DemoConfig, type DemoMetadata } from '../types/schema';
 import { getThemeColors, applyThemeColors, type ThemePreset } from '../lib/theme-colors';
 
 // Generate YAML for a single step
@@ -856,6 +859,18 @@ function StepPreview({ step }: StepPreviewProps) {
 
   if (isDatabaseStep(stepData)) {
     return <DatabaseStep step={stepData} />;
+  }
+
+  if (isFormStep(stepData)) {
+    return <FormStep step={stepData} />;
+  }
+
+  if (isTerminalStep(stepData)) {
+    return <TerminalStep step={stepData} />;
+  }
+
+  if (isPollStep(stepData)) {
+    return <PollStep step={stepData} />;
   }
 
   return (
