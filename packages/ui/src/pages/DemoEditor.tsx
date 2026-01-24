@@ -76,10 +76,24 @@ interface AddStepMenuProps {
 
 function AddStepMenu({ onAddStep }: AddStepMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+
+  // Calculate menu position when opening
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 4,
+        left: rect.right - 192, // 192 = w-48 (12rem)
+      });
+    }
+  }, [isOpen]);
 
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded font-medium transition-colors text-sm"
         title="Add Step"
@@ -92,8 +106,11 @@ function AddStepMenu({ onAddStep }: AddStepMenuProps) {
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 py-1 z-20">
+          <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
+          <div
+            className="fixed w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 py-1 z-[101]"
+            style={{ top: menuPosition.top, left: Math.max(8, menuPosition.left) }}
+          >
             <button
               onClick={() => { onAddStep('rest'); setIsOpen(false); }}
               className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
