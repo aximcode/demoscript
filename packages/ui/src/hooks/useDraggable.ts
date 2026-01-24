@@ -23,9 +23,13 @@ interface UseDraggableReturn {
  * Apply position via transform: translate(x, y) on the modal
  */
 export function useDraggable(options: UseDraggableOptions = {}): UseDraggableReturn {
-  const { initialPosition = { x: 0, y: 0 }, boundToWindow = true } = options;
+  const { initialPosition, boundToWindow = true } = options;
 
-  const [position, setPosition] = useState<Position>(initialPosition);
+  // Use refs for initial position to avoid recreating callbacks
+  const initialX = initialPosition?.x ?? 0;
+  const initialY = initialPosition?.y ?? 0;
+
+  const [position, setPosition] = useState<Position>({ x: initialX, y: initialY });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef<Position>({ x: 0, y: 0 });
   const elementSize = useRef<{ width: number; height: number }>({ width: 0, height: 0 });
@@ -86,8 +90,8 @@ export function useDraggable(options: UseDraggableOptions = {}): UseDraggableRet
   }, [isDragging, boundToWindow]);
 
   const resetPosition = useCallback(() => {
-    setPosition(initialPosition);
-  }, [initialPosition]);
+    setPosition({ x: initialX, y: initialY });
+  }, [initialX, initialY]);
 
   return {
     position,
