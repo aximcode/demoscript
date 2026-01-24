@@ -64,14 +64,14 @@ program
   });
 
 program
-  .command('builder')
-  .description('Open the visual demo builder')
-  .option('-p, --port <port>', 'Port to run on', '3002')
+  .command('edit [demo]')
+  .description('Open visual demo editor')
+  .option('-p, --port <port>', 'Port to run editor on', '3002')
   .option('-H, --host [host]', 'Host to bind to (use --host for 0.0.0.0)')
   .option('--no-open', 'Do not open browser automatically')
-  .action(async (options: { port: string; host?: string | boolean; open: boolean }) => {
+  .action(async (demo: string | undefined, options: { port: string; host?: string | boolean; open: boolean }) => {
     const host = options.host === true ? '0.0.0.0' : (typeof options.host === 'string' ? options.host : undefined);
-    await builder({ port: parseInt(options.port, 10), host, open: options.open });
+    await builder({ port: parseInt(options.port, 10), host, open: options.open, demoPath: demo });
   });
 
 program.parse();

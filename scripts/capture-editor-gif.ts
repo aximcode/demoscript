@@ -350,10 +350,10 @@ async function main(): Promise<void> {
     } else {
       const startBuilder = !process.argv.includes('--no-start');
       if (startBuilder) {
-        console.log('Starting builder server...');
+        console.log('Starting editor server...');
         builderProcess = spawn('node', [
           join(PROJECT_ROOT, 'packages', 'cli', 'dist', 'index.js'),
-          'builder',
+          'edit',
           '--port', String(port),
           '--no-open'
         ], {
@@ -368,10 +368,10 @@ async function main(): Promise<void> {
     }
 
     await createGif(frames);
-    console.log('\n✓ Done! Builder GIF saved to assets/builder.gif');
+    console.log('\n✓ Done! Editor GIF saved to assets/builder.gif');
   } finally {
     if (builderProcess) {
-      console.log('\nStopping builder server...');
+      console.log('\nStopping editor server...');
       builderProcess.kill('SIGTERM');
     }
   }
