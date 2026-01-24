@@ -1,0 +1,108 @@
+title: "Terminal Step Demo"
+description: "Demonstrates animated terminal playback for showing command-line workflows"
+version: "1.0"
+
+settings:
+  theme:
+    preset: "green"
+  effects:
+    confetti: true
+
+steps:
+  - slide: |
+      # Terminal Step Demo
+
+      This demo shows how to use **Terminal steps** to create
+      animated terminal recordings for your demos.
+
+      Terminal steps are perfect for:
+      - Installation instructions
+      - CLI tool demonstrations
+      - Build process walkthroughs
+      - DevOps workflows
+
+  - terminal: |
+      $ npm install -g demoscript
+      added 42 packages in 2.3s
+      $ demoscript --version
+      DemoScript v1.0.0
+    title: "Installation"
+    typing_speed: 40
+
+  - slide: |
+      # Customization Options
+
+      Terminal steps support several options:
+
+      - **typing_speed** - Milliseconds per character (default: 30)
+      - **output_delay** - Delay before showing output (default: 200ms)
+      - **prompt** - Custom prompt string (default: "$")
+      - **theme** - dark, light, or matrix
+
+  - terminal: |
+      $ git clone https://github.com/example/myproject.git
+      Cloning into 'myproject'...
+      remote: Enumerating objects: 150, done.
+      remote: Counting objects: 100% (150/150), done.
+      Receiving objects: 100% (150/150), 2.5 MiB | 5.0 MiB/s, done.
+      $ cd myproject && npm install
+      added 128 packages in 4.2s
+      $ npm run build
+      > myproject@1.0.0 build
+      > tsc && vite build
+
+      vite v5.0.0 building for production...
+      dist/index.js    125.4 kB | gzip: 42.1 kB
+      Build complete!
+    title: "Project Setup"
+    typing_speed: 25
+    output_delay: 150
+
+  - terminal: |
+      > docker build -t myapp .
+      Step 1/5 : FROM node:18-alpine
+       ---> 4a6f5f1e8c20
+      Step 2/5 : WORKDIR /app
+       ---> Running in 3e5f7a8b9c10
+      Step 3/5 : COPY package*.json ./
+       ---> 2d4e6f8a0b1c
+      Step 4/5 : RUN npm ci
+       ---> Running in 1a2b3c4d5e6f
+      Step 5/5 : COPY . .
+       ---> 7f8e9d0c1b2a
+      Successfully built myapp:latest
+      > docker run -p 3000:3000 myapp
+      Server listening on port 3000
+    title: "Docker Build"
+    prompt: ">"
+    typing_speed: 35
+
+  - slide: |
+      # Matrix Theme
+
+      For a fun retro look, try the **matrix** theme!
+
+  - terminal: |
+      $ whoami
+      neo
+      $ cat /etc/motd
+      Wake up, Neo...
+      The Matrix has you...
+      Follow the white rabbit.
+      $ ./knock_knock
+      Knock, knock, Neo.
+    title: "The Matrix"
+    theme: matrix
+    typing_speed: 60
+
+  - slide: |
+      # Great for Documentation!
+
+      Terminal steps help you create:
+      - Interactive installation guides
+      - Step-by-step tutorials
+      - CLI tool showcases
+      - DevOps workflow demos
+
+      The animation makes it easy for viewers
+      to follow along!

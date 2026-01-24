@@ -296,7 +296,7 @@ function StepButton({ step, flatIndex, currentStep, getStepStatus, dispatch, com
   );
 }
 
-function TypeBadge({ type, compact }: { type: 'slide' | 'rest' | 'shell' | 'browser' | 'code' | 'wait' | 'assert' | 'graphql' | 'db' | 'group'; compact?: boolean }) {
+function TypeBadge({ type, compact }: { type: 'slide' | 'rest' | 'shell' | 'browser' | 'code' | 'wait' | 'assert' | 'graphql' | 'db' | 'group' | 'form' | 'terminal' | 'poll'; compact?: boolean }) {
   const styles: Record<string, string> = {
     slide: 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30',
     rest: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30',
@@ -308,6 +308,9 @@ function TypeBadge({ type, compact }: { type: 'slide' | 'rest' | 'shell' | 'brow
     graphql: 'bg-pink-100 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-500/30',
     db: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30',
     group: 'bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-500/30',
+    form: 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30',
+    terminal: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30',
+    poll: 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30',
   };
 
   const labels: Record<string, string> = {
@@ -321,6 +324,9 @@ function TypeBadge({ type, compact }: { type: 'slide' | 'rest' | 'shell' | 'brow
     graphql: 'GraphQL',
     db: 'DB',
     group: 'Group',
+    form: 'Form',
+    terminal: 'Terminal',
+    poll: 'Poll',
   };
 
   return (

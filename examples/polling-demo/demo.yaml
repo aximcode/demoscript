@@ -1,0 +1,121 @@
+title: "Poll Step Demo"
+description: "Demonstrates poll steps for waiting on async operations"
+version: "1.0"
+
+settings:
+  base_url: "/sandbox"
+  theme:
+    preset: "orange"
+  effects:
+    confetti: true
+
+steps:
+  - slide: |
+      # Poll Step Demo
+
+      This demo shows how to use **Poll steps** to wait for
+      asynchronous operations to complete.
+
+      Poll steps are useful for:
+      - Background job processing
+      - Long-running API operations
+      - Build/deployment pipelines
+      - Async workflows
+
+  - slide: |
+      # How It Works
+
+      1. Create an async job via API
+      2. Poll step checks status endpoint
+      3. Visual progress shows current stage
+      4. Step completes when condition is met
+
+      Let's see it in action!
+
+  - rest: POST /jobs
+    title: "Create Background Job"
+    defaults:
+      name: "Demo Job"
+      duration: 8000
+    save:
+      jobId: id
+
+  - poll: /jobs/$jobId
+    title: "Wait for Job Completion"
+    success_when: status == 'complete'
+    failure_when: status == 'failed'
+    interval: 1000
+    max_attempts: 20
+    stages:
+      - label: "Queued"
+        when: status == 'queued'
+      - label: "Running"
+        when: status == 'running'
+      - label: "Completing"
+        when: progress > 80
+    save:
+      jobResult: result
+
+  - slide: |
+      # Success!
+
+      The job completed successfully.
+
+      **Job ID:** $jobId
+      **Result:** $jobResult
+
+      Poll steps make it easy to show async operations
+      completing in real-time during demos.
+
+  - slide: |
+      # Poll Step Options
+
+      | Option | Description | Default |
+      |--------|-------------|---------|
+      | `success_when` | Condition for success | Required |
+      | `failure_when` | Condition for failure | None |
+      | `interval` | Polling interval (ms) | 2000 |
+      | `max_attempts` | Max poll attempts | 30 |
+      | `stages` | Visual progress stages | None |
+      | `save` | Save response values | None |
+
+  - slide: |
+      # Stage Conditions
+
+      Stages use simple expressions:
+      - `status == 'running'`
+      - `progress > 50`
+      - `state == 'processing'`
+
+      The current stage updates visually as
+      conditions are met during polling.
+
+  - slide: |
+      # Example YAML
+
+      ```yaml
+      - poll: /jobs/$jobId
+        title: "Wait for Build"
+        success_when: status == 'complete'
+        failure_when: status == 'failed'
+        interval: 2000
+        stages:
+          - label: "Building"
+            when: status == 'building'
+          - label: "Testing"
+            when: status == 'testing'
+        save:
+          buildUrl: output.url
+      ```
+
+  - slide: |
+      # Great for Demos!
+
+      Poll steps help you demonstrate:
+      - CI/CD pipelines
+      - Data processing workflows
+      - Deployment processes
+      - Any async operation
+
+      The visual feedback keeps viewers engaged
+      while waiting for results.

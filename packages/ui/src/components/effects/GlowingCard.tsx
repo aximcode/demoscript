@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 interface GlowingCardProps {
   children: ReactNode;
   isActive?: boolean;
-  color?: 'blue' | 'green' | 'purple' | 'orange' | 'cyan' | 'yellow' | 'pink' | 'red' | 'emerald' | 'primary';
+  color?: 'blue' | 'green' | 'purple' | 'orange' | 'cyan' | 'yellow' | 'pink' | 'red' | 'emerald' | 'indigo' | 'amber' | 'primary';
   intensity?: 'subtle' | 'medium' | 'strong';
 }
 
@@ -70,6 +70,20 @@ const glowColors = {
     strong: 'shadow-[0_0_40px_rgba(16,185,129,0.4)]',
     border: 'border-emerald-400/50',
     ring: 'ring-emerald-400/30',
+  },
+  indigo: {
+    subtle: 'shadow-[0_0_15px_rgba(99,102,241,0.2)]',
+    medium: 'shadow-[0_0_25px_rgba(99,102,241,0.3)]',
+    strong: 'shadow-[0_0_40px_rgba(99,102,241,0.4)]',
+    border: 'border-indigo-400/50',
+    ring: 'ring-indigo-400/30',
+  },
+  amber: {
+    subtle: 'shadow-[0_0_15px_rgba(245,158,11,0.2)]',
+    medium: 'shadow-[0_0_25px_rgba(245,158,11,0.3)]',
+    strong: 'shadow-[0_0_40px_rgba(245,158,11,0.4)]',
+    border: 'border-amber-400/50',
+    ring: 'ring-amber-400/30',
   },
   // Theme-aware color using CSS variables
   primary: {

@@ -1,0 +1,103 @@
+title: "Form Step Demo"
+description: "Demonstrates form steps for collecting user input without API calls"
+version: "1.0"
+
+settings:
+  theme:
+    preset: "purple"
+  effects:
+    confetti: true
+
+steps:
+  - slide: |
+      # Form Step Demo
+
+      This demo shows how to use **Form steps** to collect user input
+      and save it to variables for use in later steps.
+
+      Form steps are useful when you need to:
+      - Collect configuration from users
+      - Gather input before making API calls
+      - Create interactive demos
+
+  - form: "User Configuration"
+    description: "Enter your details to personalize the demo"
+    fields:
+      - name: username
+        label: "Username"
+        type: text
+        required: true
+        default: "demo_user"
+      - name: role
+        label: "Role"
+        type: select
+        options:
+          - { value: admin, label: "Administrator" }
+          - { value: editor, label: "Editor" }
+          - { value: viewer, label: "Viewer" }
+        default: editor
+      - name: notifications
+        label: "Enable Notifications"
+        type: toggle
+        default: true
+      - name: theme_preference
+        label: "Theme Preference"
+        type: select
+        options:
+          - { value: light, label: "Light Mode" }
+          - { value: dark, label: "Dark Mode" }
+          - { value: auto, label: "System Default" }
+        default: auto
+    save:
+      userConfig: $formData
+      selectedRole: $role
+
+  - slide: |
+      # Great!
+
+      Your configuration has been saved.
+
+      **Username:** $username
+      **Role:** $selectedRole
+      **Notifications:** $notifications
+
+      Now let's see a form with more field types...
+
+  - form: "Advanced Form Fields"
+    description: "This form demonstrates different field types"
+    fields:
+      - name: bio
+        label: "Short Bio"
+        type: textarea
+        placeholder: "Tell us about yourself..."
+        rows: 3
+      - name: age
+        label: "Age"
+        type: number
+        default: 25
+      - name: experience
+        label: "Years of Experience"
+        type: slider
+        min: 0
+        max: 20
+        step: 1
+        default: 5
+      - name: newsletter
+        label: "Subscribe to Newsletter"
+        type: toggle
+        default: false
+    submit_label: "Save Preferences"
+    save:
+      userPrefs: $formData
+
+  - slide: |
+      # All Done!
+
+      You've successfully completed the form demo.
+
+      Form steps are a great way to:
+      - Make demos interactive
+      - Collect user preferences
+      - Pre-populate API request data
+
+      The saved data can be used in REST steps with `$variableName` syntax.

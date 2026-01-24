@@ -303,6 +303,73 @@ export interface ExplicitDatabaseStep extends BaseStep {
   description?: string;
 }
 
+// Form Step - Interactive form without API call
+export interface FormStep extends BaseStep {
+  form: string;  // Title
+  description?: string;
+  fields: FormField[];
+  save?: Record<string, string>;  // Save form data to variables
+  submit_label?: string;  // Custom submit button text (default: "Continue")
+}
+
+export interface ExplicitFormStep extends BaseStep {
+  step: 'form';
+  title: string;
+  description?: string;
+  fields: FormField[];
+  save?: Record<string, string>;
+  submit_label?: string;
+}
+
+// Terminal Step - Animated terminal playback
+export interface TerminalStep extends BaseStep {
+  terminal: string;  // Multi-line content with $ prompts
+  typing_speed?: number;  // ms per character (default: 30)
+  output_delay?: number;  // ms before showing output (default: 200)
+  prompt?: string;  // Prompt character (default: "$")
+  theme?: 'dark' | 'light' | 'matrix';
+}
+
+export interface ExplicitTerminalStep extends BaseStep {
+  step: 'terminal';
+  content: string;
+  typing_speed?: number;
+  output_delay?: number;
+  prompt?: string;
+  theme?: 'dark' | 'light' | 'matrix';
+}
+
+// Poll Step - Wait for condition with visual progress
+export interface PollStage {
+  label: string;
+  when: string;  // Condition expression
+}
+
+export interface PollStep extends BaseStep {
+  poll: string;  // Endpoint URL
+  success_when: string;
+  failure_when?: string;
+  interval?: number;  // Default: 2000ms
+  max_attempts?: number;  // Default: 30
+  base_url?: string;
+  headers?: Record<string, string>;
+  stages?: PollStage[];  // Visual progress stages
+  save?: Record<string, string>;
+}
+
+export interface ExplicitPollStep extends BaseStep {
+  step: 'poll';
+  endpoint: string;
+  success_when: string;
+  failure_when?: string;
+  interval?: number;
+  max_attempts?: number;
+  base_url?: string;
+  headers?: Record<string, string>;
+  stages?: PollStage[];
+  save?: Record<string, string>;
+}
+
 // Step groups
 
 export interface StepGroup {
@@ -324,6 +391,9 @@ export type Step =
   | AssertStep
   | GraphQLStep
   | DatabaseStep
+  | FormStep
+  | TerminalStep
+  | PollStep
   | ExplicitSlideStep
   | ExplicitRestStep
   | ExplicitShellStep
@@ -332,7 +402,10 @@ export type Step =
   | ExplicitWaitStep
   | ExplicitAssertStep
   | ExplicitGraphQLStep
-  | ExplicitDatabaseStep;
+  | ExplicitDatabaseStep
+  | ExplicitFormStep
+  | ExplicitTerminalStep
+  | ExplicitPollStep;
 
 export type StepOrGroup = Step | StepGroup;
 
@@ -418,6 +491,18 @@ export function isDatabaseStep(step: Step): step is DatabaseStep | ExplicitDatab
   return 'db' in step || ('step' in step && (step as ExplicitDatabaseStep).step === 'db');
 }
 
+export function isFormStep(step: Step): step is FormStep | ExplicitFormStep {
+  return 'form' in step || ('step' in step && (step as ExplicitFormStep).step === 'form');
+}
+
+export function isTerminalStep(step: Step): step is TerminalStep | ExplicitTerminalStep {
+  return 'terminal' in step || ('step' in step && (step as ExplicitTerminalStep).step === 'terminal');
+}
+
+export function isPollStep(step: Step): step is PollStep | ExplicitPollStep {
+  return 'poll' in step || ('step' in step && (step as ExplicitPollStep).step === 'poll');
+}
+
 // Helper functions
 
 export function getStepTitle(step: StepOrGroup, index: number): string {
@@ -476,10 +561,25 @@ export function getStepTitle(step: StepOrGroup, index: number): string {
     return `${op} ${step.collection || step.table || ''}`.trim();
   }
 
+  if (isFormStep(step)) {
+    return 'form' in step ? step.form : step.title;
+  }
+
+  if (isTerminalStep(step)) {
+    const content = 'terminal' in step ? step.terminal : step.content;
+    const firstLine = content.trim().split('\n')[0];
+    return firstLine.length > 40 ? firstLine.substring(0, 40) + '...' : firstLine;
+  }
+
+  if (isPollStep(step)) {
+    const endpoint = 'poll' in step ? step.poll : step.endpoint;
+    return `Poll ${endpoint}`;
+  }
+
   return `Step ${index + 1}`;
 }
 
-export type StepType = 'slide' | 'rest' | 'shell' | 'browser' | 'code' | 'wait' | 'assert' | 'graphql' | 'db' | 'group';
+export type StepType = 'slide' | 'rest' | 'shell' | 'browser' | 'code' | 'wait' | 'assert' | 'graphql' | 'db' | 'form' | 'terminal' | 'poll' | 'group';
 
 export function getStepType(step: StepOrGroup): StepType {
   if (isStepGroup(step)) return 'group';
@@ -492,6 +592,9 @@ export function getStepType(step: StepOrGroup): StepType {
   if (isAssertStep(step)) return 'assert';
   if (isGraphQLStep(step)) return 'graphql';
   if (isDatabaseStep(step)) return 'db';
+  if (isFormStep(step)) return 'form';
+  if (isTerminalStep(step)) return 'terminal';
+  if (isPollStep(step)) return 'poll';
   throw new Error('Unknown step type');
 }
 
@@ -551,4 +654,16 @@ export function getGraphQLQuery(step: GraphQLStep | ExplicitGraphQLStep): string
 
 export function getDatabaseOperation(step: DatabaseStep | ExplicitDatabaseStep): string {
   return 'db' in step ? step.db : step.operation;
+}
+
+export function getFormTitle(step: FormStep | ExplicitFormStep): string {
+  return 'form' in step ? step.form : step.title;
+}
+
+export function getTerminalContent(step: TerminalStep | ExplicitTerminalStep): string {
+  return 'terminal' in step ? step.terminal : step.content;
+}
+
+export function getPollEndpoint(step: PollStep | ExplicitPollStep): string {
+  return 'poll' in step ? step.poll : step.endpoint;
 }

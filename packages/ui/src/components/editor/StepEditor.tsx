@@ -24,6 +24,9 @@ import {
   isBrowserStep,
   isAssertStep,
   isDatabaseStep,
+  isFormStep,
+  isTerminalStep,
+  isPollStep,
   getSlideContent,
   getShellCommand,
   getGraphQLQuery,
@@ -32,6 +35,9 @@ import {
   getBrowserUrl,
   getAssertCondition,
   getDatabaseOperation,
+  getFormTitle,
+  getTerminalContent,
+  getPollEndpoint,
   type RestStep,
   type ExplicitRestStep,
   type SlideStep,
@@ -50,6 +56,13 @@ import {
   type ExplicitAssertStep,
   type DatabaseStep,
   type ExplicitDatabaseStep,
+  type FormStep,
+  type ExplicitFormStep,
+  type TerminalStep,
+  type ExplicitTerminalStep,
+  type PollStep,
+  type ExplicitPollStep,
+  type FormField,
   type StepOrGroup,
   type StepGroup,
 } from '../../types/schema';
@@ -101,6 +114,18 @@ export function StepEditor({ step, onChange, onDelete }: StepEditorProps) {
 
   if (isDatabaseStep(step)) {
     return <DatabaseStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
+  }
+
+  if (isFormStep(step)) {
+    return <FormStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
+  }
+
+  if (isTerminalStep(step)) {
+    return <TerminalStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
+  }
+
+  if (isPollStep(step)) {
+    return <PollStepEditor step={step} onChange={onChange} onDelete={onDelete} />;
   }
 
   return (
@@ -1125,6 +1150,277 @@ function DatabaseStepEditor({ step, onChange, onDelete }: DatabaseStepEditorProp
             <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">{dbType === 'mongodb' ? 'Collection' : 'Table'}</label>
             <input type="text" value={collection} onChange={(e) => { setCollection(e.target.value); onChange(buildStep(editOperation, title, dbType, e.target.value)); }} placeholder={dbType === 'mongodb' ? 'users' : 'users_table'}
               className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Form Step Editor
+interface FormStepEditorProps {
+  step: FormStep | ExplicitFormStep;
+  onChange: (step: StepOrGroup) => void;
+  onDelete?: () => void;
+}
+
+function FormStepEditor({ step, onChange, onDelete }: FormStepEditorProps) {
+  const [title, setTitle] = useState(getFormTitle(step));
+  const [description, setDescription] = useState(step.description || '');
+  const [submitLabel, setSubmitLabel] = useState(step.submit_label || 'Continue');
+  const [fields, setFields] = useState<FormField[]>(step.fields || []);
+
+  const buildStep = useCallback((t: string, desc: string, label: string, f: FormField[]): FormStep => {
+    const newStep: FormStep = { form: t, fields: f };
+    if (desc) newStep.description = desc;
+    if (label && label !== 'Continue') newStep.submit_label = label;
+    return newStep;
+  }, []);
+
+  useEffect(() => {
+    setTitle(getFormTitle(step));
+    setDescription(step.description || '');
+    setSubmitLabel(step.submit_label || 'Continue');
+    setFields(step.fields || []);
+  }, [step]);
+
+  const addField = () => {
+    const newField: FormField = { name: `field${fields.length + 1}`, label: `Field ${fields.length + 1}`, type: 'text' };
+    const updated = [...fields, newField];
+    setFields(updated);
+    onChange(buildStep(title, description, submitLabel, updated));
+  };
+
+  const updateField = (idx: number, field: FormField) => {
+    const updated = [...fields];
+    updated[idx] = field;
+    setFields(updated);
+    onChange(buildStep(title, description, submitLabel, updated));
+  };
+
+  const removeField = (idx: number) => {
+    const updated = fields.filter((_, i) => i !== idx);
+    setFields(updated);
+    onChange(buildStep(title, description, submitLabel, updated));
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded">FORM</span>
+          </div>
+          {onDelete && (
+            <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete step">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); onChange(buildStep(e.target.value, description, submitLabel, fields)); }} placeholder="Form Title"
+          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+      </div>
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Description (optional)</label>
+          <input type="text" value={description} onChange={(e) => { setDescription(e.target.value); onChange(buildStep(title, e.target.value, submitLabel, fields)); }} placeholder="Instructions for the user"
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Submit Button Label</label>
+          <input type="text" value={submitLabel} onChange={(e) => { setSubmitLabel(e.target.value); onChange(buildStep(title, description, e.target.value, fields)); }} placeholder="Continue"
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400">Fields</label>
+            <button onClick={addField} className="px-2 py-1 text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/50">
+              + Add Field
+            </button>
+          </div>
+          <div className="space-y-2">
+            {fields.map((field, idx) => (
+              <div key={idx} className="p-2 bg-gray-50 dark:bg-slate-800/50 rounded border border-gray-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 mb-2">
+                  <input type="text" value={field.name} onChange={(e) => updateField(idx, { ...field, name: e.target.value })} placeholder="name"
+                    className="flex-1 px-2 py-1 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded text-xs font-mono" />
+                  <select value={field.type || 'text'} onChange={(e) => updateField(idx, { ...field, type: e.target.value as FormField['type'] })}
+                    className="px-2 py-1 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded text-xs">
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="textarea">Textarea</option>
+                    <option value="select">Select</option>
+                    <option value="toggle">Toggle</option>
+                    <option value="slider">Slider</option>
+                  </select>
+                  <button onClick={() => removeField(idx)} className="p-1 text-gray-400 hover:text-red-500">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <input type="text" value={field.label || ''} onChange={(e) => updateField(idx, { ...field, label: e.target.value })} placeholder="Label"
+                  className="w-full px-2 py-1 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded text-xs" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Terminal Step Editor
+interface TerminalStepEditorProps {
+  step: TerminalStep | ExplicitTerminalStep;
+  onChange: (step: StepOrGroup) => void;
+  onDelete?: () => void;
+}
+
+function TerminalStepEditor({ step, onChange, onDelete }: TerminalStepEditorProps) {
+  const [content, setContent] = useState(getTerminalContent(step));
+  const [title, setTitle] = useState(step.title || '');
+  const [typingSpeed, setTypingSpeed] = useState(step.typing_speed || 30);
+  const [prompt, setPrompt] = useState(step.prompt || '$');
+
+  const buildStep = useCallback((c: string, t: string, speed: number, p: string): TerminalStep => {
+    const newStep: TerminalStep = { terminal: c };
+    if (t) newStep.title = t;
+    if (speed !== 30) newStep.typing_speed = speed;
+    if (p !== '$') newStep.prompt = p;
+    return newStep;
+  }, []);
+
+  useEffect(() => {
+    setContent(getTerminalContent(step));
+    setTitle(step.title || '');
+    setTypingSpeed(step.typing_speed || 30);
+    setPrompt(step.prompt || '$');
+  }, [step]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium rounded">TERMINAL</span>
+          </div>
+          {onDelete && (
+            <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete step">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); onChange(buildStep(content, e.target.value, typingSpeed, prompt)); }} placeholder="Title (optional)"
+          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+      </div>
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Terminal Content</label>
+          <textarea value={content} onChange={(e) => { setContent(e.target.value); onChange(buildStep(e.target.value, title, typingSpeed, prompt)); }}
+            placeholder="$ npm install&#10;added 42 packages&#10;$ npm run build"
+            rows={8}
+            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm font-mono text-green-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-y" />
+          <p className="text-xs text-gray-400 mt-1">Lines starting with prompt ($ by default) are typed. Other lines appear as output.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Typing Speed (ms)</label>
+            <input type="number" value={typingSpeed} onChange={(e) => { const v = parseInt(e.target.value) || 30; setTypingSpeed(v); onChange(buildStep(content, title, v, prompt)); }} min={1} max={500}
+              className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Prompt</label>
+            <input type="text" value={prompt} onChange={(e) => { setPrompt(e.target.value); onChange(buildStep(content, title, typingSpeed, e.target.value)); }} placeholder="$"
+              className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Poll Step Editor
+interface PollStepEditorProps {
+  step: PollStep | ExplicitPollStep;
+  onChange: (step: StepOrGroup) => void;
+  onDelete?: () => void;
+}
+
+function PollStepEditor({ step, onChange, onDelete }: PollStepEditorProps) {
+  const [endpoint, setEndpoint] = useState(getPollEndpoint(step));
+  const [title, setTitle] = useState(step.title || '');
+  const [successWhen, setSuccessWhen] = useState(step.success_when || '');
+  const [failureWhen, setFailureWhen] = useState(step.failure_when || '');
+  const [interval, setInterval] = useState(step.interval || 2000);
+  const [maxAttempts, setMaxAttempts] = useState(step.max_attempts || 30);
+
+  const buildStep = useCallback((ep: string, t: string, success: string, failure: string, int: number, max: number): PollStep => {
+    const newStep: PollStep = { poll: ep, success_when: success };
+    if (t) newStep.title = t;
+    if (failure) newStep.failure_when = failure;
+    if (int !== 2000) newStep.interval = int;
+    if (max !== 30) newStep.max_attempts = max;
+    return newStep;
+  }, []);
+
+  useEffect(() => {
+    setEndpoint(getPollEndpoint(step));
+    setTitle(step.title || '');
+    setSuccessWhen(step.success_when || '');
+    setFailureWhen(step.failure_when || '');
+    setInterval(step.interval || 2000);
+    setMaxAttempts(step.max_attempts || 30);
+  }, [step]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded">POLL</span>
+          </div>
+          {onDelete && (
+            <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Delete step">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <input type="text" value={title} onChange={(e) => { setTitle(e.target.value); onChange(buildStep(endpoint, e.target.value, successWhen, failureWhen, interval, maxAttempts)); }} placeholder="Title (optional)"
+          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+      </div>
+      <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Endpoint</label>
+          <input type="text" value={endpoint} onChange={(e) => { setEndpoint(e.target.value); onChange(buildStep(e.target.value, title, successWhen, failureWhen, interval, maxAttempts)); }} placeholder="/jobs/$jobId/status"
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Success Condition</label>
+          <input type="text" value={successWhen} onChange={(e) => { setSuccessWhen(e.target.value); onChange(buildStep(endpoint, title, e.target.value, failureWhen, interval, maxAttempts)); }} placeholder="status == 'complete'"
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Failure Condition (optional)</label>
+          <input type="text" value={failureWhen} onChange={(e) => { setFailureWhen(e.target.value); onChange(buildStep(endpoint, title, successWhen, e.target.value, interval, maxAttempts)); }} placeholder="status == 'failed'"
+            className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Interval (ms)</label>
+            <input type="number" value={interval} onChange={(e) => { const v = parseInt(e.target.value) || 2000; setInterval(v); onChange(buildStep(endpoint, title, successWhen, failureWhen, v, maxAttempts)); }} min={100}
+              className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Max Attempts</label>
+            <input type="number" value={maxAttempts} onChange={(e) => { const v = parseInt(e.target.value) || 30; setMaxAttempts(v); onChange(buildStep(endpoint, title, successWhen, failureWhen, interval, v)); }} min={1}
+              className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
           </div>
         </div>
       </div>

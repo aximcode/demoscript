@@ -17,6 +17,9 @@ const stepTypeIcons: Record<StepType, string> = {
   assert: '✓',
   graphql: '◈',
   db: '🗄️',
+  form: '📋',
+  terminal: '🖥️',
+  poll: '🔄',
   group: '📁',
 };
 

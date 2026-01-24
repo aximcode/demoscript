@@ -9,6 +9,9 @@ import {
   isAssertStep,
   isGraphQLStep,
   isDatabaseStep,
+  isFormStep,
+  isTerminalStep,
+  isPollStep,
 } from '../types/schema';
 import { SlideStep } from './SlideStep';
 import { RestStep } from './RestStep';
@@ -19,6 +22,9 @@ import { WaitStep } from './WaitStep';
 import { AssertStep } from './AssertStep';
 import { GraphQLStep } from './GraphQLStep';
 import { DatabaseStep } from './DatabaseStep';
+import { FormStep } from './FormStep';
+import { TerminalStep } from './TerminalStep';
+import { PollStep } from './PollStep';
 import { StepTransition } from './effects';
 import { useStepEffects } from '../hooks/useStepEffects';
 
@@ -74,6 +80,18 @@ export function StepViewer() {
 
     if (isDatabaseStep(currentStepConfig)) {
       return <DatabaseStep step={currentStepConfig} />;
+    }
+
+    if (isFormStep(currentStepConfig)) {
+      return <FormStep step={currentStepConfig} />;
+    }
+
+    if (isTerminalStep(currentStepConfig)) {
+      return <TerminalStep step={currentStepConfig} />;
+    }
+
+    if (isPollStep(currentStepConfig)) {
+      return <PollStep step={currentStepConfig} />;
     }
 
     return (
