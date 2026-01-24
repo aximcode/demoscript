@@ -1033,31 +1033,37 @@ function EditorContent() {
     }
   }, [loadFromConfig]);
 
-  // Listen for YAML import from parent window (for embedded mode)
-  useEffect(() => {
-    if (!isEmbedded) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'demoscript-yaml-import' && event.data.yaml) {
-        handleYamlImport(event.data.yaml);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [handleYamlImport]);
-
   // Handle YAML export
   const handleYamlExport = useCallback(() => {
     const config = toConfig();
     return generateYaml(config);
   }, [toConfig]);
 
-  // Handle export to parent window (for embedded mode)
-  const handleExportToParent = useCallback(() => {
-    const yaml = handleYamlExport();
-    window.parent.postMessage({ type: 'demoscript-builder-export', yaml }, '*');
-  }, [handleYamlExport]);
+  // Listen for messages from parent window (for embedded mode)
+  useEffect(() => {
+    if (!isEmbedded) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      // Handle YAML import request
+      if (event.data && event.data.type === 'demoscript-yaml-import' && event.data.yaml) {
+        handleYamlImport(event.data.yaml);
+      }
+
+      // Handle YAML request (auto-sync when switching away from Visual Editor tab)
+      if (event.data && event.data.type === 'demoscript-request-yaml') {
+        const yaml = handleYamlExport();
+        window.parent.postMessage({
+          type: 'demoscript-builder-export',
+          yaml,
+          title: state.title || '',
+          description: state.description || ''
+        }, '*');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [handleYamlImport, handleYamlExport, state.title, state.description]);
 
   // Current step data
   const currentStepData = state.steps[state.currentStep];
@@ -1102,19 +1108,8 @@ function EditorContent() {
           />
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
-          <YamlPanel onImport={handleYamlImport} onExport={handleYamlExport} />
-          {isEmbedded && (
-            <button
-              onClick={handleExportToParent}
-              className="px-2.5 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded font-medium transition-colors whitespace-nowrap flex items-center gap-1"
-              title="Update the YAML Editor with your changes"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Update
-            </button>
-          )}
+          {/* YAML import/export panel - hidden in embedded mode (auto-sync handles it) */}
+          {!isEmbedded && <YamlPanel onImport={handleYamlImport} onExport={handleYamlExport} />}
           <AddStepMenu onAddStep={handleAddStep} />
           {state.settings?.openapi && (
             <button

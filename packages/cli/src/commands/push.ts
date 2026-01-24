@@ -73,7 +73,8 @@ export async function push(demoPath: string, options: PushOptions): Promise<void
     recordingsJson = readFileSync(recordingsPath, 'utf-8');
     console.log(chalk.gray('Found recordings.json'));
   } else {
-    console.log(chalk.yellow('No recordings.json found. Demo will run in live mode.'));
+    console.log(chalk.yellow('No recordings.json found. Demo will use recorded mode without data.'));
+    console.log(chalk.gray('Run: demoscript record <demo>'));
     console.log();
   }
 
@@ -112,10 +113,12 @@ export async function push(demoPath: string, options: PushOptions): Promise<void
     const existingDemo = demosData.demos.find(d => d.slug === slug);
 
     let response: Response;
+    let method: string;
 
     if (existingDemo) {
       // Update existing demo
       console.log(chalk.gray(`Updating existing demo (${existingDemo.id})...`));
+      method = 'PUT';
       response = await fetch(`${apiUrl}/api/demos/${existingDemo.id}`, {
         method: 'PUT',
         headers: {
@@ -133,6 +136,7 @@ export async function push(demoPath: string, options: PushOptions): Promise<void
     } else {
       // Create new demo
       console.log(chalk.gray('Creating new demo...'));
+      method = 'POST';
       response = await fetch(`${apiUrl}/api/demos`, {
         method: 'POST',
         headers: {
@@ -171,8 +175,10 @@ export async function push(demoPath: string, options: PushOptions): Promise<void
     console.log();
 
     if (!recordingsJson) {
-      console.log(chalk.yellow('Note: Demo has no recordings. It will run in live mode.'));
-      console.log(chalk.gray('Viewers need API access to execute steps.'));
+      console.log(chalk.yellow('Note: Demo has no recordings. Viewers will see empty responses.'));
+      console.log(chalk.gray('To add recordings:'));
+      console.log(chalk.gray('  1. Run: demoscript record <demo>'));
+      console.log(chalk.gray('  2. Run: demoscript push <demo>'));
     }
   } catch (err) {
     console.log(chalk.red('Push failed:'), err instanceof Error ? err.message : 'Unknown error');
