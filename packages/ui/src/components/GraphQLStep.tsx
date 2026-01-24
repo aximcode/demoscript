@@ -18,6 +18,11 @@ export function GraphQLStep({ step }: Props) {
 
   const status = getStepStatus(state.currentStep);
 
+  // Compute resolved URL for display
+  const baseUrl = step.base_url || state.config?.settings?.base_url || '';
+  const path = step.endpoint || '/graphql';
+  const resolvedUrl = substituteVariables(baseUrl + path, state.variables);
+
   // Initialize variable values from step config
   useEffect(() => {
     if (step.variables) {
@@ -65,9 +70,12 @@ export function GraphQLStep({ step }: Props) {
           throw new Error('No recording found for this step');
         }
       } else {
-        // Live execution
-        const endpoint = step.endpoint || state.config?.settings?.base_url || '';
-        const resolvedEndpoint = substituteVariables(endpoint, state.variables);
+        // Live execution - use base_url + endpoint pattern
+        const baseUrl = step.base_url || state.config?.settings?.base_url || '';
+        const path = step.endpoint || '/graphql';
+        const resolvedBase = substituteVariables(baseUrl, state.variables);
+        const resolvedPath = substituteVariables(path, state.variables);
+        const resolvedEndpoint = resolvedBase + resolvedPath;
 
         const headers = substituteInObject(step.headers || {}, state.variables) as Record<string, string>;
         const variables = substituteInObject(variableValues, state.variables);
@@ -127,9 +135,9 @@ export function GraphQLStep({ step }: Props) {
                 <h3 className="font-semibold text-gray-900 dark:text-white">
                   {step.title || 'GraphQL Query'}
                 </h3>
-                {step.endpoint && (
-                  <p className="text-sm text-gray-500 dark:text-slate-400">
-                    {substituteVariables(step.endpoint, state.variables)}
+                {resolvedUrl && (
+                  <p className="text-sm text-gray-500 dark:text-slate-400 font-mono truncate max-w-md">
+                    {resolvedUrl}
                   </p>
                 )}
               </div>

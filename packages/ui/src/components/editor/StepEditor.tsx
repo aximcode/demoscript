@@ -128,6 +128,7 @@ function RestStepEditor({ step, onChange, onDelete }: RestStepEditorProps) {
   const [endpoint, setEndpoint] = useState(parsedEndpoint);
   const [title, setTitle] = useState(step.title || '');
   const [description, setDescription] = useState(step.description || '');
+  const [stepBaseUrl, setStepBaseUrl] = useState(step.base_url || '');
 
   // Execution state
   const [isExecuting, setIsExecuting] = useState(false);
@@ -199,6 +200,14 @@ function RestStepEditor({ step, onChange, onDelete }: RestStepEditorProps) {
     onChange(buildUpdatedStep(method, endpoint, title, newDescription));
   }, [method, endpoint, title, buildUpdatedStep, onChange]);
 
+  const handleBaseUrlChange = useCallback((newBaseUrl: string) => {
+    setStepBaseUrl(newBaseUrl);
+    onChange({
+      ...buildUpdatedStep(method, endpoint, title, description),
+      base_url: newBaseUrl || undefined,
+    });
+  }, [method, endpoint, title, description, buildUpdatedStep, onChange]);
+
   // Update defaults when form values change
   const handleFormChange = useCallback((name: string, value: string | number | boolean) => {
     setFormValues(prev => ({ ...prev, [name]: value }));
@@ -256,6 +265,7 @@ function RestStepEditor({ step, onChange, onDelete }: RestStepEditorProps) {
     setEndpoint(e);
     setTitle(step.title || '');
     setDescription(step.description || '');
+    setStepBaseUrl(step.base_url || '');
   }, [step]);
 
   return (
@@ -297,6 +307,13 @@ function RestStepEditor({ step, onChange, onDelete }: RestStepEditorProps) {
           )}
         </div>
 
+        {/* Resolved URL preview */}
+        {(baseUrl || endpoint) && (
+          <div className="mb-3 px-3 py-1.5 bg-gray-100 dark:bg-slate-700/50 rounded text-xs font-mono text-gray-600 dark:text-slate-400 truncate">
+            {substituteVariables(baseUrl + endpoint, state.variables) || 'Enter endpoint'}
+          </div>
+        )}
+
         {/* Title input */}
         <input
           type="text"
@@ -312,8 +329,27 @@ function RestStepEditor({ step, onChange, onDelete }: RestStepEditorProps) {
           value={description}
           onChange={(e) => handleDescriptionChange(e.target.value)}
           placeholder="Description (optional)"
-          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-1.5 mb-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
+
+        {/* Advanced settings - collapsible */}
+        <details className="mt-1">
+          <summary className="text-xs font-medium text-gray-500 dark:text-slate-400 cursor-pointer hover:text-gray-700 dark:hover:text-slate-300">
+            Advanced
+          </summary>
+          <div className="mt-2">
+            <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1">
+              Base URL Override {state.config?.settings?.base_url && `(inherits: ${state.config.settings.base_url})`}
+            </label>
+            <input
+              type="text"
+              value={stepBaseUrl}
+              onChange={(e) => handleBaseUrlChange(e.target.value)}
+              placeholder={state.config?.settings?.base_url || 'https://api.example.com'}
+              className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+        </details>
       </div>
 
       {/* Form fields */}
@@ -622,39 +658,50 @@ interface GraphQLStepEditorProps {
 }
 
 function GraphQLStepEditor({ step, onChange, onDelete }: GraphQLStepEditorProps) {
+  const { state } = useDemo();
   const query = getGraphQLQuery(step);
   const [editQuery, setEditQuery] = useState(query);
   const [title, setTitle] = useState(step.title || '');
-  const [endpoint, setEndpoint] = useState(step.endpoint || '');
+  const [endpoint, setEndpoint] = useState(step.endpoint || '/graphql');
+  const [stepBaseUrl, setStepBaseUrl] = useState(step.base_url || '');
+
+  // Compute resolved URL for display
+  const baseUrl = stepBaseUrl || state.config?.settings?.base_url || '';
+  const resolvedUrl = substituteVariables(baseUrl + endpoint, state.variables);
+
+  const buildStep = useCallback((q: string, t: string, ep: string, base: string): GraphQLStep => {
+    const newStep: GraphQLStep = { graphql: q };
+    if (t) newStep.title = t;
+    if (ep) newStep.endpoint = ep;
+    if (base) newStep.base_url = base;
+    return newStep;
+  }, []);
 
   const handleQueryChange = useCallback((newQuery: string) => {
     setEditQuery(newQuery);
-    const newStep: GraphQLStep = { graphql: newQuery };
-    if (title) newStep.title = title;
-    if (endpoint) newStep.endpoint = endpoint;
-    onChange(newStep);
-  }, [title, endpoint, onChange]);
+    onChange(buildStep(newQuery, title, endpoint, stepBaseUrl));
+  }, [title, endpoint, stepBaseUrl, buildStep, onChange]);
 
   const handleTitleChange = useCallback((newTitle: string) => {
     setTitle(newTitle);
-    const newStep: GraphQLStep = { graphql: editQuery };
-    if (newTitle) newStep.title = newTitle;
-    if (endpoint) newStep.endpoint = endpoint;
-    onChange(newStep);
-  }, [editQuery, endpoint, onChange]);
+    onChange(buildStep(editQuery, newTitle, endpoint, stepBaseUrl));
+  }, [editQuery, endpoint, stepBaseUrl, buildStep, onChange]);
 
   const handleEndpointChange = useCallback((newEndpoint: string) => {
     setEndpoint(newEndpoint);
-    const newStep: GraphQLStep = { graphql: editQuery };
-    if (title) newStep.title = title;
-    if (newEndpoint) newStep.endpoint = newEndpoint;
-    onChange(newStep);
-  }, [editQuery, title, onChange]);
+    onChange(buildStep(editQuery, title, newEndpoint, stepBaseUrl));
+  }, [editQuery, title, stepBaseUrl, buildStep, onChange]);
+
+  const handleBaseUrlChange = useCallback((newBaseUrl: string) => {
+    setStepBaseUrl(newBaseUrl);
+    onChange(buildStep(editQuery, title, endpoint, newBaseUrl));
+  }, [editQuery, title, endpoint, buildStep, onChange]);
 
   useEffect(() => {
     setEditQuery(getGraphQLQuery(step));
     setTitle(step.title || '');
-    setEndpoint(step.endpoint || '');
+    setEndpoint(step.endpoint || '/graphql');
+    setStepBaseUrl(step.base_url || '');
   }, [step]);
 
   return (
@@ -676,8 +723,34 @@ function GraphQLStepEditor({ step, onChange, onDelete }: GraphQLStepEditorProps)
         </div>
         <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Step title (optional)"
           className="w-full px-3 py-1.5 mb-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
-        <input type="text" value={endpoint} onChange={(e) => handleEndpointChange(e.target.value)} placeholder="GraphQL endpoint (optional)"
-          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" />
+        <input type="text" value={endpoint} onChange={(e) => handleEndpointChange(e.target.value)} placeholder="/graphql"
+          className="w-full px-3 py-1.5 mb-2 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500" />
+
+        {/* Resolved URL preview */}
+        {resolvedUrl && (
+          <div className="mb-2 px-3 py-1.5 bg-gray-100 dark:bg-slate-700/50 rounded text-xs font-mono text-gray-600 dark:text-slate-400 truncate">
+            {resolvedUrl}
+          </div>
+        )}
+
+        {/* Advanced settings - collapsible */}
+        <details className="mt-1">
+          <summary className="text-xs font-medium text-gray-500 dark:text-slate-400 cursor-pointer hover:text-gray-700 dark:hover:text-slate-300">
+            Advanced
+          </summary>
+          <div className="mt-2">
+            <label className="block text-xs text-gray-500 dark:text-slate-400 mb-1">
+              Base URL Override {state.config?.settings?.base_url && `(inherits: ${state.config.settings.base_url})`}
+            </label>
+            <input
+              type="text"
+              value={stepBaseUrl}
+              onChange={(e) => handleBaseUrlChange(e.target.value)}
+              placeholder={state.config?.settings?.base_url || 'https://api.example.com'}
+              className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+        </details>
       </div>
       <div className="flex-1 p-4">
         <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Query</label>
