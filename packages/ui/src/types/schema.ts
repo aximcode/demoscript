@@ -190,6 +190,7 @@ export interface GraphQLStep extends BaseStep {
   graphql: string;
   endpoint?: string;
   base_url?: string;
+  description?: string;
   variables?: Record<string, unknown>;
   headers?: Record<string, string>;
   save?: Record<string, string>;
@@ -280,6 +281,7 @@ export interface ExplicitGraphQLStep extends BaseStep {
   query: string;
   endpoint?: string;
   base_url?: string;
+  description?: string;
   variables?: Record<string, unknown>;
   headers?: Record<string, string>;
   save?: Record<string, string>;
