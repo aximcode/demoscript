@@ -19,9 +19,11 @@ export function GraphQLStep({ step }: Props) {
   const status = getStepStatus(state.currentStep);
 
   // Compute resolved URL for display
+  // If endpoint is a full URL, use it directly; otherwise prepend base_url
   const baseUrl = step.base_url || state.config?.settings?.base_url || '';
   const path = step.endpoint || '/graphql';
-  const resolvedUrl = substituteVariables(baseUrl + path, state.variables);
+  const isFullUrl = path.startsWith('http://') || path.startsWith('https://');
+  const resolvedUrl = substituteVariables(isFullUrl ? path : baseUrl + path, state.variables);
 
   // Initialize variable values from step config
   useEffect(() => {
@@ -71,11 +73,12 @@ export function GraphQLStep({ step }: Props) {
         }
       } else {
         // Live execution - use base_url + endpoint pattern
+        // If endpoint is a full URL, use it directly; otherwise prepend base_url
         const baseUrl = step.base_url || state.config?.settings?.base_url || '';
         const path = step.endpoint || '/graphql';
-        const resolvedBase = substituteVariables(baseUrl, state.variables);
+        const isFullUrl = path.startsWith('http://') || path.startsWith('https://');
         const resolvedPath = substituteVariables(path, state.variables);
-        const resolvedEndpoint = resolvedBase + resolvedPath;
+        const resolvedEndpoint = isFullUrl ? resolvedPath : substituteVariables(baseUrl, state.variables) + resolvedPath;
 
         const headers = substituteInObject(step.headers || {}, state.variables) as Record<string, string>;
         const variables = substituteInObject(variableValues, state.variables);

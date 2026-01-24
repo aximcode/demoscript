@@ -310,7 +310,10 @@ function RestStepEditor({ step, onChange, onDelete }: RestStepEditorProps) {
         {/* Resolved URL preview */}
         {(baseUrl || endpoint) && (
           <div className="mb-3 px-3 py-1.5 bg-gray-100 dark:bg-slate-700/50 rounded text-xs font-mono text-gray-600 dark:text-slate-400 truncate">
-            {substituteVariables(baseUrl + endpoint, state.variables) || 'Enter endpoint'}
+            {substituteVariables(
+              (endpoint.startsWith('http://') || endpoint.startsWith('https://')) ? endpoint : baseUrl + endpoint,
+              state.variables
+            ) || 'Enter endpoint'}
           </div>
         )}
 
@@ -666,8 +669,10 @@ function GraphQLStepEditor({ step, onChange, onDelete }: GraphQLStepEditorProps)
   const [stepBaseUrl, setStepBaseUrl] = useState(step.base_url || '');
 
   // Compute resolved URL for display
+  // If endpoint is a full URL, use it directly; otherwise prepend base_url
   const baseUrl = stepBaseUrl || state.config?.settings?.base_url || '';
-  const resolvedUrl = substituteVariables(baseUrl + endpoint, state.variables);
+  const isFullUrl = endpoint.startsWith('http://') || endpoint.startsWith('https://');
+  const resolvedUrl = substituteVariables(isFullUrl ? endpoint : baseUrl + endpoint, state.variables);
 
   const buildStep = useCallback((q: string, t: string, ep: string, base: string): GraphQLStep => {
     const newStep: GraphQLStep = { graphql: q };
