@@ -10,8 +10,6 @@ Source0:        %{name}-%{version}.tar.gz
 BuildRequires:  nodejs >= 18
 BuildRequires:  npm
 Requires:       nodejs >= 18
-Recommends:     chromium
-Recommends:     ffmpeg
 
 BuildArch:      noarch
 
@@ -20,8 +18,8 @@ DemoScript is a framework for creating scripted, shareable product
 demonstrations. Write YAML files to define demo steps, and the framework
 provides a polished web UI for presenting and sharing demos.
 
-Features include REST API demos, shell commands, browser automation,
-variable chaining, branching flows, and static site export.
+Features include REST API demos, shell commands, visual demo builder,
+variable chaining, and cloud publishing.
 
 %prep
 %setup -q
