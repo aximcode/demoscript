@@ -76,7 +76,7 @@ function saveState(config: DemoConfig): void {
 }
 
 // Step type selector for adding new steps
-type StepTypeOption = 'rest' | 'slide' | 'shell' | 'group' | 'graphql' | 'code' | 'wait';
+type StepTypeOption = 'rest' | 'slide' | 'shell' | 'group' | 'graphql' | 'code' | 'wait' | 'form' | 'terminal' | 'poll';
 
 interface AddStepMenuProps {
   onAddStep: (type: StepTypeOption) => void;
@@ -160,6 +160,27 @@ function AddStepMenu({ onAddStep }: AddStepMenuProps) {
             >
               <span className="w-2 h-2 rounded-full bg-pink-500" />
               GraphQL
+            </button>
+            <button
+              onClick={() => { onAddStep('form'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+              Form
+            </button>
+            <button
+              onClick={() => { onAddStep('terminal'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Terminal
+            </button>
+            <button
+              onClick={() => { onAddStep('poll'); setIsOpen(false); }}
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2"
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              Poll
             </button>
             <div className="border-t border-gray-200 dark:border-slate-700 my-1" />
             <button
@@ -1113,6 +1134,15 @@ function EditorContent() {
         break;
       case 'wait':
         newStep = { wait: 2000, message: 'Waiting...', title: 'Pause' };
+        break;
+      case 'form':
+        newStep = { form: 'New Form', fields: [{ name: 'field1', label: 'Field 1', type: 'text' }] };
+        break;
+      case 'terminal':
+        newStep = { terminal: '$ echo "Hello, World!"\nHello, World!', title: 'Terminal Demo' };
+        break;
+      case 'poll':
+        newStep = { poll: '/status', success_when: "status == 'complete'", title: 'Wait for Completion' };
         break;
       case 'group':
         newStep = { group: 'New Group', steps: [] };
