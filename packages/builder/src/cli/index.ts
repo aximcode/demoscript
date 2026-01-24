@@ -461,15 +461,19 @@ export async function builder(options: BuilderOptions): Promise<void> {
   if (useViteDevServer) {
     // Development mode: use Vite with HMR
     const { createServer: createViteServer } = await import('vite');
+
+    // Configure HMR - when binding to 0.0.0.0, let Vite auto-detect the host
+    // Otherwise browsers can't connect to ws://0.0.0.0
+    const hmrConfig = host === '0.0.0.0'
+      ? { port: port + 1 }  // Let Vite auto-detect host for network access
+      : { port: port + 1, host: host || 'localhost' };
+
     const vite = await createViteServer({
       root: uiSourcePath,
       configFile: resolve(uiSourcePath, 'vite.config.ts'),
       server: {
         middlewareMode: true,
-        hmr: {
-          port: port + 1,
-          host: host || 'localhost',
-        },
+        hmr: hmrConfig,
       },
       appType: 'spa',
     });
