@@ -35,6 +35,37 @@ export async function executeRequest(payload: ExecutePayload): Promise<ExecuteRe
 }
 
 /**
+ * Execute a GraphQL request via local /api/execute-graphql endpoint
+ */
+export async function executeGraphQL(payload: {
+  endpoint: string;
+  query: string;
+  variables?: Record<string, unknown>;
+  headers?: Record<string, string>;
+}): Promise<ExecuteResult> {
+  const response = await fetch('/api/execute-graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    return {
+      data: result,
+      status: response.status,
+      error: result.error || `Request failed with status ${response.status}`,
+    };
+  }
+
+  return { data: result, status: response.status };
+}
+
+/**
  * Check if we're running in cloud mode (always false for open-source version)
  */
 export function isCloudMode(): boolean {
