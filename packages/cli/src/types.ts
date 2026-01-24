@@ -105,6 +105,41 @@ export interface DatabaseStep extends BaseStep {
   description?: string;
 }
 
+// New step types
+
+export interface FormStep extends BaseStep {
+  form: string;
+  description?: string;
+  fields: FormField[];
+  save?: Record<string, string>;
+  submit_label?: string;
+}
+
+export interface TerminalStep extends BaseStep {
+  terminal: string;
+  typing_speed?: number;
+  output_delay?: number;
+  prompt?: string;
+  theme?: 'dark' | 'light' | 'matrix';
+}
+
+export interface PollStage {
+  label: string;
+  when: string;
+}
+
+export interface PollStep extends BaseStep {
+  poll: string;
+  success_when: string;
+  failure_when?: string;
+  interval?: number;
+  max_attempts?: number;
+  base_url?: string;
+  headers?: Record<string, string>;
+  stages?: PollStage[];
+  save?: Record<string, string>;
+}
+
 // Explicit step types (new syntax)
 
 export interface ExplicitSlideStep extends BaseStep {
@@ -195,6 +230,37 @@ export interface ExplicitDatabaseStep extends BaseStep {
   description?: string;
 }
 
+export interface ExplicitFormStep extends BaseStep {
+  step: 'form';
+  title: string;
+  description?: string;
+  fields: FormField[];
+  save?: Record<string, string>;
+  submit_label?: string;
+}
+
+export interface ExplicitTerminalStep extends BaseStep {
+  step: 'terminal';
+  content: string;
+  typing_speed?: number;
+  output_delay?: number;
+  prompt?: string;
+  theme?: 'dark' | 'light' | 'matrix';
+}
+
+export interface ExplicitPollStep extends BaseStep {
+  step: 'poll';
+  endpoint: string;
+  success_when: string;
+  failure_when?: string;
+  interval?: number;
+  max_attempts?: number;
+  base_url?: string;
+  headers?: Record<string, string>;
+  stages?: PollStage[];
+  save?: Record<string, string>;
+}
+
 // Step groups
 
 export interface StepGroup {
@@ -216,6 +282,9 @@ export type Step =
   | AssertStep
   | GraphQLStep
   | DatabaseStep
+  | FormStep
+  | TerminalStep
+  | PollStep
   | ExplicitSlideStep
   | ExplicitRestStep
   | ExplicitShellStep
@@ -224,7 +293,10 @@ export type Step =
   | ExplicitWaitStep
   | ExplicitAssertStep
   | ExplicitGraphQLStep
-  | ExplicitDatabaseStep;
+  | ExplicitDatabaseStep
+  | ExplicitFormStep
+  | ExplicitTerminalStep
+  | ExplicitPollStep;
 
 export type StepOrGroup = Step | StepGroup;
 
@@ -268,6 +340,18 @@ export function isGraphQLStep(step: Step): step is GraphQLStep | ExplicitGraphQL
 
 export function isDatabaseStep(step: Step): step is DatabaseStep | ExplicitDatabaseStep {
   return 'db' in step || ('step' in step && (step as ExplicitDatabaseStep).step === 'db');
+}
+
+export function isFormStep(step: Step): step is FormStep | ExplicitFormStep {
+  return 'form' in step || ('step' in step && (step as ExplicitFormStep).step === 'form');
+}
+
+export function isTerminalStep(step: Step): step is TerminalStep | ExplicitTerminalStep {
+  return 'terminal' in step || ('step' in step && (step as ExplicitTerminalStep).step === 'terminal');
+}
+
+export function isPollStep(step: Step): step is PollStep | ExplicitPollStep {
+  return 'poll' in step || ('step' in step && (step as ExplicitPollStep).step === 'poll');
 }
 
 // Flatten step groups into a flat array of steps (for consistent indexing)
