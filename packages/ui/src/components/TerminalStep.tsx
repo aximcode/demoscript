@@ -60,13 +60,18 @@ export function TerminalStep({ step }: Props) {
     }
   }, [visibleBlocks, typedText]);
 
-  // Reset when step changes
+  // Reset when step changes, but show all content if already complete
   useEffect(() => {
-    setVisibleBlocks(0);
     setTypedText('');
     setIsTyping(false);
     setIsPlaying(false);
-  }, [step, state.currentStep]);
+    // If step is already complete (navigated back), show all blocks
+    if (status === 'complete') {
+      setVisibleBlocks(blocks.length);
+    } else {
+      setVisibleBlocks(0);
+    }
+  }, [step, state.currentStep, status, blocks.length]);
 
   // Type out a command character by character
   const typeCommand = useCallback((text: string): Promise<void> => {
@@ -86,10 +91,22 @@ export function TerminalStep({ step }: Props) {
     });
   }, [typingSpeed]);
 
+  // Reset animation state
+  const resetAnimation = useCallback(() => {
+    setVisibleBlocks(0);
+    setTypedText('');
+    setIsTyping(false);
+    setIsPlaying(false);
+    dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'pending' } });
+  }, [dispatch, state.currentStep]);
+
   // Play the terminal animation
   const playAnimation = useCallback(async () => {
     if (isPlaying) return;
 
+    // Reset state before playing
+    setVisibleBlocks(0);
+    setTypedText('');
     setIsPlaying(true);
     dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'executing' } });
 
@@ -197,37 +214,55 @@ export function TerminalStep({ step }: Props) {
           </div>
         </div>
 
-        {/* Play button */}
+        {/* Play/Replay buttons */}
         <div className="p-4 border-t border-gray-200 dark:border-slate-700/50">
-          <button
-            onClick={playAnimation}
-            disabled={isPlaying || status === 'complete'}
-            className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium rounded-lg hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/25 transition-all duration-300 flex items-center justify-center gap-2"
-          >
-            {isPlaying ? (
-              <>
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Playing...
-              </>
-            ) : status === 'complete' ? (
-              <>
+          {status === 'complete' ? (
+            <div className="flex gap-3">
+              <button
+                onClick={resetAnimation}
+                disabled={isPlaying}
+                className="flex-1 px-4 py-3 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Complete
-              </>
-            ) : (
-              <>
+                Reset
+              </button>
+              <button
+                onClick={playAnimation}
+                disabled={isPlaying}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium rounded-lg hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/25 transition-all duration-300 flex items-center justify-center gap-2"
+              >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
-                Play
-              </>
-            )}
-          </button>
+                Replay
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={playAnimation}
+              disabled={isPlaying}
+              className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-medium rounded-lg hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/25 transition-all duration-300 flex items-center justify-center gap-2"
+            >
+              {isPlaying ? (
+                <>
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Playing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  Play
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </GlowingCard>
