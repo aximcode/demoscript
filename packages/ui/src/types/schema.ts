@@ -160,6 +160,7 @@ export interface ShellStep extends BaseStep {
   confirm?: boolean;
   env?: Record<string, string>;
   save?: Record<string, string>;
+  typing_speed?: number;  // ms per character for typing animation (default: 30)
 }
 
 export interface BrowserStep extends BaseStep {
@@ -246,6 +247,7 @@ export interface ExplicitShellStep extends BaseStep {
   confirm?: boolean;
   env?: Record<string, string>;
   save?: Record<string, string>;
+  typing_speed?: number;  // ms per character for typing animation (default: 30)
 }
 
 export interface ExplicitBrowserStep extends BaseStep {

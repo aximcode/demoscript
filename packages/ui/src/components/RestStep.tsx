@@ -229,6 +229,12 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
     setFormValues((prev) => ({ ...prev, [name]: value }));
   }
 
+  function handleReset(): void {
+    dispatch({ type: 'SET_STEP_RESPONSE', payload: { step: state.currentStep, response: undefined } });
+    dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: null } });
+    dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'pending' } });
+  }
+
   const isExecuting = status === 'executing';
   const showTryIt = state.mode === 'recorded' && hasModifications && !isTryItMode && state.isLiveAvailable;
   const glowColor = GLOW_COLORS[status] || 'blue';
@@ -294,6 +300,7 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
               <ExecuteButtons
                 onExecute={handleExecute}
                 onTryIt={handleTryIt}
+                onReset={handleReset}
                 status={status}
                 isExecuting={isExecuting}
                 isTryItExecuting={isTryItExecuting}

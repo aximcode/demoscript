@@ -7,6 +7,7 @@ import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from 'fs';
 import { networkInterfaces, homedir } from 'os';
+import { spawn } from 'child_process';
 import express from 'express';
 import chalk from 'chalk';
 import yaml from 'js-yaml';
@@ -126,6 +127,89 @@ function createGraphQLProxy(): express.RequestHandler {
 }
 
 /**
+ * Create a shell executor handler for running shell commands
+ */
+function createShellExecutor(): express.RequestHandler {
+  return async (req, res) => {
+    try {
+      const body = req.body || {};
+      const { command, shell_type, workdir, env } = body;
+
+      if (!command) {
+        res.status(400).json({ error: 'Missing command' });
+        return;
+      }
+
+      const result = await executeCommand(command, {
+        shell: shell_type || true,
+        cwd: workdir,
+        env: { ...process.env, ...env },
+      });
+
+      res.json({
+        stdout: result.stdout,
+        stderr: result.stderr,
+        status: result.status,
+        output: result.stdout, // Legacy alias
+      });
+    } catch (err) {
+      console.error('[Shell Executor Error]', err);
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Command execution failed' });
+    }
+  };
+}
+
+interface ExecOptions {
+  shell?: string | boolean;
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+}
+
+interface ExecResult {
+  stdout: string;
+  stderr: string;
+  status: number;
+}
+
+function executeCommand(command: string, options: ExecOptions): Promise<ExecResult> {
+  return new Promise((resolve) => {
+    const shell = typeof options.shell === 'string' ? options.shell : '/bin/sh';
+
+    const child = spawn(shell, ['-c', command], {
+      cwd: options.cwd,
+      env: options.env,
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('close', (code) => {
+      resolve({
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        status: code ?? 1,
+      });
+    });
+
+    child.on('error', (err) => {
+      resolve({
+        stdout: '',
+        stderr: err.message,
+        status: 1,
+      });
+    });
+  });
+}
+
+/**
  * Create a simple REST proxy handler
  */
 function createRestProxy(): express.RequestHandler {
@@ -199,6 +283,9 @@ export async function builder(options: BuilderOptions): Promise<void> {
 
   // REST proxy for executing requests
   app.post('/api/execute', createRestProxy());
+
+  // Shell executor for running shell commands
+  app.post('/api/execute-shell', createShellExecutor());
 
   // GraphQL proxy for executing GraphQL requests
   app.post('/api/execute-graphql', createGraphQLProxy());

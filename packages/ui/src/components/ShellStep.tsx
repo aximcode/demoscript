@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDemo } from '../context/DemoContext';
 import { substituteVariables } from '../lib/variable-substitution';
 import { isStepTypeSupported, getUnsupportedMessage } from '../lib/execute-adapter';
 import { ErrorDisplay } from './rest/ErrorDisplay';
+import { GlowingCard, SuccessCheck } from './effects';
 import type { ShellStep as ShellStepType, ExplicitShellStep } from '../types/schema';
 
 export type StepMode = 'view' | 'edit' | 'preview';
@@ -30,6 +31,7 @@ export function ShellStep({ step, mode = 'view', onChange: _onChange, onDelete }
   const status = getStepStatus(state.currentStep);
   const response = state.stepResponses[state.currentStep] as ShellResponse | undefined;
   const error = state.stepErrors[state.currentStep];
+  const typingSpeed = step.typing_speed || 30;
 
   // Get command from either concise or explicit syntax
   const rawCommand = 'shell' in step ? step.shell : step.command;
@@ -78,11 +80,20 @@ export function ShellStep({ step, mode = 'view', onChange: _onChange, onDelete }
           clearInterval(interval);
           setIsTyping(false);
         }
-      }, 30);
+      }, typingSpeed);
 
       return () => clearInterval(interval);
     }
-  }, [status, command, isTyping]);
+  }, [status, command, isTyping, typingSpeed]);
+
+  // Reset step state
+  const handleReset = useCallback(() => {
+    setDisplayedCommand('');
+    setIsTyping(false);
+    dispatch({ type: 'SET_STEP_RESPONSE', payload: { step: state.currentStep, response: undefined } });
+    dispatch({ type: 'SET_STEP_ERROR', payload: { step: state.currentStep, error: null } });
+    dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'pending' } });
+  }, [dispatch, state.currentStep]);
 
   const handleExecute = async () => {
     dispatch({ type: 'SET_STEP_STATUS', payload: { step: state.currentStep, status: 'executing' } });
@@ -153,37 +164,45 @@ export function ShellStep({ step, mode = 'view', onChange: _onChange, onDelete }
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-[rgba(var(--color-primary-rgb),0.2)]">
-      {/* Header */}
-      <div className="border-b border-gray-200 dark:border-slate-700 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="px-2 py-1 rounded text-sm font-bold bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300">
-              {step.shell_type?.toUpperCase() || 'SHELL'}
-            </span>
-            {step.title && (
-              <span className="font-medium text-gray-900 dark:text-slate-100">{step.title}</span>
-            )}
-            {step.workdir && (
-              <span className="text-gray-500 dark:text-gray-400 text-sm">
-                in <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">{step.workdir}</code>
-              </span>
-            )}
+    <GlowingCard isActive={status === 'complete'} color="orange" intensity="medium">
+      <div className="bg-white/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl shadow-md dark:shadow-xl border border-gray-200 dark:border-orange-500/20 overflow-hidden transition-colors duration-300">
+        {/* Header */}
+        <div className="border-b border-gray-200 dark:border-slate-700 p-4 bg-gray-50 dark:bg-slate-900/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  {step.title || (step.shell_type?.toUpperCase() || 'SHELL')}
+                </h3>
+                {step.workdir && (
+                  <p className="text-sm text-gray-500 dark:text-slate-400">
+                    in <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">{step.workdir}</code>
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {status === 'complete' && <SuccessCheck size={24} animated={false} />}
+              {isEditMode && onDelete && (
+                <button
+                  onClick={onDelete}
+                  className="p-1.5 text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors"
+                  title="Delete step"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
-          {isEditMode && onDelete && (
-            <button
-              onClick={onDelete}
-              className="p-1.5 text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 transition-colors"
-              title="Delete step"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
-          )}
+          {step.description && <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">{step.description}</p>}
         </div>
-        {step.description && <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">{step.description}</p>}
-      </div>
 
       {/* Unsupported step warning */}
       {!isStepTypeSupported('shell') && state.mode === 'live' && (
@@ -223,11 +242,11 @@ export function ShellStep({ step, mode = 'view', onChange: _onChange, onDelete }
         )}
       </div>
 
-      {/* Execute Button */}
+      {/* Execute/Reset Buttons */}
       {mode === 'view' && (
-        <div className="p-4 flex items-center gap-4 bg-white dark:bg-slate-800/30">
+        <div className="p-4 border-t border-gray-200 dark:border-slate-700/50">
           {step.confirm && status === 'pending' && (
-            <span className="text-amber-600 text-sm flex items-center gap-1">
+            <p className="text-amber-600 text-sm flex items-center gap-1 mb-3">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
@@ -236,61 +255,54 @@ export function ShellStep({ step, mode = 'view', onChange: _onChange, onDelete }
                 />
               </svg>
               Requires confirmation
-            </span>
+            </p>
           )}
-          <button
-            onClick={handleExecute}
-            disabled={status === 'executing' || (!isStepTypeSupported('shell') && state.mode === 'live')}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-          {status === 'executing' ? (
-            <>
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              Running...
-            </>
-          ) : (
-            'Run Command'
-          )}
-        </button>
-        {status === 'complete' && (
-          <span className="text-green-600 font-medium flex items-center gap-1">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Complete
-          </span>
-        )}
-        {status === 'error' && (
-          <span className="text-red-600 font-medium flex items-center gap-1">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Failed
-          </span>
-        )}
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExecute}
+              disabled={status === 'executing' || (!isStepTypeSupported('shell') && state.mode === 'live')}
+              className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium rounded-lg hover:from-orange-400 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/25 transition-all duration-300 flex items-center gap-2"
+            >
+              {status === 'executing' ? (
+                <>
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Running...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Run Command
+                </>
+              )}
+            </button>
+
+            {status === 'complete' && (
+              <button
+                onClick={handleReset}
+                className="px-4 py-2.5 bg-gray-500 text-white font-medium rounded-lg hover:bg-gray-600 shadow-lg transition-all duration-300 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reset
+              </button>
+            )}
+
+            {status === 'complete' && (
+              <span className="text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Complete
+              </span>
+            )}
+          </div>
         </div>
       )}
 
@@ -305,6 +317,7 @@ export function ShellStep({ step, mode = 'view', onChange: _onChange, onDelete }
           }}
         />
       )}
-    </div>
+      </div>
+    </GlowingCard>
   );
 }
