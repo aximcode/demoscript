@@ -24,6 +24,7 @@ export interface EditorState {
   metadata: DemoMetadata;
   steps: EditorStep[];
   currentStep: number;
+  selectedChildIndex: number | null; // Index of selected child within a group (null = group itself)
   variables: Record<string, unknown>;
   isDirty: boolean; // Track unsaved changes
   currentFilePath: string | null; // Path to currently open file (CLI mode)
@@ -46,6 +47,7 @@ type EditorAction =
   | { type: 'DELETE_FROM_GROUP'; payload: { groupIndex: number; childIndex: number } }
   | { type: 'FLATTEN_GROUP'; payload: { groupIndex: number } }
   | { type: 'SET_CURRENT_STEP'; payload: number }
+  | { type: 'SET_SELECTED_CHILD'; payload: number | null }
   | { type: 'SET_EXECUTION_RESULT'; payload: { index: number; result: unknown } }
   | { type: 'SET_VARIABLES'; payload: Record<string, unknown> }
   | { type: 'LOAD_STATE'; payload: EditorState }
@@ -139,7 +141,10 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     }
 
     case 'SET_CURRENT_STEP':
-      return { ...state, currentStep: Math.max(0, Math.min(action.payload, state.steps.length - 1)) };
+      return { ...state, currentStep: Math.max(0, Math.min(action.payload, state.steps.length - 1)), selectedChildIndex: null };
+
+    case 'SET_SELECTED_CHILD':
+      return { ...state, selectedChildIndex: action.payload };
 
     case 'MOVE_INTO_GROUP': {
       const { stepIndex, groupIndex } = action.payload;
@@ -375,6 +380,7 @@ function createInitialState(): EditorState {
     metadata: {},
     steps: [],
     currentStep: 0,
+    selectedChildIndex: null,
     variables: {},
     isDirty: false,
     currentFilePath: null,
@@ -397,6 +403,7 @@ interface EditorContextValue {
   deleteFromGroup: (groupIndex: number, childIndex: number) => void;
   flattenGroup: (groupIndex: number) => void;
   setCurrentStep: (index: number) => void;
+  setSelectedChild: (childIndex: number | null) => void;
   setExecutionResult: (index: number, result: unknown) => void;
   loadFromConfig: (config: DemoConfig, filePath?: string) => void;
   toConfig: () => DemoConfig;
@@ -426,6 +433,7 @@ function configToState(config: DemoConfig, filePath?: string): EditorState {
       step,
     })),
     currentStep: 0,
+    selectedChildIndex: null,
     variables: {},
     isDirty: false,
     currentFilePath: filePath ?? null,
@@ -491,6 +499,10 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     dispatch({ type: 'SET_CURRENT_STEP', payload: index });
   }, []);
 
+  const setSelectedChild = useCallback((childIndex: number | null) => {
+    dispatch({ type: 'SET_SELECTED_CHILD', payload: childIndex });
+  }, []);
+
   const setExecutionResult = useCallback((index: number, result: unknown) => {
     dispatch({ type: 'SET_EXECUTION_RESULT', payload: { index, result } });
   }, []);
@@ -529,6 +541,7 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     deleteFromGroup,
     flattenGroup,
     setCurrentStep,
+    setSelectedChild,
     setExecutionResult,
     loadFromConfig,
     toConfig,

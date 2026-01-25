@@ -24,11 +24,13 @@ import { STEP_TYPE_COLORS } from './GroupComponents';
 interface SortableStepListProps {
   steps: EditorStep[];
   currentStep: number;
+  selectedChildIndex: number | null;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onMoveIntoGroup?: (stepIndex: number, groupIndex: number) => void;
   onMoveOutOfGroup?: (groupIndex: number, childIndex: number, targetIndex?: number) => void;
   onReorderWithinGroup?: (groupIndex: number, fromChildIndex: number, toChildIndex: number) => void;
   onSelect: (index: number) => void;
+  onSelectChild: (childIndex: number | null) => void;
   onDelete: (index: number) => void;
 }
 
@@ -45,34 +47,10 @@ interface SortableItemProps {
   onToggleExpand?: () => void;
   isGroup?: boolean;
   childCount?: number;
+  isDropTarget?: boolean;
 }
 
-// Drop zone component for groups
-function GroupDropZone({ groupId, groupIndex, isExpanded }: { groupId: string; groupIndex: number; isExpanded: boolean }) {
-  const { isOver, setNodeRef } = useDroppable({
-    id: `dropzone-${groupId}`,
-    data: { type: 'group-dropzone', groupIndex },
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`
-        ml-4 mt-1 p-2 rounded border-2 border-dashed text-center text-xs
-        transition-all duration-150
-        ${isOver
-          ? 'border-primary-400 bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400'
-          : 'border-gray-300 dark:border-slate-600 text-gray-400 dark:text-slate-500'
-        }
-        ${isExpanded ? '' : 'hidden'}
-      `}
-    >
-      {isOver ? 'Drop to add to group' : 'Drag step here to add'}
-    </div>
-  );
-}
-
-function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, childIndex, parentGroupIndex, isExpanded, onToggleExpand, isGroup, childCount = 0 }: SortableItemProps) {
+function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, childIndex, parentGroupIndex, isExpanded, onToggleExpand, isGroup, childCount = 0, isDropTarget }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -116,6 +94,7 @@ function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, chil
           : 'bg-white dark:bg-slate-800/50 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
         }
         ${isDragging ? 'shadow-lg ring-2 ring-primary-400 z-10' : ''}
+        ${isDropTarget ? 'ring-2 ring-primary-400 border-primary-400' : ''}
       `}
       onClick={onSelect}
     >
@@ -189,14 +168,59 @@ function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, chil
   );
 }
 
+// Wrapper to make a group item a drop target
+function GroupDroppableItem({
+  step,
+  index,
+  isActive,
+  onSelect,
+  onDelete,
+  isExpanded,
+  onToggleExpand,
+  childCount,
+}: {
+  step: EditorStep;
+  index: number;
+  isActive: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  childCount: number;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `dropzone-${step.id}`,
+    data: { type: 'group-dropzone', groupIndex: index },
+  });
+
+  return (
+    <div ref={setNodeRef}>
+      <SortableItem
+        step={step}
+        index={index}
+        isActive={isActive}
+        onSelect={onSelect}
+        onDelete={onDelete}
+        isGroup={true}
+        childCount={childCount}
+        isExpanded={isExpanded}
+        onToggleExpand={onToggleExpand}
+        isDropTarget={isOver}
+      />
+    </div>
+  );
+}
+
 export function SortableStepList({
   steps,
   currentStep,
+  selectedChildIndex,
   onReorder,
   onMoveIntoGroup,
   onMoveOutOfGroup,
   onReorderWithinGroup,
   onSelect,
+  onSelectChild,
   onDelete,
 }: SortableStepListProps) {
   // Track which groups are expanded (default: all expanded)
@@ -354,24 +378,37 @@ export function SortableStepList({
             const isGroup = isStepGroup(stepData);
             const isExpanded = expandedGroups.has(step.id);
             const childSteps = isGroup ? stepData.steps || [] : [];
+            const isCurrentStep = index === currentStep;
 
             return (
               <div key={step.id}>
-                {/* Main step item */}
-                <SortableItem
-                  step={step}
-                  index={index}
-                  isActive={index === currentStep}
-                  onSelect={() => onSelect(index)}
-                  onDelete={() => onDelete(index)}
-                  isGroup={isGroup}
-                  childCount={childSteps.length}
-                  isExpanded={isExpanded}
-                  onToggleExpand={() => toggleGroup(step.id)}
-                />
+                {/* Main step item - use droppable wrapper for groups */}
+                {isGroup ? (
+                  <GroupDroppableItem
+                    step={step}
+                    index={index}
+                    isActive={isCurrentStep && selectedChildIndex === null}
+                    onSelect={() => { onSelect(index); onSelectChild(null); }}
+                    onDelete={() => onDelete(index)}
+                    childCount={childSteps.length}
+                    isExpanded={isExpanded}
+                    onToggleExpand={() => toggleGroup(step.id)}
+                  />
+                ) : (
+                  <SortableItem
+                    step={step}
+                    index={index}
+                    isActive={isCurrentStep}
+                    onSelect={() => onSelect(index)}
+                    onDelete={() => onDelete(index)}
+                    isGroup={false}
+                    childCount={0}
+                    isExpanded={false}
+                  />
+                )}
 
                 {/* Child steps (indented) - only show when expanded */}
-                {isGroup && isExpanded && (
+                {isGroup && isExpanded && childSteps.length > 0 && (
                   <div className="flex flex-col gap-1 mt-1">
                     {childSteps.map((childStep, childIndex) => {
                       // Create a virtual EditorStep for the child
@@ -380,6 +417,8 @@ export function SortableStepList({
                         step: childStep,
                       };
 
+                      const isChildActive = isCurrentStep && selectedChildIndex === childIndex;
+
                       return (
                         <SortableItem
                           key={childEditorStep.id}
@@ -387,21 +426,13 @@ export function SortableStepList({
                           index={index}
                           childIndex={childIndex}
                           parentGroupIndex={index}
-                          isActive={false} // Children can't be selected individually (for now)
-                          onSelect={() => onSelect(index)} // Selecting child selects the group
-                          onDelete={() => {}} // Children can't be deleted individually
+                          isActive={isChildActive}
+                          onSelect={() => { onSelect(index); onSelectChild(childIndex); }}
+                          onDelete={() => {}} // Children are deleted via the editor panel
                           isChild={true}
                         />
                       );
                     })}
-                    {/* Drop zone for adding steps to group */}
-                    {onMoveIntoGroup && (
-                      <GroupDropZone
-                        groupId={step.id}
-                        groupIndex={index}
-                        isExpanded={true}
-                      />
-                    )}
                   </div>
                 )}
               </div>

@@ -28,7 +28,7 @@ import { DatabaseStep } from '../components/DatabaseStep';
 import { FormStep } from '../components/FormStep';
 import { TerminalStep } from '../components/TerminalStep';
 import { PollStep } from '../components/PollStep';
-import { isRestStep, isSlideStep, isShellStep, isStepGroup, isGraphQLStep, isCodeStep, isWaitStep, isBrowserStep, isAssertStep, isDatabaseStep, isFormStep, isTerminalStep, isPollStep, type StepOrGroup, type DemoConfig, type DemoMetadata } from '../types/schema';
+import { isRestStep, isSlideStep, isShellStep, isStepGroup, isGraphQLStep, isCodeStep, isWaitStep, isBrowserStep, isAssertStep, isDatabaseStep, isFormStep, isTerminalStep, isPollStep, type Step, type StepOrGroup, type DemoConfig, type DemoMetadata } from '../types/schema';
 import { getThemeColors, applyThemeColors, type ThemePreset } from '../lib/theme-colors';
 
 // Generate YAML for a single step
@@ -957,7 +957,7 @@ function StepYamlPanel({ step, stepIndex, onUpdate }: StepYamlPanelProps) {
 
 // Main editor content (uses EditorContext)
 function EditorContent() {
-  const { state, addStep, removeStep, updateStep, reorderSteps, moveIntoGroup, moveOutOfGroup, reorderWithinGroup, deleteFromGroup, flattenGroup, setCurrentStep, loadFromConfig, toConfig, dispatch, markSaved } = useEditor();
+  const { state, addStep, removeStep, updateStep, reorderSteps, moveIntoGroup, moveOutOfGroup, reorderWithinGroup, deleteFromGroup, flattenGroup, setCurrentStep, setSelectedChild, loadFromConfig, toConfig, dispatch, markSaved } = useEditor();
   const { dispatch: demoDispatch } = useDemo();
   const lastSyncedConfig = useRef<string>('');
   const [isEndpointExplorerOpen, setIsEndpointExplorerOpen] = useState(false);
@@ -1224,6 +1224,47 @@ function EditorContent() {
   // Current step data
   const currentStepData = state.steps[state.currentStep];
 
+  // Get the actual step being edited (child step if a child is selected)
+  const getEditingStep = useCallback((): StepOrGroup | undefined => {
+    if (!currentStepData) return undefined;
+    if (state.selectedChildIndex !== null && isStepGroup(currentStepData.step)) {
+      const childSteps = currentStepData.step.steps || [];
+      return childSteps[state.selectedChildIndex];
+    }
+    return currentStepData.step;
+  }, [currentStepData, state.selectedChildIndex]);
+
+  const editingStep = getEditingStep();
+
+  // Handle step update from StepEditor
+  const handleStepChange = useCallback((updatedStep: StepOrGroup) => {
+    if (!currentStepData) return;
+
+    // If editing a child step, update it within the group
+    if (state.selectedChildIndex !== null && isStepGroup(currentStepData.step)) {
+      const group = currentStepData.step;
+      const updatedChildren = [...(group.steps || [])];
+      // Child steps cannot be groups, so cast is safe
+      updatedChildren[state.selectedChildIndex] = updatedStep as Step;
+      updateStep(state.currentStep, { ...group, steps: updatedChildren });
+    } else {
+      updateStep(state.currentStep, updatedStep);
+    }
+  }, [currentStepData, state.currentStep, state.selectedChildIndex, updateStep]);
+
+  // Handle step delete from StepEditor
+  const handleStepDelete = useCallback(() => {
+    if (!currentStepData) return;
+
+    // If deleting a child step, delete it from the group
+    if (state.selectedChildIndex !== null && isStepGroup(currentStepData.step)) {
+      deleteFromGroup(state.currentStep, state.selectedChildIndex);
+      setSelectedChild(null); // Clear child selection after delete
+    } else {
+      removeStep(state.currentStep);
+    }
+  }, [currentStepData, state.currentStep, state.selectedChildIndex, removeStep, deleteFromGroup, setSelectedChild]);
+
   // Editor panel (left side)
   const editorPanel = (
     <div ref={editorPanelRef} className="h-full flex flex-col bg-gray-50 dark:bg-slate-900">
@@ -1287,11 +1328,13 @@ function EditorContent() {
         <SortableStepList
           steps={state.steps}
           currentStep={state.currentStep}
+          selectedChildIndex={state.selectedChildIndex}
           onReorder={reorderSteps}
           onMoveIntoGroup={moveIntoGroup}
           onMoveOutOfGroup={moveOutOfGroup}
           onReorderWithinGroup={reorderWithinGroup}
           onSelect={setCurrentStep}
+          onSelectChild={setSelectedChild}
           onDelete={removeStep}
         />
       </div>
@@ -1305,31 +1348,17 @@ function EditorContent() {
       )}
 
       {/* Step YAML panel */}
-      {currentStepData && (
+      {currentStepData && editingStep && (
         <div style={{ height: yamlPanelHeight }} className="flex-shrink-0">
           <StepYamlPanel
-            step={currentStepData}
-            stepIndex={state.currentStep}
-            onUpdate={(step) => updateStep(state.currentStep, step)}
+            step={{ id: currentStepData.id, step: editingStep }}
+            stepIndex={state.selectedChildIndex !== null ? state.selectedChildIndex : state.currentStep}
+            onUpdate={handleStepChange}
           />
         </div>
       )}
     </div>
   );
-
-  // Handle step update from StepEditor
-  const handleStepChange = useCallback((updatedStep: StepOrGroup) => {
-    if (currentStepData) {
-      updateStep(state.currentStep, updatedStep);
-    }
-  }, [currentStepData, state.currentStep, updateStep]);
-
-  // Handle step delete from StepEditor
-  const handleStepDelete = useCallback(() => {
-    if (currentStepData) {
-      removeStep(state.currentStep);
-    }
-  }, [currentStepData, state.currentStep, removeStep]);
 
   // Preview/Edit panel (right side)
   const previewPanel = (
@@ -1386,16 +1415,17 @@ function EditorContent() {
 
       {/* Step content - Edit or Preview */}
       <div className="flex-1 overflow-auto">
-        {currentStepData ? (
+        {currentStepData && editingStep ? (
           isEditMode ? (
             <StepEditor
-              step={currentStepData.step}
+              step={editingStep}
               onChange={handleStepChange}
               onDelete={handleStepDelete}
-              groupIndex={isStepGroup(currentStepData.step) ? state.currentStep : undefined}
-              onDeleteFromGroup={deleteFromGroup}
-              onReorderWithinGroup={reorderWithinGroup}
-              onFlattenGroup={flattenGroup}
+              // Only pass group-related props when editing a group (not a child)
+              groupIndex={state.selectedChildIndex === null && isStepGroup(currentStepData.step) ? state.currentStep : undefined}
+              onDeleteFromGroup={state.selectedChildIndex === null ? deleteFromGroup : undefined}
+              onReorderWithinGroup={state.selectedChildIndex === null ? reorderWithinGroup : undefined}
+              onFlattenGroup={state.selectedChildIndex === null ? flattenGroup : undefined}
             />
           ) : (
             <div className="p-4">

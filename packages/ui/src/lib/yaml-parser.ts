@@ -69,6 +69,7 @@ export function configToEditorState(config: DemoConfig): EditorState {
       step,
     })),
     currentStep: 0,
+    selectedChildIndex: null,
     variables: {},
     isDirty: false,
     currentFilePath: null,
