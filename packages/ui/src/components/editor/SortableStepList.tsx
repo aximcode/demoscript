@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -17,7 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { EditorStep } from '../../context/EditorContext';
-import { getStepTitle, getStepType, type StepType } from '../../types/schema';
+import { getStepTitle, getStepType, isStepGroup, type StepType } from '../../types/schema';
 
 interface SortableStepListProps {
   steps: EditorStep[];
@@ -33,6 +33,11 @@ interface SortableItemProps {
   isActive: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  isChild?: boolean;
+  childIndex?: number;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
+  hasChildren?: boolean;
 }
 
 // Step type badge colors
@@ -52,7 +57,7 @@ const STEP_TYPE_COLORS: Record<StepType, string> = {
   group: 'bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-300',
 };
 
-function SortableItem({ step, index, isActive, onSelect, onDelete }: SortableItemProps) {
+function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, childIndex, isExpanded, onToggleExpand, hasChildren }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -71,6 +76,11 @@ function SortableItem({ step, index, isActive, onSelect, onDelete }: SortableIte
   const stepType = getStepType(step.step);
   const title = getStepTitle(step.step, index);
 
+  // Display number: for children show parent.child format
+  const displayNumber = isChild && childIndex !== undefined
+    ? `${index + 1}.${childIndex + 1}`
+    : `${index + 1}`;
+
   return (
     <div
       ref={setNodeRef}
@@ -78,6 +88,7 @@ function SortableItem({ step, index, isActive, onSelect, onDelete }: SortableIte
       className={`
         group flex items-center gap-1.5 p-2 rounded border cursor-pointer
         transition-all duration-150
+        ${isChild ? 'ml-4 border-l-2 border-l-slate-300 dark:border-l-slate-600' : ''}
         ${isActive
           ? 'bg-primary-50 dark:bg-primary-500/10 border-primary-300 dark:border-primary-500/30 shadow-sm'
           : 'bg-white dark:bg-slate-800/50 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
@@ -86,21 +97,54 @@ function SortableItem({ step, index, isActive, onSelect, onDelete }: SortableIte
       `}
       onClick={onSelect}
     >
-      {/* Drag handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" />
-        </svg>
-      </button>
+      {/* Expand/collapse button for groups */}
+      {hasChildren ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand?.();
+          }}
+          className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300"
+          title={isExpanded ? 'Collapse group' : 'Expand group'}
+        >
+          <svg className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+          </svg>
+        </button>
+      ) : !isChild ? (
+        /* Drag handle - only for non-child items without children */
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" />
+          </svg>
+        </button>
+      ) : (
+        /* Spacer for child items */
+        <span className="w-4" />
+      )}
+
+      {/* Drag handle for groups (shown after expand button) */}
+      {hasChildren && (
+        <button
+          {...attributes}
+          {...listeners}
+          className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" />
+          </svg>
+        </button>
+      )}
 
       {/* Step number */}
-      <span className="w-5 h-5 flex items-center justify-center text-[10px] font-medium rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300">
-        {index + 1}
+      <span className={`flex items-center justify-center text-[10px] font-medium rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 ${isChild ? 'px-1.5 h-5' : 'w-5 h-5'}`}>
+        {displayNumber}
       </span>
 
       {/* Step type badge */}
@@ -113,19 +157,28 @@ function SortableItem({ step, index, isActive, onSelect, onDelete }: SortableIte
         {title}
       </span>
 
+      {/* Children count badge for groups */}
+      {hasChildren && isStepGroup(step.step) && (
+        <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300">
+          {step.step.steps?.length || 0}
+        </span>
+      )}
+
       {/* Delete button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        className="p-0.5 rounded text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-        title="Delete step"
-      >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
+      {!isChild && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="p-0.5 rounded text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Delete step"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -137,6 +190,17 @@ export function SortableStepList({
   onSelect,
   onDelete,
 }: SortableStepListProps) {
+  // Track which groups are expanded (default: all expanded)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
+    const initialExpanded = new Set<string>();
+    steps.forEach((step) => {
+      if (isStepGroup(step.step)) {
+        initialExpanded.add(step.id);
+      }
+    });
+    return initialExpanded;
+  });
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -163,6 +227,18 @@ export function SortableStepList({
     }
   }
 
+  function toggleGroup(groupId: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  }
+
   if (steps.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center text-gray-500 dark:text-slate-400">
@@ -183,16 +259,54 @@ export function SortableStepList({
     >
       <SortableContext items={stepIds} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2">
-          {steps.map((step, index) => (
-            <SortableItem
-              key={step.id}
-              step={step}
-              index={index}
-              isActive={index === currentStep}
-              onSelect={() => onSelect(index)}
-              onDelete={() => onDelete(index)}
-            />
-          ))}
+          {steps.map((step, index) => {
+            const stepData = step.step;
+            const isGroup = isStepGroup(stepData);
+            const isExpanded = expandedGroups.has(step.id);
+            const childSteps = isGroup ? stepData.steps || [] : [];
+
+            return (
+              <div key={step.id}>
+                {/* Main step item */}
+                <SortableItem
+                  step={step}
+                  index={index}
+                  isActive={index === currentStep}
+                  onSelect={() => onSelect(index)}
+                  onDelete={() => onDelete(index)}
+                  hasChildren={isGroup && childSteps.length > 0}
+                  isExpanded={isExpanded}
+                  onToggleExpand={() => toggleGroup(step.id)}
+                />
+
+                {/* Child steps (indented) */}
+                {isGroup && isExpanded && childSteps.length > 0 && (
+                  <div className="flex flex-col gap-1 mt-1">
+                    {childSteps.map((childStep, childIndex) => {
+                      // Create a virtual EditorStep for the child
+                      const childEditorStep: EditorStep = {
+                        id: `${step.id}-child-${childIndex}`,
+                        step: childStep,
+                      };
+
+                      return (
+                        <SortableItem
+                          key={childEditorStep.id}
+                          step={childEditorStep}
+                          index={index}
+                          childIndex={childIndex}
+                          isActive={false} // Children can't be selected individually (for now)
+                          onSelect={() => onSelect(index)} // Selecting child selects the group
+                          onDelete={() => {}} // Children can't be deleted individually
+                          isChild={true}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </SortableContext>
     </DndContext>
