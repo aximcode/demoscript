@@ -6,8 +6,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  useDroppable,
   type DragEndEvent,
+  type DragOverEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -168,11 +168,12 @@ function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, chil
   );
 }
 
-// Group item that is both sortable and droppable
+// Group item that is sortable and shows drop target indicator
 function SortableGroupItem({
   step,
   index,
   isActive,
+  isDropTarget,
   onSelect,
   onDelete,
   isExpanded,
@@ -182,36 +183,24 @@ function SortableGroupItem({
   step: EditorStep;
   index: number;
   isActive: boolean;
+  isDropTarget: boolean;
   onSelect: () => void;
   onDelete: () => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
   childCount: number;
 }) {
-  // Sortable for dragging/reordering
   const {
     attributes,
     listeners,
-    setNodeRef: setSortableRef,
+    setNodeRef,
     transform,
     transition,
     isDragging,
   } = useSortable({
     id: step.id,
-    data: { isChild: false },
+    data: { isChild: false, isGroup: true },
   });
-
-  // Droppable for accepting items into the group
-  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
-    id: `dropzone-${step.id}`,
-    data: { type: 'group-dropzone', groupIndex: index },
-  });
-
-  // Combine refs
-  const setNodeRef = (node: HTMLElement | null) => {
-    setSortableRef(node);
-    setDroppableRef(node);
-  };
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -234,7 +223,7 @@ function SortableGroupItem({
           : 'bg-white dark:bg-slate-800/50 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
         }
         ${isDragging ? 'shadow-lg ring-2 ring-primary-400 z-10' : ''}
-        ${isOver ? 'ring-2 ring-green-400 border-green-400 bg-green-50 dark:bg-green-900/20' : ''}
+        ${isDropTarget ? 'ring-2 ring-green-400 border-green-400 bg-green-50 dark:bg-green-900/20' : ''}
       `}
       onClick={onSelect}
     >
@@ -325,6 +314,9 @@ export function SortableStepList({
     return initialExpanded;
   });
 
+  // Track which group is being hovered during drag (for visual indicator)
+  const [dragOverGroupIndex, setDragOverGroupIndex] = useState<number | null>(null);
+  const [isDraggingNonGroup, setIsDraggingNonGroup] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -366,23 +358,37 @@ export function SortableStepList({
     const activeChildIndex = activeData?.childIndex as number | undefined;
 
     // Case 1: Dropping on a group drop zone (move into group)
-    if (overData?.type === 'group-dropzone' && onMoveIntoGroup) {
+    // Check both explicit dropzone-* IDs and sortable group IDs
+    const isOverGroupDropzone = overData?.type === 'group-dropzone';
+    const overId = String(over.id);
+
+    // Check if we're dropping on a group (either via dropzone or direct sortable)
+    let targetGroupIndex: number | undefined;
+    if (isOverGroupDropzone) {
+      targetGroupIndex = overData.groupIndex as number;
+    } else if (!isDraggingChild && onMoveIntoGroup) {
+      // Check if the over target is a group step (not a child)
+      const overStepIndex = steps.findIndex((s) => s.id === overId);
+      if (overStepIndex !== -1 && isStepGroup(steps[overStepIndex].step)) {
+        const draggedStepIndex = steps.findIndex((s) => s.id === active.id);
+        // Only treat as "move into group" if dragging a non-group onto a group
+        if (draggedStepIndex !== -1 && !isStepGroup(steps[draggedStepIndex].step)) {
+          targetGroupIndex = overStepIndex;
+        }
+      }
+    }
+
+    if (targetGroupIndex !== undefined && onMoveIntoGroup) {
       if (isDraggingChild && onMoveOutOfGroup && activeParentGroupIndex !== undefined && activeChildIndex !== undefined) {
         // Moving child from one group to another
-        const targetGroupIndex = overData.groupIndex as number;
         if (activeParentGroupIndex !== targetGroupIndex) {
-          // First move out, then move into the new group
           onMoveOutOfGroup(activeParentGroupIndex, activeChildIndex, targetGroupIndex);
-          // Note: This is a simplified approach - for proper cross-group moves,
-          // we'd need a dedicated action. For now, dropping a child on another
-          // group's drop zone will move it out to top level.
         }
       } else {
         // Moving top-level step into group
         const stepIndex = steps.findIndex((s) => s.id === active.id);
-        const groupIndex = overData.groupIndex as number;
-        if (stepIndex !== groupIndex && stepIndex !== -1) {
-          onMoveIntoGroup(stepIndex, groupIndex);
+        if (stepIndex !== targetGroupIndex && stepIndex !== -1) {
+          onMoveIntoGroup(stepIndex, targetGroupIndex);
         }
       }
       return;
@@ -421,7 +427,7 @@ export function SortableStepList({
       }
     }
 
-    // Case 5: Normal top-level reorder
+    // Case 5: Normal top-level reorder (only between non-groups, or groups with groups)
     if (!isDraggingChild && active.id !== over.id) {
       const oldIndex = steps.findIndex((s) => s.id === active.id);
       const newIndex = steps.findIndex((s) => s.id === over.id);
@@ -430,6 +436,48 @@ export function SortableStepList({
         onReorder(oldIndex, newIndex);
       }
     }
+
+    // Reset drag state
+    setDragOverGroupIndex(null);
+    setIsDraggingNonGroup(false);
+  }
+
+  function handleDragStart(event: { active: { id: string | number; data?: { current?: { isChild?: boolean } } } }) {
+    const activeData = event.active.data?.current;
+    const activeIndex = steps.findIndex((s) => s.id === event.active.id);
+    const isChild = activeData?.isChild === true;
+
+    // Check if we're dragging a non-group step
+    if (!isChild && activeIndex !== -1) {
+      const activeStep = steps[activeIndex];
+      setIsDraggingNonGroup(!isStepGroup(activeStep.step));
+    } else if (isChild) {
+      setIsDraggingNonGroup(true); // Child steps are never groups
+    }
+  }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { over } = event;
+
+    if (!over || !isDraggingNonGroup) {
+      setDragOverGroupIndex(null);
+      return;
+    }
+
+    // Check if hovering over a group
+    const overId = String(over.id);
+    const overIndex = steps.findIndex((s) => s.id === overId);
+
+    if (overIndex !== -1 && isStepGroup(steps[overIndex].step)) {
+      setDragOverGroupIndex(overIndex);
+    } else {
+      setDragOverGroupIndex(null);
+    }
+  }
+
+  function handleDragCancel() {
+    setDragOverGroupIndex(null);
+    setIsDraggingNonGroup(false);
   }
 
   function toggleGroup(groupId: string) {
@@ -460,7 +508,10 @@ export function SortableStepList({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <SortableContext items={allSortableIds} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2">
@@ -479,6 +530,7 @@ export function SortableStepList({
                     step={step}
                     index={index}
                     isActive={isCurrentStep && selectedChildIndex === null}
+                    isDropTarget={dragOverGroupIndex === index}
                     onSelect={() => { onSelect(index); onSelectChild(null); }}
                     onDelete={() => onDelete(index)}
                     childCount={childSteps.length}
