@@ -954,7 +954,7 @@ function StepYamlPanel({ step, stepIndex, onUpdate }: StepYamlPanelProps) {
 
 // Main editor content (uses EditorContext)
 function EditorContent() {
-  const { state, addStep, removeStep, updateStep, reorderSteps, moveIntoGroup, setCurrentStep, loadFromConfig, toConfig, dispatch, markSaved } = useEditor();
+  const { state, addStep, removeStep, updateStep, reorderSteps, moveIntoGroup, moveOutOfGroup, reorderWithinGroup, setCurrentStep, loadFromConfig, toConfig, dispatch, markSaved } = useEditor();
   const { dispatch: demoDispatch } = useDemo();
   const lastSyncedConfig = useRef<string>('');
   const [isEndpointExplorerOpen, setIsEndpointExplorerOpen] = useState(false);
@@ -1286,6 +1286,8 @@ function EditorContent() {
           currentStep={state.currentStep}
           onReorder={reorderSteps}
           onMoveIntoGroup={moveIntoGroup}
+          onMoveOutOfGroup={moveOutOfGroup}
+          onReorderWithinGroup={reorderWithinGroup}
           onSelect={setCurrentStep}
           onDelete={removeStep}
         />

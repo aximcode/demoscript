@@ -25,6 +25,8 @@ interface SortableStepListProps {
   currentStep: number;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onMoveIntoGroup?: (stepIndex: number, groupIndex: number) => void;
+  onMoveOutOfGroup?: (groupIndex: number, childIndex: number, targetIndex?: number) => void;
+  onReorderWithinGroup?: (groupIndex: number, fromChildIndex: number, toChildIndex: number) => void;
   onSelect: (index: number) => void;
   onDelete: (index: number) => void;
 }
@@ -37,6 +39,7 @@ interface SortableItemProps {
   onDelete: () => void;
   isChild?: boolean;
   childIndex?: number;
+  parentGroupIndex?: number;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   isGroup?: boolean;
@@ -85,7 +88,7 @@ const STEP_TYPE_COLORS: Record<StepType, string> = {
   group: 'bg-slate-100 text-slate-800 dark:bg-slate-500/20 dark:text-slate-300',
 };
 
-function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, childIndex, isExpanded, onToggleExpand, isGroup, childCount = 0 }: SortableItemProps) {
+function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, childIndex, parentGroupIndex, isExpanded, onToggleExpand, isGroup, childCount = 0 }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -93,7 +96,14 @@ function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, chil
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: step.id });
+  } = useSortable({
+    id: step.id,
+    data: {
+      isChild,
+      childIndex,
+      parentGroupIndex,
+    },
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -125,22 +135,18 @@ function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, chil
       `}
       onClick={onSelect}
     >
-      {/* Drag handle - for all non-child items */}
-      {!isChild ? (
-        <button
-          {...attributes}
-          {...listeners}
-          className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" />
-          </svg>
-        </button>
-      ) : (
-        /* Spacer for child items */
-        <span className="w-4" />
-      )}
+      {/* Drag handle - for all items (including children) */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing"
+        onClick={(e) => e.stopPropagation()}
+        title={isChild ? 'Drag to reorder or move out of group' : 'Drag to reorder'}
+      >
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" />
+        </svg>
+      </button>
 
       {/* Step number */}
       <span className={`flex items-center justify-center text-[10px] font-medium rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 ${isChild ? 'px-1.5 h-5' : 'w-5 h-5'}`}>
@@ -204,6 +210,8 @@ export function SortableStepList({
   currentStep,
   onReorder,
   onMoveIntoGroup,
+  onMoveOutOfGroup,
+  onReorderWithinGroup,
   onSelect,
   onDelete,
 }: SortableStepListProps) {
@@ -230,26 +238,92 @@ export function SortableStepList({
     })
   );
 
-  const stepIds = useMemo(() => steps.map((s) => s.id), [steps]);
+  // Build list of all sortable IDs (top-level + children)
+  const allSortableIds = useMemo(() => {
+    const ids: string[] = [];
+    steps.forEach((step) => {
+      ids.push(step.id);
+      if (isStepGroup(step.step)) {
+        const children = (step.step as { steps?: unknown[] }).steps || [];
+        children.forEach((_, childIndex) => {
+          ids.push(`${step.id}-child-${childIndex}`);
+        });
+      }
+    });
+    return ids;
+  }, [steps]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
     if (!over) return;
 
-    // Check if dropping on a group drop zone
-    if (over.data?.current?.type === 'group-dropzone' && onMoveIntoGroup) {
-      const stepIndex = steps.findIndex((s) => s.id === active.id);
-      const groupIndex = over.data.current.groupIndex as number;
-      // Don't allow dropping a group into itself
-      if (stepIndex !== groupIndex && stepIndex !== -1) {
-        onMoveIntoGroup(stepIndex, groupIndex);
+    const activeData = active.data?.current;
+    const overData = over.data?.current;
+
+    // Get info about what we're dragging
+    const isDraggingChild = activeData?.isChild === true;
+    const activeParentGroupIndex = activeData?.parentGroupIndex as number | undefined;
+    const activeChildIndex = activeData?.childIndex as number | undefined;
+
+    // Case 1: Dropping on a group drop zone (move into group)
+    if (overData?.type === 'group-dropzone' && onMoveIntoGroup) {
+      if (isDraggingChild && onMoveOutOfGroup && activeParentGroupIndex !== undefined && activeChildIndex !== undefined) {
+        // Moving child from one group to another
+        const targetGroupIndex = overData.groupIndex as number;
+        if (activeParentGroupIndex !== targetGroupIndex) {
+          // First move out, then move into the new group
+          onMoveOutOfGroup(activeParentGroupIndex, activeChildIndex, targetGroupIndex);
+          // Note: This is a simplified approach - for proper cross-group moves,
+          // we'd need a dedicated action. For now, dropping a child on another
+          // group's drop zone will move it out to top level.
+        }
+      } else {
+        // Moving top-level step into group
+        const stepIndex = steps.findIndex((s) => s.id === active.id);
+        const groupIndex = overData.groupIndex as number;
+        if (stepIndex !== groupIndex && stepIndex !== -1) {
+          onMoveIntoGroup(stepIndex, groupIndex);
+        }
       }
       return;
     }
 
-    // Normal reorder
-    if (active.id !== over.id) {
+    // Case 2: Dropping on top-level drop zone (move out of group)
+    if (overData?.type === 'top-level-dropzone' && isDraggingChild && onMoveOutOfGroup) {
+      if (activeParentGroupIndex !== undefined && activeChildIndex !== undefined) {
+        const targetIndex = overData.targetIndex as number | undefined;
+        onMoveOutOfGroup(activeParentGroupIndex, activeChildIndex, targetIndex);
+      }
+      return;
+    }
+
+    // Case 3: Dragging child within same group (reorder within group)
+    if (isDraggingChild && overData?.isChild === true && onReorderWithinGroup) {
+      const overParentGroupIndex = overData.parentGroupIndex as number | undefined;
+      const overChildIndex = overData.childIndex as number | undefined;
+      if (activeParentGroupIndex === overParentGroupIndex &&
+          activeParentGroupIndex !== undefined &&
+          activeChildIndex !== undefined &&
+          overChildIndex !== undefined) {
+        onReorderWithinGroup(activeParentGroupIndex, activeChildIndex, overChildIndex);
+        return;
+      }
+    }
+
+    // Case 4: Dragging child to a top-level position (move out of group)
+    if (isDraggingChild && !overData?.isChild && onMoveOutOfGroup) {
+      if (activeParentGroupIndex !== undefined && activeChildIndex !== undefined) {
+        const targetIndex = steps.findIndex((s) => s.id === over.id);
+        if (targetIndex !== -1) {
+          onMoveOutOfGroup(activeParentGroupIndex, activeChildIndex, targetIndex);
+        }
+        return;
+      }
+    }
+
+    // Case 5: Normal top-level reorder
+    if (!isDraggingChild && active.id !== over.id) {
       const oldIndex = steps.findIndex((s) => s.id === active.id);
       const newIndex = steps.findIndex((s) => s.id === over.id);
 
@@ -289,7 +363,7 @@ export function SortableStepList({
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={stepIds} strategy={verticalListSortingStrategy}>
+      <SortableContext items={allSortableIds} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2">
           {steps.map((step, index) => {
             const stepData = step.step;
@@ -328,6 +402,7 @@ export function SortableStepList({
                           step={childEditorStep}
                           index={index}
                           childIndex={childIndex}
+                          parentGroupIndex={index}
                           isActive={false} // Children can't be selected individually (for now)
                           onSelect={() => onSelect(index)} // Selecting child selects the group
                           onDelete={() => {}} // Children can't be deleted individually

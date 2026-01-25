@@ -41,6 +41,8 @@ type EditorAction =
   | { type: 'UPDATE_STEP'; payload: { index: number; step: StepOrGroup } }
   | { type: 'REORDER_STEPS'; payload: { fromIndex: number; toIndex: number } }
   | { type: 'MOVE_INTO_GROUP'; payload: { stepIndex: number; groupIndex: number } }
+  | { type: 'MOVE_OUT_OF_GROUP'; payload: { groupIndex: number; childIndex: number; targetIndex?: number } }
+  | { type: 'REORDER_WITHIN_GROUP'; payload: { groupIndex: number; fromChildIndex: number; toChildIndex: number } }
   | { type: 'SET_CURRENT_STEP'; payload: number }
   | { type: 'SET_EXECUTION_RESULT'; payload: { index: number; result: unknown } }
   | { type: 'SET_VARIABLES'; payload: Record<string, unknown> }
@@ -185,6 +187,77 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       };
     }
 
+    case 'MOVE_OUT_OF_GROUP': {
+      const { groupIndex, childIndex, targetIndex } = action.payload;
+      if (groupIndex < 0 || groupIndex >= state.steps.length) {
+        return state;
+      }
+      const groupStep = state.steps[groupIndex]?.step;
+      if (!groupStep || !('group' in groupStep)) {
+        return state;
+      }
+      const groupData = groupStep as { group: string; steps?: StepOrGroup[] };
+      const children = groupData.steps || [];
+      if (childIndex < 0 || childIndex >= children.length) {
+        return state;
+      }
+      // Get the child step to move out
+      const childStep = children[childIndex];
+      // Remove child from group
+      const newChildren = children.filter((_, i) => i !== childIndex);
+      const updatedGroup: EditorStep = {
+        ...state.steps[groupIndex],
+        step: { ...groupData, steps: newChildren } as StepOrGroup,
+      };
+      // Insert at target position or after the group
+      const insertAt = targetIndex !== undefined ? targetIndex : groupIndex + 1;
+      const newStep: EditorStep = {
+        id: generateStepId(),
+        step: childStep,
+      };
+      const newSteps = [...state.steps];
+      newSteps[groupIndex] = updatedGroup;
+      newSteps.splice(insertAt, 0, newStep);
+      return {
+        ...state,
+        steps: newSteps,
+        currentStep: insertAt,
+        isDirty: true,
+      };
+    }
+
+    case 'REORDER_WITHIN_GROUP': {
+      const { groupIndex, fromChildIndex, toChildIndex } = action.payload;
+      if (groupIndex < 0 || groupIndex >= state.steps.length) {
+        return state;
+      }
+      const groupStep = state.steps[groupIndex]?.step;
+      if (!groupStep || !('group' in groupStep)) {
+        return state;
+      }
+      const groupData = groupStep as { group: string; steps?: StepOrGroup[] };
+      const children = [...(groupData.steps || [])];
+      if (fromChildIndex < 0 || fromChildIndex >= children.length ||
+          toChildIndex < 0 || toChildIndex >= children.length ||
+          fromChildIndex === toChildIndex) {
+        return state;
+      }
+      // Reorder children
+      const [moved] = children.splice(fromChildIndex, 1);
+      children.splice(toChildIndex, 0, moved);
+      const updatedGroup: EditorStep = {
+        ...state.steps[groupIndex],
+        step: { ...groupData, steps: children } as StepOrGroup,
+      };
+      const newSteps = [...state.steps];
+      newSteps[groupIndex] = updatedGroup;
+      return {
+        ...state,
+        steps: newSteps,
+        isDirty: true,
+      };
+    }
+
     case 'SET_EXECUTION_RESULT': {
       const newSteps = [...state.steps];
       if (newSteps[action.payload.index]) {
@@ -252,6 +325,8 @@ interface EditorContextValue {
   updateStep: (index: number, step: StepOrGroup) => void;
   reorderSteps: (fromIndex: number, toIndex: number) => void;
   moveIntoGroup: (stepIndex: number, groupIndex: number) => void;
+  moveOutOfGroup: (groupIndex: number, childIndex: number, targetIndex?: number) => void;
+  reorderWithinGroup: (groupIndex: number, fromChildIndex: number, toChildIndex: number) => void;
   setCurrentStep: (index: number) => void;
   setExecutionResult: (index: number, result: unknown) => void;
   loadFromConfig: (config: DemoConfig, filePath?: string) => void;
@@ -327,6 +402,14 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     dispatch({ type: 'MOVE_INTO_GROUP', payload: { stepIndex, groupIndex } });
   }, []);
 
+  const moveOutOfGroup = useCallback((groupIndex: number, childIndex: number, targetIndex?: number) => {
+    dispatch({ type: 'MOVE_OUT_OF_GROUP', payload: { groupIndex, childIndex, targetIndex } });
+  }, []);
+
+  const reorderWithinGroup = useCallback((groupIndex: number, fromChildIndex: number, toChildIndex: number) => {
+    dispatch({ type: 'REORDER_WITHIN_GROUP', payload: { groupIndex, fromChildIndex, toChildIndex } });
+  }, []);
+
   const setCurrentStep = useCallback((index: number) => {
     dispatch({ type: 'SET_CURRENT_STEP', payload: index });
   }, []);
@@ -364,6 +447,8 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     updateStep,
     reorderSteps,
     moveIntoGroup,
+    moveOutOfGroup,
+    reorderWithinGroup,
     setCurrentStep,
     setExecutionResult,
     loadFromConfig,
