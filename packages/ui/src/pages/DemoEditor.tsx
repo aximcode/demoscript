@@ -1429,7 +1429,7 @@ function EditorContent() {
             />
           ) : (
             <div className="p-4">
-              <StepPreview step={currentStepData} />
+              <StepPreview step={{ id: currentStepData.id, step: editingStep }} />
             </div>
           )
         ) : (

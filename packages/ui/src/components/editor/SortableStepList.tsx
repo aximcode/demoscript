@@ -168,8 +168,8 @@ function SortableItem({ step, index, isActive, onSelect, onDelete, isChild, chil
   );
 }
 
-// Wrapper to make a group item a drop target
-function GroupDroppableItem({
+// Group item that is both sortable and droppable
+function SortableGroupItem({
   step,
   index,
   isActive,
@@ -188,25 +188,116 @@ function GroupDroppableItem({
   onToggleExpand: () => void;
   childCount: number;
 }) {
-  const { isOver, setNodeRef } = useDroppable({
+  // Sortable for dragging/reordering
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: step.id,
+    data: { isChild: false },
+  });
+
+  // Droppable for accepting items into the group
+  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
     id: `dropzone-${step.id}`,
     data: { type: 'group-dropzone', groupIndex: index },
   });
 
+  // Combine refs
+  const setNodeRef = (node: HTMLElement | null) => {
+    setSortableRef(node);
+    setDroppableRef(node);
+  };
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const stepType = getStepType(step.step);
+  const title = getStepTitle(step.step, index);
+
   return (
-    <div ref={setNodeRef}>
-      <SortableItem
-        step={step}
-        index={index}
-        isActive={isActive}
-        onSelect={onSelect}
-        onDelete={onDelete}
-        isGroup={true}
-        childCount={childCount}
-        isExpanded={isExpanded}
-        onToggleExpand={onToggleExpand}
-        isDropTarget={isOver}
-      />
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`
+        group flex items-center gap-1.5 p-2 rounded border cursor-pointer
+        transition-all duration-150
+        ${isActive
+          ? 'bg-primary-50 dark:bg-primary-500/10 border-primary-300 dark:border-primary-500/30 shadow-sm'
+          : 'bg-white dark:bg-slate-800/50 border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600'
+        }
+        ${isDragging ? 'shadow-lg ring-2 ring-primary-400 z-10' : ''}
+        ${isOver ? 'ring-2 ring-green-400 border-green-400 bg-green-50 dark:bg-green-900/20' : ''}
+      `}
+      onClick={onSelect}
+    >
+      {/* Drag handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing"
+        onClick={(e) => e.stopPropagation()}
+        title="Drag to reorder"
+      >
+        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M7 2a2 2 0 10.001 4.001A2 2 0 007 2zm0 6a2 2 0 10.001 4.001A2 2 0 007 8zm0 6a2 2 0 10.001 4.001A2 2 0 007 14zm6-8a2 2 0 10-.001-4.001A2 2 0 0013 6zm0 2a2 2 0 10.001 4.001A2 2 0 0013 8zm0 6a2 2 0 10.001 4.001A2 2 0 0013 14z" />
+        </svg>
+      </button>
+
+      {/* Step number */}
+      <span className="flex items-center justify-center w-5 h-5 text-[10px] font-medium rounded-full bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300">
+        {index + 1}
+      </span>
+
+      {/* Step type badge */}
+      <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${STEP_TYPE_COLORS[stepType]}`}>
+        {stepType.toUpperCase()}
+      </span>
+
+      {/* Step title */}
+      <span className="flex-1 truncate text-xs text-gray-700 dark:text-slate-200">
+        {title}
+      </span>
+
+      {/* Children count badge */}
+      <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${childCount > 0 ? 'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500'}`}>
+        {childCount}
+      </span>
+
+      {/* Expand/collapse button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleExpand();
+        }}
+        className={`p-0.5 rounded text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 ${childCount === 0 ? 'opacity-50' : ''}`}
+        title={childCount === 0 ? 'Empty group - drag steps here' : isExpanded ? 'Collapse group' : 'Expand group'}
+      >
+        <svg className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+        </svg>
+      </button>
+
+      {/* Delete button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        className="p-0.5 rounded text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Delete step"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
     </div>
   );
 }
@@ -382,9 +473,9 @@ export function SortableStepList({
 
             return (
               <div key={step.id}>
-                {/* Main step item - use droppable wrapper for groups */}
+                {/* Main step item - use sortable+droppable for groups */}
                 {isGroup ? (
-                  <GroupDroppableItem
+                  <SortableGroupItem
                     step={step}
                     index={index}
                     isActive={isCurrentStep && selectedChildIndex === null}
