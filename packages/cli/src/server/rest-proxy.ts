@@ -17,6 +17,14 @@ export function createRestProxy(): RequestHandler {
     }
 
     try {
+      // Handle relative URLs by prepending the local server address
+      let absoluteUrl = url;
+      if (url.startsWith('/')) {
+        const protocol = req.protocol;
+        const host = req.get('host') || 'localhost';
+        absoluteUrl = `${protocol}://${host}${url}`;
+      }
+
       const fetchHeaders: Record<string, string> = {
         'Content-Type': 'application/json',
         ...headers,
@@ -31,7 +39,7 @@ export function createRestProxy(): RequestHandler {
         fetchOptions.body = JSON.stringify(body);
       }
 
-      const response = await fetch(url, fetchOptions);
+      const response = await fetch(absoluteUrl, fetchOptions);
       const responseBody = await response.json().catch(() => null);
 
       res.json({
