@@ -330,11 +330,16 @@ export function SortableStepList({
   );
 
   // Build list of all sortable IDs (top-level + children)
+  // When dragging a non-group step, exclude group IDs to prevent sortable animation on groups
   const allSortableIds = useMemo(() => {
     const ids: string[] = [];
     steps.forEach((step) => {
-      ids.push(step.id);
-      if (isStepGroup(step.step)) {
+      const stepIsGroup = isStepGroup(step.step);
+      // Skip group IDs when dragging a non-group (groups act as drop targets, not sortable items)
+      if (!isDraggingNonGroup || !stepIsGroup) {
+        ids.push(step.id);
+      }
+      if (stepIsGroup) {
         const children = (step.step as { steps?: unknown[] }).steps || [];
         children.forEach((_, childIndex) => {
           ids.push(`${step.id}-child-${childIndex}`);
@@ -342,7 +347,7 @@ export function SortableStepList({
       }
     });
     return ids;
-  }, [steps]);
+  }, [steps, isDraggingNonGroup]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
