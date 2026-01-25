@@ -40,6 +40,7 @@ type EditorAction =
   | { type: 'REMOVE_STEP'; payload: number }
   | { type: 'UPDATE_STEP'; payload: { index: number; step: StepOrGroup } }
   | { type: 'REORDER_STEPS'; payload: { fromIndex: number; toIndex: number } }
+  | { type: 'MOVE_INTO_GROUP'; payload: { stepIndex: number; groupIndex: number } }
   | { type: 'SET_CURRENT_STEP'; payload: number }
   | { type: 'SET_EXECUTION_RESULT'; payload: { index: number; result: unknown } }
   | { type: 'SET_VARIABLES'; payload: Record<string, unknown> }
@@ -136,6 +137,54 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
     case 'SET_CURRENT_STEP':
       return { ...state, currentStep: Math.max(0, Math.min(action.payload, state.steps.length - 1)) };
 
+    case 'MOVE_INTO_GROUP': {
+      const { stepIndex, groupIndex } = action.payload;
+      // Can't move a step into itself or if indices are invalid
+      if (stepIndex === groupIndex || stepIndex < 0 || groupIndex < 0) {
+        return state;
+      }
+      if (stepIndex >= state.steps.length || groupIndex >= state.steps.length) {
+        return state;
+      }
+      const groupStep = state.steps[groupIndex]?.step;
+      // Target must be a group step
+      if (!groupStep || !('group' in groupStep || (groupStep as { step?: string }).step === 'group')) {
+        return state;
+      }
+      // Get the step to move
+      const stepToMove = state.steps[stepIndex];
+      if (!stepToMove) return state;
+      // Can't move a group into another group (groups can only contain Steps, not StepGroups)
+      if ('group' in stepToMove.step) {
+        return state;
+      }
+      // Remove the step from the main list
+      const newSteps = state.steps.filter((_, i) => i !== stepIndex);
+      // Adjust group index if step was before it
+      const adjustedGroupIndex = stepIndex < groupIndex ? groupIndex - 1 : groupIndex;
+      // Add the step's content to the group's children
+      const updatedGroup = { ...newSteps[adjustedGroupIndex] };
+      const groupData = updatedGroup.step as { group?: string; steps?: StepOrGroup[] };
+      updatedGroup.step = {
+        ...groupData,
+        steps: [...(groupData.steps || []), stepToMove.step] as StepOrGroup[],
+      } as StepOrGroup;
+      newSteps[adjustedGroupIndex] = updatedGroup;
+      // Adjust current step index
+      let newCurrentStep = state.currentStep;
+      if (state.currentStep === stepIndex) {
+        newCurrentStep = adjustedGroupIndex;
+      } else if (state.currentStep > stepIndex) {
+        newCurrentStep--;
+      }
+      return {
+        ...state,
+        steps: newSteps,
+        currentStep: Math.max(0, Math.min(newCurrentStep, newSteps.length - 1)),
+        isDirty: true,
+      };
+    }
+
     case 'SET_EXECUTION_RESULT': {
       const newSteps = [...state.steps];
       if (newSteps[action.payload.index]) {
@@ -202,6 +251,7 @@ interface EditorContextValue {
   removeStep: (index: number) => void;
   updateStep: (index: number, step: StepOrGroup) => void;
   reorderSteps: (fromIndex: number, toIndex: number) => void;
+  moveIntoGroup: (stepIndex: number, groupIndex: number) => void;
   setCurrentStep: (index: number) => void;
   setExecutionResult: (index: number, result: unknown) => void;
   loadFromConfig: (config: DemoConfig, filePath?: string) => void;
@@ -273,6 +323,10 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     dispatch({ type: 'REORDER_STEPS', payload: { fromIndex, toIndex } });
   }, []);
 
+  const moveIntoGroup = useCallback((stepIndex: number, groupIndex: number) => {
+    dispatch({ type: 'MOVE_INTO_GROUP', payload: { stepIndex, groupIndex } });
+  }, []);
+
   const setCurrentStep = useCallback((index: number) => {
     dispatch({ type: 'SET_CURRENT_STEP', payload: index });
   }, []);
@@ -309,6 +363,7 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     removeStep,
     updateStep,
     reorderSteps,
+    moveIntoGroup,
     setCurrentStep,
     setExecutionResult,
     loadFromConfig,
