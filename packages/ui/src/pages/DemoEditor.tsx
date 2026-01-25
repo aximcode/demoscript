@@ -891,30 +891,35 @@ function StepYamlPanel({ step, stepIndex, onUpdate }: StepYamlPanelProps) {
   const initialYaml = stepToYaml(step.step);
   const [yamlContent, setYamlContent] = useState(initialYaml);
   const [error, setError] = useState<string | null>(null);
+  const isExternalUpdate = useRef(false);
 
-  // Update local state when step changes externally
+  // Update local state when step changes externally (from form editor)
   useEffect(() => {
-    setYamlContent(stepToYaml(step.step));
-    setError(null);
+    const newYaml = stepToYaml(step.step);
+    // Only update if the YAML actually changed (avoid cursor jump during typing)
+    if (newYaml !== yamlContent && !isExternalUpdate.current) {
+      setYamlContent(newYaml);
+      setError(null);
+    }
+    isExternalUpdate.current = false;
   }, [step.step]);
 
   const handleChange = (value: string) => {
     setYamlContent(value);
-    setError(null);
-  };
 
-  const handleBlur = () => {
+    // Try to parse and sync in real-time
     try {
-      // Parse YAML - it's wrapped in array
-      const parsed = jsYaml.load(yamlContent) as StepOrGroup[];
+      const parsed = jsYaml.load(value) as StepOrGroup[];
       if (Array.isArray(parsed) && parsed.length > 0) {
+        isExternalUpdate.current = true;
         onUpdate(parsed[0]);
         setError(null);
       } else {
         setError('Invalid step format');
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Invalid YAML');
+      // Don't show error while typing - only on invalid complete YAML
+      setError(null);
     }
   };
 
@@ -938,7 +943,6 @@ function StepYamlPanel({ step, stepIndex, onUpdate }: StepYamlPanelProps) {
       <textarea
         value={yamlContent}
         onChange={(e) => handleChange(e.target.value)}
-        onBlur={handleBlur}
         className={`flex-1 p-3 text-xs font-mono bg-slate-900 text-slate-300 resize-none focus:outline-none focus:ring-1 focus:ring-inset ${
           error ? 'focus:ring-red-500' : 'focus:ring-primary-500'
         }`}
