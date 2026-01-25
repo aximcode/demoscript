@@ -43,6 +43,8 @@ type EditorAction =
   | { type: 'MOVE_INTO_GROUP'; payload: { stepIndex: number; groupIndex: number } }
   | { type: 'MOVE_OUT_OF_GROUP'; payload: { groupIndex: number; childIndex: number; targetIndex?: number } }
   | { type: 'REORDER_WITHIN_GROUP'; payload: { groupIndex: number; fromChildIndex: number; toChildIndex: number } }
+  | { type: 'DELETE_FROM_GROUP'; payload: { groupIndex: number; childIndex: number } }
+  | { type: 'FLATTEN_GROUP'; payload: { groupIndex: number } }
   | { type: 'SET_CURRENT_STEP'; payload: number }
   | { type: 'SET_EXECUTION_RESULT'; payload: { index: number; result: unknown } }
   | { type: 'SET_VARIABLES'; payload: Record<string, unknown> }
@@ -258,6 +260,71 @@ function editorReducer(state: EditorState, action: EditorAction): EditorState {
       };
     }
 
+    case 'DELETE_FROM_GROUP': {
+      const { groupIndex, childIndex } = action.payload;
+      if (groupIndex < 0 || groupIndex >= state.steps.length) {
+        return state;
+      }
+      const groupStep = state.steps[groupIndex]?.step;
+      if (!groupStep || !('group' in groupStep)) {
+        return state;
+      }
+      const groupData = groupStep as { group: string; steps?: StepOrGroup[] };
+      const children = groupData.steps || [];
+      if (childIndex < 0 || childIndex >= children.length) {
+        return state;
+      }
+      // Remove child from group
+      const newChildren = children.filter((_, i) => i !== childIndex);
+      const updatedGroup: EditorStep = {
+        ...state.steps[groupIndex],
+        step: { ...groupData, steps: newChildren } as StepOrGroup,
+      };
+      const newSteps = [...state.steps];
+      newSteps[groupIndex] = updatedGroup;
+      return {
+        ...state,
+        steps: newSteps,
+        isDirty: true,
+      };
+    }
+
+    case 'FLATTEN_GROUP': {
+      const { groupIndex } = action.payload;
+      if (groupIndex < 0 || groupIndex >= state.steps.length) {
+        return state;
+      }
+      const groupStep = state.steps[groupIndex]?.step;
+      if (!groupStep || !('group' in groupStep)) {
+        return state;
+      }
+      const groupData = groupStep as { group: string; steps?: StepOrGroup[] };
+      const children = groupData.steps || [];
+      if (children.length === 0) {
+        // Empty group - just remove it
+        const newSteps = state.steps.filter((_, i) => i !== groupIndex);
+        return {
+          ...state,
+          steps: newSteps,
+          currentStep: Math.min(state.currentStep, newSteps.length - 1),
+          isDirty: true,
+        };
+      }
+      // Replace group with its children
+      const newSteps = [...state.steps];
+      const childEditorSteps: EditorStep[] = children.map((child) => ({
+        id: generateStepId(),
+        step: child,
+      }));
+      newSteps.splice(groupIndex, 1, ...childEditorSteps);
+      return {
+        ...state,
+        steps: newSteps,
+        currentStep: groupIndex, // Select first child after flattening
+        isDirty: true,
+      };
+    }
+
     case 'SET_EXECUTION_RESULT': {
       const newSteps = [...state.steps];
       if (newSteps[action.payload.index]) {
@@ -327,6 +394,8 @@ interface EditorContextValue {
   moveIntoGroup: (stepIndex: number, groupIndex: number) => void;
   moveOutOfGroup: (groupIndex: number, childIndex: number, targetIndex?: number) => void;
   reorderWithinGroup: (groupIndex: number, fromChildIndex: number, toChildIndex: number) => void;
+  deleteFromGroup: (groupIndex: number, childIndex: number) => void;
+  flattenGroup: (groupIndex: number) => void;
   setCurrentStep: (index: number) => void;
   setExecutionResult: (index: number, result: unknown) => void;
   loadFromConfig: (config: DemoConfig, filePath?: string) => void;
@@ -410,6 +479,14 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     dispatch({ type: 'REORDER_WITHIN_GROUP', payload: { groupIndex, fromChildIndex, toChildIndex } });
   }, []);
 
+  const deleteFromGroup = useCallback((groupIndex: number, childIndex: number) => {
+    dispatch({ type: 'DELETE_FROM_GROUP', payload: { groupIndex, childIndex } });
+  }, []);
+
+  const flattenGroup = useCallback((groupIndex: number) => {
+    dispatch({ type: 'FLATTEN_GROUP', payload: { groupIndex } });
+  }, []);
+
   const setCurrentStep = useCallback((index: number) => {
     dispatch({ type: 'SET_CURRENT_STEP', payload: index });
   }, []);
@@ -449,6 +526,8 @@ export function EditorProvider({ children, initialConfig }: EditorProviderProps)
     moveIntoGroup,
     moveOutOfGroup,
     reorderWithinGroup,
+    deleteFromGroup,
+    flattenGroup,
     setCurrentStep,
     setExecutionResult,
     loadFromConfig,

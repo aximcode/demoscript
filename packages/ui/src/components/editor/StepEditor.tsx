@@ -12,6 +12,7 @@ import { ResponseDisplay } from '../rest/ResponseDisplay';
 import { executeRequest } from '../../lib/execute-adapter';
 import { substituteVariables } from '../../lib/variable-substitution';
 import { buildRequestBody, buildQueryString } from '../../lib/rest-helpers';
+import { GroupChildItem } from './GroupComponents';
 import {
   parseRestMethod,
   isRestStep,
@@ -73,11 +74,26 @@ interface StepEditorProps {
   step: StepOrGroup;
   onChange: (step: StepOrGroup) => void;
   onDelete?: () => void;
+  // Group-specific callbacks
+  groupIndex?: number;
+  onDeleteFromGroup?: (groupIndex: number, childIndex: number) => void;
+  onReorderWithinGroup?: (groupIndex: number, fromChildIndex: number, toChildIndex: number) => void;
+  onFlattenGroup?: (groupIndex: number) => void;
 }
 
-export function StepEditor({ step, onChange, onDelete }: StepEditorProps) {
+export function StepEditor({ step, onChange, onDelete, groupIndex, onDeleteFromGroup, onReorderWithinGroup, onFlattenGroup }: StepEditorProps) {
   if (isStepGroup(step)) {
-    return <GroupEditor step={step} onChange={onChange} onDelete={onDelete} />;
+    return (
+      <GroupEditor
+        step={step}
+        onChange={onChange}
+        onDelete={onDelete}
+        groupIndex={groupIndex}
+        onDeleteFromGroup={onDeleteFromGroup}
+        onReorderWithinGroup={onReorderWithinGroup}
+        onFlattenGroup={onFlattenGroup}
+      />
+    );
   }
 
   if (isRestStep(step)) {
@@ -630,26 +646,78 @@ function ShellStepEditor({ step, onChange, onDelete }: ShellStepEditorProps) {
   );
 }
 
-// Group Editor (minimal for now)
+// Group Editor
 interface GroupEditorProps {
   step: StepGroup;
   onChange: (step: StepOrGroup) => void;
   onDelete?: () => void;
+  groupIndex?: number;
+  onDeleteFromGroup?: (groupIndex: number, childIndex: number) => void;
+  onReorderWithinGroup?: (groupIndex: number, fromChildIndex: number, toChildIndex: number) => void;
+  onFlattenGroup?: (groupIndex: number) => void;
 }
 
-function GroupEditor({ step, onChange, onDelete }: GroupEditorProps) {
+function GroupEditor({ step, onChange, onDelete, groupIndex, onDeleteFromGroup, onReorderWithinGroup, onFlattenGroup }: GroupEditorProps) {
   const [groupName, setGroupName] = useState(step.group);
+  const [description, setDescription] = useState(step.description || '');
+  const [collapsed, setCollapsed] = useState(step.collapsed || false);
 
   const handleNameChange = useCallback((name: string) => {
     setGroupName(name);
     onChange({ ...step, group: name });
   }, [step, onChange]);
 
+  const handleDescriptionChange = useCallback((desc: string) => {
+    setDescription(desc);
+    const newStep = { ...step, description: desc || undefined };
+    if (!desc) delete newStep.description;
+    onChange(newStep);
+  }, [step, onChange]);
+
+  const handleCollapsedChange = useCallback((value: boolean) => {
+    setCollapsed(value);
+    const newStep = { ...step, collapsed: value || undefined };
+    if (!value) delete newStep.collapsed;
+    onChange(newStep);
+  }, [step, onChange]);
+
+  const handleMoveUp = useCallback((childIndex: number) => {
+    if (groupIndex !== undefined && onReorderWithinGroup && childIndex > 0) {
+      onReorderWithinGroup(groupIndex, childIndex, childIndex - 1);
+    }
+  }, [groupIndex, onReorderWithinGroup]);
+
+  const handleMoveDown = useCallback((childIndex: number) => {
+    if (groupIndex !== undefined && onReorderWithinGroup && childIndex < step.steps.length - 1) {
+      onReorderWithinGroup(groupIndex, childIndex, childIndex + 1);
+    }
+  }, [groupIndex, onReorderWithinGroup, step.steps.length]);
+
+  const handleDeleteChild = useCallback((childIndex: number) => {
+    if (groupIndex !== undefined && onDeleteFromGroup) {
+      onDeleteFromGroup(groupIndex, childIndex);
+    }
+  }, [groupIndex, onDeleteFromGroup]);
+
+  const handleFlatten = useCallback(() => {
+    if (groupIndex !== undefined && onFlattenGroup) {
+      onFlattenGroup(groupIndex);
+    }
+  }, [groupIndex, onFlattenGroup]);
+
+  // Sync state when step changes externally
+  useEffect(() => {
+    setGroupName(step.group);
+    setDescription(step.description || '');
+    setCollapsed(step.collapsed || false);
+  }, [step]);
+
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700">
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded">
+          <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded">
             GROUP
           </span>
         </div>
@@ -666,21 +734,104 @@ function GroupEditor({ step, onChange, onDelete }: GroupEditorProps) {
         )}
       </div>
 
-      <div className="flex-1 p-4">
-        <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
-          Group Name
-        </label>
-        <input
-          type="text"
-          value={groupName}
-          onChange={(e) => handleNameChange(e.target.value)}
-          placeholder="Group name"
-          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-        />
-        <p className="mt-2 text-xs text-gray-500 dark:text-slate-400">
-          This group contains {step.steps.length} step{step.steps.length !== 1 ? 's' : ''}
-        </p>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-auto">
+        {/* Group Name */}
+        <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
+            Group Name
+          </label>
+          <input
+            type="text"
+            value={groupName}
+            onChange={(e) => handleNameChange(e.target.value)}
+            placeholder="Group name"
+            className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+
+        {/* Description */}
+        <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+          <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
+            Description (optional)
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => handleDescriptionChange(e.target.value)}
+            placeholder="Describe what steps are in this group..."
+            rows={2}
+            className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+          />
+        </div>
+
+        {/* Collapsed by Default Toggle */}
+        <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+          <div>
+            <span className="text-sm text-gray-700 dark:text-slate-300">Collapsed by default</span>
+            <p className="text-xs text-gray-500 dark:text-slate-400">Start this group collapsed in the sidebar</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCollapsedChange(!collapsed)}
+            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+              collapsed ? 'bg-primary-600' : 'bg-gray-200 dark:bg-slate-600'
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                collapsed ? 'translate-x-4' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Child Steps List */}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-slate-300">
+              Steps ({step.steps.length})
+            </span>
+          </div>
+
+          {step.steps.length === 0 ? (
+            <p className="text-sm text-gray-400 dark:text-slate-500 italic py-4 text-center">
+              This group is empty. Drag steps here to add them.
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {step.steps.map((child, index) => (
+                <GroupChildItem
+                  key={index}
+                  step={child}
+                  index={index}
+                  actions={{
+                    onMoveUp: () => handleMoveUp(index),
+                    onMoveDown: () => handleMoveDown(index),
+                    onDelete: () => handleDeleteChild(index),
+                    isFirst: index === 0,
+                    isLast: index === step.steps.length - 1,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Footer with Flatten button */}
+      {step.steps.length > 0 && onFlattenGroup && groupIndex !== undefined && (
+        <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/50">
+          <button
+            onClick={handleFlatten}
+            className="w-full px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 text-sm font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            Flatten Group
+          </button>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-2 text-center">
+            Move all steps to top level and remove group
+          </p>
+        </div>
+      )}
     </div>
   );
 }

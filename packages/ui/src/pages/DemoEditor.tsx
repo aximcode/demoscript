@@ -9,6 +9,7 @@ import { FileMenu } from '../components/editor/FileMenu';
 import { FilePicker } from '../components/editor/FilePicker';
 import { PushToCloud } from '../components/editor/PushToCloud';
 import { StepEditor } from '../components/editor/StepEditor';
+import { GroupPreviewPanel } from '../components/editor/GroupComponents';
 import { usePlayback } from '../hooks/usePlayback';
 import { useStepEffects } from '../hooks/useStepEffects';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
@@ -818,9 +819,11 @@ function StepPreview({ step }: StepPreviewProps) {
 
   if (isStepGroup(stepData)) {
     return (
-      <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
-        <h3 className="font-medium">Group: {stepData.group}</h3>
-      </div>
+      <GroupPreviewPanel
+        groupName={stepData.group}
+        description={stepData.description}
+        steps={stepData.steps || []}
+      />
     );
   }
 
@@ -954,7 +957,7 @@ function StepYamlPanel({ step, stepIndex, onUpdate }: StepYamlPanelProps) {
 
 // Main editor content (uses EditorContext)
 function EditorContent() {
-  const { state, addStep, removeStep, updateStep, reorderSteps, moveIntoGroup, moveOutOfGroup, reorderWithinGroup, setCurrentStep, loadFromConfig, toConfig, dispatch, markSaved } = useEditor();
+  const { state, addStep, removeStep, updateStep, reorderSteps, moveIntoGroup, moveOutOfGroup, reorderWithinGroup, deleteFromGroup, flattenGroup, setCurrentStep, loadFromConfig, toConfig, dispatch, markSaved } = useEditor();
   const { dispatch: demoDispatch } = useDemo();
   const lastSyncedConfig = useRef<string>('');
   const [isEndpointExplorerOpen, setIsEndpointExplorerOpen] = useState(false);
@@ -1389,6 +1392,10 @@ function EditorContent() {
               step={currentStepData.step}
               onChange={handleStepChange}
               onDelete={handleStepDelete}
+              groupIndex={isStepGroup(currentStepData.step) ? state.currentStep : undefined}
+              onDeleteFromGroup={deleteFromGroup}
+              onReorderWithinGroup={reorderWithinGroup}
+              onFlattenGroup={flattenGroup}
             />
           ) : (
             <div className="p-4">
