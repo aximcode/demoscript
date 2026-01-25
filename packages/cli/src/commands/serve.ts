@@ -75,14 +75,19 @@ export async function serve(demoPath: string, options: ServeOptions): Promise<vo
 
   // Sandbox API handler - handles both /sandbox and /sandbox/* routes
   async function sandboxHandler(req: express.Request, res: express.Response): Promise<void> {
-    const sandboxPath = req.path.replace('/sandbox', '') || '/';
-    const response = await handleSandboxRequest({
-      method: req.method,
-      path: sandboxPath,
-      body: req.body,
-      headers: req.headers as Record<string, string>,
-    });
-    res.status(response.status).json(response.body);
+    try {
+      const sandboxPath = req.path.replace('/sandbox', '') || '/';
+      const response = await handleSandboxRequest({
+        method: req.method,
+        path: sandboxPath,
+        body: req.body,
+        headers: req.headers as Record<string, string>,
+      });
+      res.status(response.status).json(response.body);
+    } catch (err) {
+      console.error('Sandbox error:', err);
+      res.status(500).json({ error: err instanceof Error ? err.message : 'Sandbox error' });
+    }
   }
   app.all('/sandbox', sandboxHandler);
   app.all('/sandbox/*', sandboxHandler);
