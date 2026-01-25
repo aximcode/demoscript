@@ -9,6 +9,7 @@ import chokidar from 'chokidar';
 import { loadDemo } from '../lib/loader.js';
 import { createRestProxy } from '../server/rest-proxy.js';
 import { createShellExecutor } from '../server/shell-executor.js';
+import { handleSandboxRequest, sandboxOpenApiSpec } from '@demoscript/shared/sandbox';
 import chalk from 'chalk';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -66,6 +67,25 @@ export async function serve(demoPath: string, options: ServeOptions): Promise<vo
 
   // Shell executor for live execution
   app.post('/api/execute-shell', createShellExecutor());
+
+  // Sandbox API - OpenAPI spec
+  app.get('/sandbox/openapi.json', (_req, res) => {
+    res.json(sandboxOpenApiSpec);
+  });
+
+  // Sandbox API handler - handles both /sandbox and /sandbox/* routes
+  async function sandboxHandler(req: express.Request, res: express.Response): Promise<void> {
+    const sandboxPath = req.path.replace('/sandbox', '') || '/';
+    const response = await handleSandboxRequest({
+      method: req.method,
+      path: sandboxPath,
+      body: req.body,
+      headers: req.headers as Record<string, string>,
+    });
+    res.status(response.status).json(response.body);
+  }
+  app.all('/sandbox', sandboxHandler);
+  app.all('/sandbox/*', sandboxHandler);
 
   // Browser opener for browser steps
   app.post('/api/open-browser', async (req, res) => {
