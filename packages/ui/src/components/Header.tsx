@@ -1,11 +1,12 @@
 import { useDemo } from '../context/DemoContext';
 import { ThemeToggle } from '../context/ThemeContext';
 import { SoundToggle } from './effects';
+import { DiagramToggleButton } from './diagram';
 import { useHealthCheck } from '../hooks/useHealthCheck';
 import { ServiceHealthHeader } from './ServiceHealth';
 
 export function Header() {
-  const { state, dispatch } = useDemo();
+  const { state, dispatch, hasDiagram, toggleDiagram } = useDemo();
 
   const healthChecks = state.config?.settings?.health_checks;
   const { statuses } = useHealthCheck(healthChecks, {
@@ -55,6 +56,12 @@ export function Header() {
               <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-theme-primary to-theme-accent text-white shadow-lg shadow-[rgba(var(--color-primary-rgb),0.3)]">
                 📼 Recorded
               </span>
+            )}
+            {hasDiagram && (
+              <DiagramToggleButton
+                isVisible={state.diagramVisible}
+                onClick={toggleDiagram}
+              />
             )}
             <SoundToggle />
             <ThemeToggle />

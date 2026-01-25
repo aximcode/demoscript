@@ -11,11 +11,13 @@ import { KeyboardHelp } from './KeyboardHelp';
 import { LoginScreen } from './LoginScreen';
 import { Dashboard } from './Dashboard';
 import { Sidebar } from './Sidebar';
+import { FlowDiagramPanel } from './diagram';
 import { GridBackground, GlowOrbs } from './effects';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { normalizeConfig } from '../lib/normalize-config';
 import { isCloudMode } from '../lib/execute-adapter';
 import { getThemeColors, applyThemeColors } from '../lib/theme-colors';
+import { getStepTitle } from '../types/schema';
 import type { DemoConfig, AuthSettings, EffectsSettings } from '../types/schema';
 
 // Background effects wrapper
@@ -47,11 +49,16 @@ declare global {
 
 // Inner component that renders the demo content
 function DemoContent() {
-  const { state, dispatch } = useDemo();
+  const { state, dispatch, hasDiagram, toggleDiagram, currentDiagramPath, currentStepConfig } = useDemo();
   const { isAuthenticated, isAuthRequired } = useAuth();
   const [showDashboard, setShowDashboard] = useState(true);
 
   const dashboardEnabled = state.config?.settings?.dashboard?.enabled === true;
+  const diagramSettings = state.config?.settings?.diagram;
+  const diagramPosition = diagramSettings?.position || 'toggle';
+
+  // Get current step title for diagram edge label
+  const stepTitle = currentStepConfig ? getStepTitle(currentStepConfig, state.currentStep) : '';
 
   // Keyboard shortcuts - only active when not on dashboard
   const handleNext = useCallback(() => dispatch({ type: 'NEXT_STEP' }), [dispatch]);
@@ -87,6 +94,20 @@ function DemoContent() {
     dispatch({ type: 'SET_STEP', payload: index });
   };
 
+  // Handle node click in diagram - navigate to first step with that node
+  const handleDiagramNodeClick = useCallback((nodeId: string) => {
+    // Find first step that references this node in its diagram path
+    const stepIndex = state.flatSteps.findIndex((step) => {
+      if (!('diagram' in step) || !step.diagram) return false;
+      const path = step.diagram as string;
+      // Match "NodeA->NodeB" or just "NodeA"
+      return path.includes(nodeId);
+    });
+    if (stepIndex >= 0) {
+      dispatch({ type: 'SET_STEP', payload: stepIndex });
+    }
+  }, [state.flatSteps, dispatch]);
+
   return (
     <div className="min-h-screen flex flex-col relative z-10">
       {/* Sidebar */}
@@ -104,7 +125,38 @@ function DemoContent() {
         }`}
       >
         <Header />
-        <main className="flex-1 mx-auto px-4 py-6 xl:px-8 max-w-5xl xl:max-w-[85vw] 2xl:max-w-[80vw]">
+
+        {/* Diagram panel in sidebar mode */}
+        {hasDiagram && diagramSettings && diagramPosition === 'sidebar' && state.diagramVisible && (
+          <div className="fixed right-0 top-20 bottom-0 w-80 p-4 z-20">
+            <FlowDiagramPanel
+              settings={diagramSettings}
+              currentPath={currentDiagramPath}
+              completedPaths={state.completedDiagramPaths}
+              stepTitle={stepTitle}
+              isVisible={state.diagramVisible}
+              onToggle={toggleDiagram}
+              onNodeClick={handleDiagramNodeClick}
+            />
+          </div>
+        )}
+
+        <main className={`flex-1 mx-auto px-4 py-6 xl:px-8 max-w-5xl xl:max-w-[85vw] 2xl:max-w-[80vw] ${
+          hasDiagram && diagramPosition === 'sidebar' && state.diagramVisible ? 'mr-80' : ''
+        }`}>
+          {/* Diagram panel in sticky mode */}
+          {hasDiagram && diagramSettings && diagramPosition === 'sticky' && (
+            <FlowDiagramPanel
+              settings={diagramSettings}
+              currentPath={currentDiagramPath}
+              completedPaths={state.completedDiagramPaths}
+              stepTitle={stepTitle}
+              isVisible={state.diagramVisible}
+              onToggle={toggleDiagram}
+              onNodeClick={handleDiagramNodeClick}
+            />
+          )}
+
           <Stepper />
           <div className="mt-6">
             <StepViewer />
@@ -115,6 +167,19 @@ function DemoContent() {
         </main>
         <KeyboardHelp />
       </div>
+
+      {/* Diagram panel in toggle mode (floating) */}
+      {hasDiagram && diagramSettings && diagramPosition === 'toggle' && (
+        <FlowDiagramPanel
+          settings={diagramSettings}
+          currentPath={currentDiagramPath}
+          completedPaths={state.completedDiagramPaths}
+          stepTitle={stepTitle}
+          isVisible={state.diagramVisible}
+          onToggle={toggleDiagram}
+          onNodeClick={handleDiagramNodeClick}
+        />
+      )}
     </div>
   );
 }

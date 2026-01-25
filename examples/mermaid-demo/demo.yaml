@@ -1,0 +1,113 @@
+title: "Mermaid Diagrams in Slides"
+description: "Demo showing Option C - Mermaid code blocks rendered in slides"
+version: "1.0"
+author: "DemoScript"
+
+settings:
+  theme:
+    preset: "purple"
+
+steps:
+  - slide: |
+      # Mermaid Diagrams in Slides
+
+      You can now include Mermaid diagrams directly in your slide content using fenced code blocks.
+
+  - slide: |
+      ## Flowchart Example
+
+      Here's a simple flowchart showing a user authentication flow:
+
+      ```mermaid
+      flowchart TD
+          A[User] -->|Login Request| B{Auth Service}
+          B -->|Valid| C[Generate Token]
+          B -->|Invalid| D[Return Error]
+          C --> E[Return Token]
+          E --> F[Access API]
+          D --> A
+      ```
+
+      The diagram is rendered inline with your markdown content.
+
+  - slide: |
+      ## Sequence Diagram
+
+      Show request/response flows between services:
+
+      ```mermaid
+      sequenceDiagram
+          participant Client
+          participant API
+          participant Database
+
+          Client->>API: POST /users
+          API->>Database: INSERT user
+          Database-->>API: user_id
+          API-->>Client: 201 Created
+      ```
+
+  - slide: |
+      ## State Diagram
+
+      Visualize state machines:
+
+      ```mermaid
+      stateDiagram-v2
+          [*] --> Pending
+          Pending --> Processing: Start
+          Processing --> Completed: Success
+          Processing --> Failed: Error
+          Failed --> Pending: Retry
+          Completed --> [*]
+      ```
+
+  - slide: |
+      ## Class Diagram
+
+      Document your data models:
+
+      ```mermaid
+      classDiagram
+          class User {
+              +String id
+              +String email
+              +String name
+              +login()
+              +logout()
+          }
+          class Order {
+              +String id
+              +User user
+              +Date createdAt
+              +process()
+          }
+          User "1" --> "*" Order : places
+      ```
+
+  - slide: |
+      ## Mixed Content
+
+      Diagrams work seamlessly with other markdown:
+
+      - **Step 1**: User submits form
+      - **Step 2**: API validates input
+      - **Step 3**: Data is stored
+
+      ```mermaid
+      flowchart LR
+          A[Form] --> B[API] --> C[(Database)]
+      ```
+
+      > Diagrams automatically adapt to light/dark mode!
+
+  - slide: |
+      ## That's It!
+
+      Option C provides:
+
+      - **Simple syntax** - Just use ` ```mermaid ` code blocks
+      - **Full Mermaid support** - Flowcharts, sequences, state, class, ER, etc.
+      - **Dark mode support** - Diagrams adapt to theme
+      - **Error handling** - Shows helpful errors for invalid syntax
+      - **Zero config** - Works in any slide step

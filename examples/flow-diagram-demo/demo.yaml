@@ -1,0 +1,114 @@
+title: "API Flow Diagram Demo"
+description: "Demonstrates animated flow diagrams that sync with demo steps"
+version: "1.0"
+author: "DemoScript"
+tags:
+  - api
+  - flow-diagram
+  - visualization
+
+metadata:
+  duration: "3 minutes"
+  difficulty: beginner
+  category: "Tutorial"
+
+settings:
+  base_url: "/sandbox"
+  openapi: "/sandbox/openapi.json"
+
+  # Flow diagram configuration
+  diagram:
+    chart: |
+      flowchart LR
+        Client([Client])
+        API[API Server]
+        Auth{Auth Service}
+        DB[(Database)]
+
+        Client -->|Request| API
+        API -->|Validate| Auth
+        Auth -->|Token OK| API
+        API -->|Query| DB
+        DB -->|Data| API
+        API -->|Response| Client
+    position: toggle  # sticky | sidebar | toggle
+    height: 300
+
+  effects:
+    confetti: true
+    sounds: true
+    transitions: true
+
+steps:
+  # Introduction
+  - slide: |
+      # API Flow Diagram Demo
+
+      This demo shows how the flow diagram highlights the current step
+      in your API architecture as you progress through the demo.
+
+      Click the **Diagram** button in the header to toggle the flow view.
+    title: "Welcome"
+    diagram: Client  # Just highlight the client node
+
+  # Authentication step
+  - rest: POST /auth/login
+    title: "Authenticate User"
+    description: "User logs in to get an access token"
+    diagram: Client->API  # Highlight edge from Client to API
+    defaults:
+      email: "demo@example.com"
+      password: "demo123"
+    save:
+      token: token
+    results:
+      - key: token
+        label: "Access Token"
+        type: ref
+
+  # Token validation step
+  - slide: |
+      # Token Validation
+
+      The API server validates the JWT token with the Auth Service.
+
+      This happens automatically on each authenticated request.
+    title: "Token Validation"
+    diagram: API->Auth  # Highlight edge from API to Auth
+
+  - slide: |
+      # Auth Service Response
+
+      The Auth Service confirms the token is valid and returns user info.
+    title: "Auth Response"
+    diagram: Auth->API  # Highlight return edge
+
+  # Database query
+  - rest: GET /users
+    title: "Fetch Users"
+    description: "Query the database for user records"
+    diagram: API->DB  # Highlight edge from API to DB
+    results:
+      - key: users
+        label: "Users"
+        type: json
+
+  # Database response
+  - slide: |
+      # Database Response
+
+      The database returns the requested data to the API server.
+    title: "DB Response"
+    diagram: DB->API  # Highlight return edge
+
+  # Final response
+  - slide: |
+      # Response to Client
+
+      The API server formats and returns the response to the client.
+
+      **Flow Complete!**
+
+      The diagram shows the full request/response cycle through your architecture.
+    title: "Complete"
+    diagram: API->Client  # Highlight final edge

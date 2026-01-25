@@ -26,6 +26,8 @@ interface DemoState {
   flatSteps: Step[];  // Flattened array of all steps
   sidebarCollapsed: boolean;  // Sidebar navigation state
   variableProviders: Map<string, VariableProvider>;  // Maps variable names to their provider step
+  diagramVisible: boolean;  // Flow diagram visibility state
+  completedDiagramPaths: string[];  // Previously highlighted diagram paths
 }
 
 type DemoAction =
@@ -43,6 +45,7 @@ type DemoAction =
   | { type: 'SET_MODE'; payload: ExecutionMode }
   | { type: 'SET_LIVE_AVAILABLE'; payload: boolean }
   | { type: 'TOGGLE_SIDEBAR' }
+  | { type: 'TOGGLE_DIAGRAM' }
   | { type: 'RESET' };
 
 const initialState: DemoState = {
@@ -59,6 +62,8 @@ const initialState: DemoState = {
   flatSteps: [],
   sidebarCollapsed: false,
   variableProviders: new Map(),
+  diagramVisible: false,
+  completedDiagramPaths: [],
 };
 
 // Helper to build step ID map from flattened steps
@@ -176,20 +181,53 @@ function demoReducer(state: DemoState, action: DemoAction): DemoState {
       };
     }
 
-    case 'SET_STEP':
-      return { ...state, currentStep: action.payload };
+    case 'SET_STEP': {
+      const newStep = action.payload;
+      // If going backward, reset completed paths up to that point
+      if (newStep < state.currentStep) {
+        const pathsToKeep = state.flatSteps.slice(0, newStep)
+          .map((step) => ('diagram' in step ? step.diagram : undefined))
+          .filter((path): path is string => !!path);
+        return { ...state, currentStep: newStep, completedDiagramPaths: pathsToKeep };
+      }
+      // If going forward, add intermediate paths
+      if (newStep > state.currentStep) {
+        const newPaths = state.flatSteps.slice(state.currentStep, newStep)
+          .map((step) => ('diagram' in step ? step.diagram : undefined))
+          .filter((path): path is string => !!path);
+        return {
+          ...state,
+          currentStep: newStep,
+          completedDiagramPaths: [...state.completedDiagramPaths, ...newPaths],
+        };
+      }
+      return { ...state, currentStep: newStep };
+    }
 
-    case 'NEXT_STEP':
+    case 'NEXT_STEP': {
+      const currentDiagramPath = state.flatSteps[state.currentStep];
+      const diagramPath = currentDiagramPath && 'diagram' in currentDiagramPath
+        ? currentDiagramPath.diagram
+        : undefined;
+      const newCompletedPaths = diagramPath
+        ? [...state.completedDiagramPaths, diagramPath]
+        : state.completedDiagramPaths;
       return {
         ...state,
         currentStep: Math.min(state.currentStep + 1, state.flatSteps.length - 1),
+        completedDiagramPaths: newCompletedPaths,
       };
+    }
 
-    case 'PREV_STEP':
+    case 'PREV_STEP': {
+      // When going back, remove the last completed path
+      const newCompletedPaths = state.completedDiagramPaths.slice(0, -1);
       return {
         ...state,
         currentStep: Math.max(state.currentStep - 1, 0),
+        completedDiagramPaths: newCompletedPaths,
       };
+    }
 
     case 'GOTO_STEP_BY_ID': {
       const targetIndex = state.stepIdMap.get(action.payload);
@@ -243,6 +281,9 @@ function demoReducer(state: DemoState, action: DemoAction): DemoState {
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarCollapsed: !state.sidebarCollapsed };
 
+    case 'TOGGLE_DIAGRAM':
+      return { ...state, diagramVisible: !state.diagramVisible };
+
     case 'RESET':
       return {
         ...initialState,
@@ -253,6 +294,8 @@ function demoReducer(state: DemoState, action: DemoAction): DemoState {
         stepIdMap: state.stepIdMap,
         flatSteps: state.flatSteps,
         sidebarCollapsed: state.sidebarCollapsed,
+        diagramVisible: state.diagramVisible,
+        completedDiagramPaths: [],
       };
 
     default:
@@ -316,6 +359,10 @@ interface DemoContextValue {
   expandedGroups: Record<number, boolean>;
   toggleGroup: (groupIndex: number) => void;
   stepperStructure: StepperItem[];
+  // Flow diagram
+  toggleDiagram: () => void;
+  currentDiagramPath: string | undefined;
+  hasDiagram: boolean;
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null);
@@ -345,8 +392,20 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const toggleDiagram = useCallback(() => {
+    dispatch({ type: 'TOGGLE_DIAGRAM' });
+  }, []);
+
   // Current step from flat array
   const currentStepConfig = state.flatSteps[state.currentStep] ?? null;
+
+  // Current diagram path from step
+  const currentDiagramPath = currentStepConfig && 'diagram' in currentStepConfig
+    ? currentStepConfig.diagram
+    : undefined;
+
+  // Whether the demo has a diagram configured
+  const hasDiagram = !!state.config?.settings?.diagram?.chart;
 
   const currentRecording = state.recordings?.recordings.find(
     (r) => r.stepId === `step-${state.currentStep}`
@@ -395,6 +454,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         expandedGroups,
         toggleGroup,
         stepperStructure,
+        toggleDiagram,
+        currentDiagramPath,
+        hasDiagram,
       }}
     >
       {children}

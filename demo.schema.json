@@ -58,6 +58,7 @@
         "auth": { "$ref": "#/$defs/AuthSettings" },
         "dashboard": { "$ref": "#/$defs/DashboardSettings" },
         "sidebar": { "$ref": "#/$defs/SidebarSettings" },
+        "diagram": { "$ref": "#/$defs/DiagramSettings" },
         "health_checks": {
           "type": "array",
           "items": { "$ref": "#/$defs/HealthCheck" },
@@ -324,6 +325,27 @@
         }
       }
     },
+    "DiagramSettings": {
+      "type": "object",
+      "description": "Flow diagram configuration",
+      "required": ["chart"],
+      "properties": {
+        "chart": {
+          "type": "string",
+          "description": "Mermaid flowchart syntax defining the diagram"
+        },
+        "position": {
+          "type": "string",
+          "enum": ["sticky", "sidebar", "toggle"],
+          "description": "Diagram display position (default: toggle)"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 100,
+          "description": "Diagram height in pixels (default: 300)"
+        }
+      }
+    },
     "HealthCheck": {
       "type": "object",
       "required": ["name", "url"],
@@ -395,7 +417,8 @@
       "properties": {
         "title": { "type": "string", "description": "Step title" },
         "id": { "type": "string", "description": "Unique identifier for goto targets" },
-        "goto": { "type": "string", "description": "Step ID to navigate to after completion" }
+        "goto": { "type": "string", "description": "Step ID to navigate to after completion" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight (e.g., 'NodeA->NodeB' for edge, 'NodeA' for node)" }
       }
     },
     "Choice": {
@@ -530,6 +553,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "choices": {
           "type": "array",
           "items": { "$ref": "#/$defs/Choice" }
@@ -545,6 +569,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "choices": {
           "type": "array",
           "items": { "$ref": "#/$defs/Choice" }
@@ -559,6 +584,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "description": { "type": "string" },
         "base_url": { "type": "string" },
         "openapi": { "type": "string", "format": "uri", "description": "Per-step OpenAPI spec URL override" },
@@ -583,6 +609,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "description": { "type": "string" },
         "base_url": { "type": "string" },
         "openapi": { "type": "string", "format": "uri", "description": "Per-step OpenAPI spec URL override" },
@@ -605,6 +632,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "description": { "type": "string" },
         "shell_type": { "enum": ["bash", "powershell", "cmd"] },
         "workdir": { "type": "string" },
@@ -622,6 +650,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "description": { "type": "string" },
         "shell_type": { "enum": ["bash", "powershell", "cmd"] },
         "workdir": { "type": "string" },
@@ -638,6 +667,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "description": { "type": "string" },
         "screenshot": { "type": "string" }
       }
@@ -651,6 +681,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "description": { "type": "string" },
         "screenshot": { "type": "string" }
       }
@@ -663,6 +694,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "language": { "type": "string" },
         "filename": { "type": "string" },
         "highlight": { "type": "array", "items": { "type": "integer" } }
@@ -677,6 +709,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "language": { "type": "string" },
         "filename": { "type": "string" },
         "highlight": { "type": "array", "items": { "type": "integer" } }
@@ -690,6 +723,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "message": { "type": "string" }
       }
     },
@@ -702,6 +736,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "message": { "type": "string" }
       }
     },
@@ -713,6 +748,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "message": { "type": "string" },
         "description": { "type": "string" }
       }
@@ -726,6 +762,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "message": { "type": "string" },
         "description": { "type": "string" }
       }
@@ -738,6 +775,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "endpoint": { "type": "string" },
         "variables": { "type": "object" },
         "headers": { "type": "object", "additionalProperties": { "type": "string" } },
@@ -754,6 +792,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "endpoint": { "type": "string" },
         "variables": { "type": "object" },
         "headers": { "type": "object", "additionalProperties": { "type": "string" } },
@@ -769,6 +808,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "description": { "type": "string" },
         "type": { "enum": ["mongodb", "postgres", "mysql"] },
         "collection": { "type": "string" },
@@ -790,6 +830,7 @@
         "title": { "type": "string" },
         "id": { "type": "string" },
         "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
         "description": { "type": "string" },
         "type": { "enum": ["mongodb", "postgres", "mysql"] },
         "collection": { "type": "string" },

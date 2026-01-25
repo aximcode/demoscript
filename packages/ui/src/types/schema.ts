@@ -68,6 +68,12 @@ export interface SidebarSettings {
   show_status?: boolean;  // Show step completion status (default: true)
 }
 
+export interface DiagramSettings {
+  chart: string;                                    // Mermaid flowchart syntax
+  position?: 'sticky' | 'sidebar' | 'toggle';       // Display position (default: toggle)
+  height?: number;                                  // Diagram height in px (default: 300)
+}
+
 export interface HealthCheck {
   name: string;           // Display name for the service
   url: string;            // Health check endpoint URL
@@ -93,6 +99,7 @@ export interface DemoSettings {
   dashboard?: DashboardSettings;  // Dashboard/overview settings
   sidebar?: SidebarSettings;  // Sidebar navigation settings
   health_checks?: HealthCheck[];  // Service health check endpoints
+  diagram?: DiagramSettings;  // Flow diagram configuration
 }
 
 export interface ThemeSettings {
@@ -121,6 +128,7 @@ export interface BaseStep {
   title?: string;
   id?: string;
   goto?: string;
+  diagram?: string;  // Diagram path to highlight: "NodeA->NodeB" or "NodeA"
 }
 
 export interface Choice {
