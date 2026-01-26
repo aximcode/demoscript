@@ -789,7 +789,7 @@ See [ROADMAP.md](ROADMAP.md) for the full improvement guide including architectu
 - **Gallery metadata** - Duration, difficulty badges in gallery index
 - **Sound controls** - Volume control and additional sound effects
 - **OpenAPI integration** - Auto-generate form fields from OpenAPI/Swagger specs
-- **Visual Editor** - Create demos interactively with `demoscript edit`
+- **Visual Editor** - Create demos interactively at [demoscript.app/dashboard](https://demoscript.app/dashboard)
 
 ### Known Limitations
 
@@ -830,7 +830,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
 ```
 demoscript/
 ├── packages/
-│   ├── cli/          # CLI tool (serve, edit, push, login)
+│   ├── cli/          # CLI tool (serve, push, login)
 │   └── ui/           # React web interface
 ├── examples/
 │   ├── hello-world/       # Minimal starter demo
