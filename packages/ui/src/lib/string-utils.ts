@@ -1,0 +1,16 @@
+/**
+ * String utility functions
+ */
+
+/**
+ * Generate a URL-safe slug from text.
+ * Converts to lowercase, replaces non-alphanumeric chars with hyphens,
+ * removes leading/trailing hyphens, and limits length.
+ */
+export function slugify(text: string, maxLength = 50): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, maxLength);
+}

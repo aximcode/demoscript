@@ -975,6 +975,21 @@ function EditorContent() {
   // Edit mode toggle for right panel
   const [isEditMode, setIsEditMode] = useState(true);
 
+  // Ctrl+S keyboard shortcut for embedded mode (triggers parent's Save Changes)
+  useEffect(() => {
+    if (!isEmbedded) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        window.parent.postMessage({ type: 'demoscript:save' }, '*');
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Load initial demo from CLI argument (CLI mode only)
   useEffect(() => {
     if (!cliMode || initialLoadDone.current) return;
@@ -1289,7 +1304,7 @@ function EditorContent() {
                   : state.title || 'Untitled Demo'}
               </h2>
               {state.isDirty && (
-                <span className="ml-1 text-xs text-gray-400 flex-shrink-0">*</span>
+                <span className="ml-1 text-xs text-orange-400 flex-shrink-0" title="Unsaved changes">*</span>
               )}
             </div>
           </div>

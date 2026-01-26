@@ -124,22 +124,9 @@ Options:
 - `-w, --watch` - Watch demo files and auto-reload on changes
 - `--no-open` - Don't auto-open browser
 
-### `demoscript edit [demo]`
+### Visual Editor
 
-Open the visual demo editor to create or edit demos interactively.
-
-```bash
-# Open editor (creates new demo)
-demoscript edit
-
-# Open editor with existing demo
-demoscript edit ./my-demo
-```
-
-Options:
-- `-p, --port <port>` - Port number (default: 3002)
-- `-H, --host [host]` - Bind to 0.0.0.0 for LAN access
-- `--no-open` - Don't auto-open browser
+The Visual Editor for creating demos interactively is available in the [DemoScript Cloud dashboard](https://demoscript.app/dashboard). Login and click "Visual Editor" to build demos with drag-and-drop, live preview, and direct cloud save.
 
 ## YAML Schema
 

@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useEditor } from '../../context/EditorContext';
 import { generateYaml } from '../../lib/yaml-parser';
 import { useDraggable } from '../../hooks/useDraggable';
+import { slugify } from '../../lib/string-utils';
 
 interface AuthStatus {
   isLoggedIn: boolean;
@@ -40,12 +41,7 @@ export function PushToCloud({ isOpen, onClose }: PushToCloudProps) {
   // Generate default slug from title
   useEffect(() => {
     if (isOpen && !slug) {
-      const defaultSlug = (state.title || 'my-demo')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '')
-        .substring(0, 50);
-      setSlug(defaultSlug);
+      setSlug(slugify(state.title || 'my-demo'));
     }
   }, [isOpen, state.title, slug]);
 
