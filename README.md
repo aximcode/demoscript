@@ -46,7 +46,7 @@ Browse all examples at [demoscript.app/gallery](https://demoscript.app/gallery/)
 ### npm (recommended)
 
 ```bash
-npm install -g demoscript-cli
+npm install -g @demoscript/cli
 ```
 
 Then run with:
@@ -58,7 +58,7 @@ demoscript serve ./my-demo
 Or run directly with npx (no install required):
 
 ```bash
-npx demoscript-cli serve ./my-demo
+npx @demoscript/cli serve ./my-demo
 ```
 
 ### Linux Packages
@@ -800,7 +800,7 @@ See [ROADMAP.md](ROADMAP.md) for the full improvement guide including architectu
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/demoscript
+git clone https://github.com/aximcode/demoscript
 cd demoscript
 
 # Install dependencies
@@ -810,17 +810,30 @@ npm install
 npm run dev
 
 # Build all packages
-npm run build
+./build.sh
+
+# Build and install locally (to ~/.local/bin)
+./build.sh --install
+
+# Build and install globally (uses sudo if needed)
+./build.sh --install -g
+
+# Build and publish to npm
+./build.sh --publish           # patch version bump
+./build.sh --publish minor     # minor version bump
+
+# Build and start dev server
+./build.sh --serve
 
 # Run tests
 cd packages/cli && npm test
 cd packages/ui && npm test
 
 # Build RPM package (requires: dnf install rpm-build)
-./scripts/build-packages.sh rpm
+./build.sh --rpm
 
 # Build DEB package (requires: apt install dpkg-dev debhelper)
-./scripts/build-packages.sh deb
+./build.sh --deb
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
