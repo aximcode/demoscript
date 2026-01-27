@@ -1,0 +1,115 @@
+title: "AximCode API Explorer"
+description: "Quick tour of all 4 API domains: Core, Bookstore, Fintech, and Healthcare"
+version: "1.0"
+author: "AximCode"
+tags:
+  - api
+  - tutorial
+  - aximcode
+
+metadata:
+  duration: "3 minutes"
+  difficulty: beginner
+  category: "Getting Started"
+
+settings:
+  base_url: "https://apis.aximcode.com/v1"
+
+  theme:
+    preset: "teal"
+
+  effects:
+    confetti: true
+    sounds: true
+
+steps:
+  - slide: |
+      # AximCode API Explorer
+
+      Welcome to **AximCode APIs** - production-ready mock APIs
+      for demos, testing, and prototyping.
+
+      **4 API Domains:**
+      - **Core** - Users, jobs, authentication
+      - **Bookstore** - E-commerce with books and orders
+      - **Fintech** - Banking with accounts and transfers
+      - **Healthcare** - Medical records and appointments
+
+      Click **Next** to explore each domain!
+
+  - rest: GET /health
+    title: "API Health Check"
+    description: "Verify the API is running"
+    results:
+      - key: status
+        label: "Status"
+        type: text
+      - key: version
+        label: "Version"
+        type: mono
+
+  - rest: GET /bookstore/books
+    title: "Bookstore - Browse Books"
+    description: "E-commerce API with books, authors, cart, and orders"
+    results:
+      - key: total
+        label: "Total Books"
+      - key: books[0].title
+        label: "Featured Book"
+        type: text
+      - key: books[0].price
+        label: "Price"
+        type: currency
+
+  - rest: GET /fintech/accounts
+    title: "Fintech - View Accounts"
+    description: "Banking API with accounts, transfers, payments, and cards"
+    results:
+      - key: total
+        label: "Total Accounts"
+      - key: accounts[0].name
+        label: "Account"
+        type: text
+      - key: accounts[0].balance
+        label: "Balance"
+        type: currency
+
+  - rest: GET /healthcare/patients
+    title: "Healthcare - Patient Records"
+    description: "Medical API with patients, providers, appointments, and prescriptions"
+    results:
+      - key: total
+        label: "Total Patients"
+      - key: patients[0].firstName
+        label: "First Patient"
+        type: text
+
+  - rest: GET /healthcare/providers
+    title: "Healthcare - Find Providers"
+    description: "Search for doctors and specialists"
+    results:
+      - key: total
+        label: "Total Providers"
+      - key: providers[0].firstName
+        label: "Provider"
+        type: text
+      - key: providers[0].specialty
+        label: "Specialty"
+        type: text
+
+  - slide: |
+      # All APIs Ready!
+
+      You've explored all 4 AximCode API domains:
+
+      | Domain | Endpoints | Use Case |
+      |--------|-----------|----------|
+      | **Core** | Users, Jobs, Auth | General purpose |
+      | **Bookstore** | Books, Cart, Orders | E-commerce demos |
+      | **Fintech** | Accounts, Transfers | Banking demos |
+      | **Healthcare** | Patients, Appointments | Medical demos |
+
+      **Get Started:**
+      - Free tier: 100 requests/hour (no signup)
+      - Developer: $9/mo for 10K requests
+      - [apis.aximcode.com](https://apis.aximcode.com)

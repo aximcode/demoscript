@@ -1,0 +1,188 @@
+title: "Fintech API Demo"
+description: "Banking operations: view accounts, transfer funds, manage cards"
+version: "1.0"
+author: "AximCode"
+tags:
+  - api
+  - fintech
+  - banking
+  - aximcode
+
+metadata:
+  duration: "5 minutes"
+  difficulty: intermediate
+  category: "Financial Services"
+
+settings:
+  base_url: "https://apis.aximcode.com/v1/fintech"
+  openapi: "https://apis.aximcode.com/v1/openapi.json"
+
+  theme:
+    preset: "blue"
+
+  effects:
+    confetti: true
+    sounds: true
+
+steps:
+  - slide: |
+      # Fintech API Demo
+
+      Experience **banking operations** using the
+      AximCode Fintech API.
+
+      **What we'll do:**
+      1. View account balances
+      2. Check transaction history
+      3. Transfer funds between accounts
+      4. Manage payment cards
+      5. Review scheduled payments
+
+      Let's explore your accounts!
+
+  - rest: GET /accounts
+    title: "View Accounts"
+    description: "See all bank accounts and balances"
+    save:
+      fromAccount: accounts[0].id
+      fromAccountName: accounts[0].name
+      toAccount: accounts[1].id
+      toAccountName: accounts[1].name
+      startingBalance: accounts[0].balance
+    results:
+      - key: total
+        label: "Total Accounts"
+      - key: accounts
+        label: "Accounts"
+        type: json
+
+  - rest: GET /accounts/$fromAccount
+    title: "Account Details"
+    description: "View details for: $fromAccountName"
+    results:
+      - key: name
+        label: "Account"
+        type: text
+      - key: type
+        label: "Type"
+        type: text
+      - key: balance
+        label: "Balance"
+        type: currency
+      - key: accountNumber
+        label: "Account #"
+        type: mono
+      - key: status
+        label: "Status"
+        type: text
+
+  - rest: GET /accounts/$fromAccount/transactions
+    title: "Transaction History"
+    description: "Recent transactions for this account"
+    results:
+      - key: total
+        label: "Total Transactions"
+      - key: transactions
+        label: "Recent Activity"
+        type: json
+
+  - rest: POST /transfers
+    title: "Transfer Funds"
+    description: "Send $100 from $fromAccountName to $toAccountName"
+    body:
+      fromAccountId: "$fromAccount"
+      toAccountId: "$toAccount"
+      amount: 100
+      description: "Demo transfer"
+    save:
+      transferId: id
+      transferStatus: status
+    results:
+      - key: id
+        label: "Transfer ID"
+        type: mono
+      - key: amount
+        label: "Amount"
+        type: currency
+      - key: status
+        label: "Status"
+        type: text
+      - key: createdAt
+        label: "Initiated"
+        type: relative_time
+
+  - rest: GET /transfers/$transferId
+    title: "Transfer Status"
+    description: "Verify the transfer completed"
+    results:
+      - key: id
+        label: "Transfer ID"
+        type: mono
+      - key: fromAccountId
+        label: "From"
+        type: mono
+      - key: toAccountId
+        label: "To"
+        type: mono
+      - key: amount
+        label: "Amount"
+        type: currency
+      - key: status
+        label: "Status"
+        type: text
+
+  - rest: GET /cards
+    title: "View Cards"
+    description: "See all payment cards"
+    save:
+      cardId: cards[0].id
+      cardType: cards[0].type
+      cardLast4: cards[0].lastFour
+    results:
+      - key: total
+        label: "Total Cards"
+      - key: cards
+        label: "Cards"
+        type: json
+
+  - rest: PUT /cards/$cardId/freeze
+    title: "Freeze Card"
+    description: "Toggle freeze status for card ending in $cardLast4"
+    results:
+      - key: id
+        label: "Card ID"
+        type: mono
+      - key: lastFour
+        label: "Card"
+        type: mono
+      - key: status
+        label: "Status"
+        type: text
+
+  - rest: GET /payments
+    title: "Scheduled Payments"
+    description: "View upcoming bill payments"
+    results:
+      - key: total
+        label: "Scheduled"
+      - key: payments
+        label: "Payments"
+        type: json
+
+  - slide: |
+      # Banking Complete!
+
+      **Transaction Summary:**
+      - Transferred: **$100**
+      - From: $fromAccountName
+      - To: $toAccountName
+      - Status: $transferStatus
+
+      **Fintech API Features:**
+      - Multi-account management
+      - Real-time transfers
+      - Transaction history
+      - Card freeze/unfreeze
+      - Scheduled payments
+
+      [View API Docs](https://apis.aximcode.com/docs)

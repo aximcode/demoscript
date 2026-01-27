@@ -1,0 +1,175 @@
+title: "Bookstore API Demo"
+description: "Complete e-commerce flow: browse books, add to cart, and checkout"
+version: "1.0"
+author: "AximCode"
+tags:
+  - api
+  - e-commerce
+  - bookstore
+  - aximcode
+
+metadata:
+  duration: "5 minutes"
+  difficulty: beginner
+  category: "E-Commerce"
+
+settings:
+  base_url: "https://apis.aximcode.com/v1/bookstore"
+  openapi: "https://apis.aximcode.com/v1/openapi.json"
+
+  theme:
+    preset: "purple"
+
+  effects:
+    confetti: true
+    sounds: true
+
+steps:
+  - slide: |
+      # Bookstore API Demo
+
+      Experience a complete **e-commerce flow** using the
+      AximCode Bookstore API.
+
+      **What we'll do:**
+      1. Browse the book catalog
+      2. View authors and categories
+      3. Add a book to cart
+      4. Complete checkout
+      5. Track the order
+
+      Let's start shopping!
+
+  - rest: GET /books
+    title: "Browse Books"
+    description: "Get the book catalog with pagination"
+    save:
+      bookId: books[0].id
+      bookTitle: books[0].title
+      bookPrice: books[0].price
+    results:
+      - key: total
+        label: "Total Books"
+      - key: books
+        label: "Books"
+        type: json
+
+  - rest: GET /authors
+    title: "View Authors"
+    description: "See all authors in the catalog"
+    save:
+      authorId: authors[0].id
+    results:
+      - key: total
+        label: "Total Authors"
+      - key: authors[0].name
+        label: "Featured Author"
+        type: text
+
+  - rest: GET /categories
+    title: "Browse Categories"
+    description: "Explore book genres and categories"
+    results:
+      - key: total
+        label: "Categories"
+      - key: categories
+        label: "Available Genres"
+        type: json
+
+  - rest: GET /books/$bookId
+    title: "Book Details"
+    description: "View details for: $bookTitle"
+    results:
+      - key: title
+        label: "Title"
+        type: text
+      - key: description
+        label: "Description"
+        type: text
+      - key: price
+        label: "Price"
+        type: currency
+      - key: stock
+        label: "In Stock"
+
+  - rest: POST /cart
+    title: "Add to Cart"
+    description: "Add the book to our shopping cart"
+    body:
+      bookId: "$bookId"
+      quantity: 1
+    results:
+      - key: message
+        label: "Status"
+        type: text
+      - key: cart.itemCount
+        label: "Items in Cart"
+
+  - rest: GET /cart
+    title: "View Cart"
+    description: "Review items before checkout"
+    results:
+      - key: itemCount
+        label: "Items"
+      - key: total
+        label: "Total"
+        type: currency
+      - key: items
+        label: "Cart Items"
+        type: json
+
+  - rest: POST /orders
+    title: "Checkout"
+    description: "Complete the purchase"
+    body:
+      shippingAddress: "123 Demo Street, San Francisco, CA 94105"
+    save:
+      orderId: id
+      orderStatus: status
+    results:
+      - key: id
+        label: "Order ID"
+        type: mono
+      - key: status
+        label: "Status"
+        type: text
+      - key: total
+        label: "Total"
+        type: currency
+
+  - rest: GET /orders/$orderId
+    title: "Order Confirmation"
+    description: "View order details and tracking"
+    results:
+      - key: id
+        label: "Order ID"
+        type: mono
+      - key: status
+        label: "Status"
+        type: text
+      - key: items
+        label: "Items"
+        type: json
+      - key: shippingAddress
+        label: "Shipping To"
+        type: text
+      - key: createdAt
+        label: "Ordered"
+        type: relative_time
+
+  - slide: |
+      # Order Complete!
+
+      **Purchase Summary:**
+      - Book: **$bookTitle**
+      - Price: $bookPrice
+      - Order ID: `$orderId`
+      - Status: $orderStatus
+
+      **Bookstore API Features:**
+      - Full book catalog with search/filter
+      - Author and category management
+      - Shopping cart operations
+      - Order processing and tracking
+
+      [View API Docs](https://apis.aximcode.com/docs)

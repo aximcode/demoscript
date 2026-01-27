@@ -1,0 +1,225 @@
+title: "Healthcare API Demo"
+description: "Medical records: patients, appointments, prescriptions, and vitals"
+version: "1.0"
+author: "AximCode"
+tags:
+  - api
+  - healthcare
+  - medical
+  - aximcode
+
+metadata:
+  duration: "5 minutes"
+  difficulty: intermediate
+  category: "Healthcare"
+
+settings:
+  base_url: "https://apis.aximcode.com/v1/healthcare"
+  openapi: "https://apis.aximcode.com/v1/openapi.json"
+
+  theme:
+    preset: "green"
+
+  effects:
+    confetti: true
+    sounds: true
+
+steps:
+  - slide: |
+      # Healthcare API Demo
+
+      Explore **medical records management** using the
+      AximCode Healthcare API.
+
+      **What we'll do:**
+      1. Look up patient records
+      2. Find healthcare providers
+      3. Schedule an appointment
+      4. View prescriptions
+      5. Check vital signs history
+
+      Let's get started!
+
+  - rest: GET /patients
+    title: "Patient List"
+    description: "View all patient records"
+    save:
+      patientId: patients[0].id
+      patientFirst: patients[0].firstName
+      patientLast: patients[0].lastName
+    results:
+      - key: total
+        label: "Total Patients"
+      - key: patients
+        label: "Patients"
+        type: json
+
+  - rest: GET /patients/$patientId
+    title: "Patient Record"
+    description: "View details for $patientFirst $patientLast"
+    results:
+      - key: firstName
+        label: "First Name"
+        type: text
+      - key: lastName
+        label: "Last Name"
+        type: text
+      - key: dateOfBirth
+        label: "DOB"
+        type: text
+      - key: gender
+        label: "Gender"
+        type: text
+      - key: insuranceId
+        label: "Insurance ID"
+        type: mono
+      - key: allergies
+        label: "Allergies"
+        type: json
+      - key: conditions
+        label: "Conditions"
+        type: json
+
+  - rest: GET /providers
+    title: "Find Providers"
+    description: "Search for doctors and specialists"
+    save:
+      providerId: providers[0].id
+      providerFirst: providers[0].firstName
+      providerLast: providers[0].lastName
+      providerSpecialty: providers[0].specialty
+    results:
+      - key: total
+        label: "Total Providers"
+      - key: providers
+        label: "Providers"
+        type: json
+
+  - rest: GET /providers/$providerId
+    title: "Provider Details"
+    description: "View Dr. $providerFirst $providerLast ($providerSpecialty)"
+    results:
+      - key: provider.firstName
+        label: "First Name"
+        type: text
+      - key: provider.lastName
+        label: "Last Name"
+        type: text
+      - key: provider.title
+        label: "Title"
+        type: text
+      - key: provider.specialty
+        label: "Specialty"
+        type: text
+      - key: provider.department
+        label: "Department"
+        type: text
+      - key: provider.available
+        label: "Available"
+        type: text
+
+  - rest: POST /appointments
+    title: "Schedule Appointment"
+    description: "Book a checkup with Dr. $providerLast"
+    body:
+      patientId: "$patientId"
+      providerId: "$providerId"
+      dateTime: "2025-02-15T10:00:00Z"
+      duration: 30
+      type: "checkup"
+      reason: "Annual physical examination"
+    save:
+      appointmentId: id
+      appointmentStatus: status
+    results:
+      - key: id
+        label: "Appointment ID"
+        type: mono
+      - key: dateTime
+        label: "Date/Time"
+        type: relative_time
+      - key: type
+        label: "Type"
+        type: text
+      - key: status
+        label: "Status"
+        type: text
+
+  - rest: GET /appointments/$appointmentId
+    title: "Appointment Confirmation"
+    description: "Verify the appointment details"
+    results:
+      - key: id
+        label: "Appointment ID"
+        type: mono
+      - key: dateTime
+        label: "Scheduled"
+        type: relative_time
+      - key: duration
+        label: "Duration (min)"
+      - key: type
+        label: "Type"
+        type: text
+      - key: reason
+        label: "Reason"
+        type: text
+      - key: status
+        label: "Status"
+        type: text
+
+  - rest: GET /prescriptions?patientId=$patientId
+    title: "View Prescriptions"
+    description: "Current medications for $patientFirst"
+    save:
+      prescriptionId: prescriptions[0].id
+      medication: prescriptions[0].medication
+    results:
+      - key: total
+        label: "Total Prescriptions"
+      - key: prescriptions
+        label: "Medications"
+        type: json
+
+  - rest: POST /prescriptions/$prescriptionId/refill
+    title: "Request Refill"
+    description: "Request a refill for $medication"
+    results:
+      - key: message
+        label: "Status"
+        type: text
+      - key: prescription.medication
+        label: "Medication"
+        type: text
+      - key: prescription.refillsRemaining
+        label: "Refills Left"
+      - key: prescription.status
+        label: "Rx Status"
+        type: text
+
+  - rest: GET /vitals?patientId=$patientId
+    title: "Vital Signs History"
+    description: "View recorded vitals for $patientFirst"
+    results:
+      - key: total
+        label: "Total Records"
+      - key: vitals
+        label: "Vital Signs"
+        type: json
+
+  - slide: |
+      # Appointment Scheduled!
+
+      **Summary:**
+      - Patient: **$patientFirst $patientLast**
+      - Provider: Dr. $providerLast ($providerSpecialty)
+      - Type: Annual checkup
+      - Status: $appointmentStatus
+
+      **Healthcare API Features:**
+      - Patient record management
+      - Provider directory
+      - Appointment scheduling
+      - Prescription tracking
+      - Vital signs history
+
+      [View API Docs](https://apis.aximcode.com/docs)
