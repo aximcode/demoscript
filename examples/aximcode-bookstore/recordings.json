@@ -1,0 +1,347 @@
+{
+  "demoVersion": "1.0",
+  "recordedAt": "2026-01-27T11:54:21.534Z",
+  "recordings": [
+    {
+      "stepId": "step-1",
+      "timestamp": "2026-01-27T11:54:21.397Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/bookstore/books",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "books": [
+            {
+              "title": "The Pragmatic Programmer",
+              "authorId": "1",
+              "isbn": "978-0135957059",
+              "price": 49.95,
+              "genre": "technology",
+              "description": "Your journey to mastery in software development.",
+              "available": true,
+              "stock": 25,
+              "id": "1",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Clean Code",
+              "authorId": "2",
+              "isbn": "978-0132350884",
+              "price": 39.99,
+              "genre": "technology",
+              "description": "A handbook of agile software craftsmanship.",
+              "available": true,
+              "stock": 30,
+              "id": "2",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Designing Data-Intensive Applications",
+              "authorId": "3",
+              "isbn": "978-1449373320",
+              "price": 44.99,
+              "genre": "technology",
+              "description": "The big ideas behind reliable, scalable systems.",
+              "available": true,
+              "stock": 20,
+              "id": "3",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Domain-Driven Design",
+              "authorId": "4",
+              "isbn": "978-0321125217",
+              "price": 54.99,
+              "genre": "technology",
+              "description": "Tackling complexity in the heart of software.",
+              "available": true,
+              "stock": 15,
+              "id": "4",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Practical Object-Oriented Design",
+              "authorId": "5",
+              "isbn": "978-0134456478",
+              "price": 42.99,
+              "genre": "technology",
+              "description": "An agile primer using Ruby.",
+              "available": true,
+              "stock": 18,
+              "id": "5",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Clean Architecture",
+              "authorId": "2",
+              "isbn": "978-0134494166",
+              "price": 34.99,
+              "genre": "technology",
+              "description": "A craftsman's guide to software structure.",
+              "available": true,
+              "stock": 22,
+              "id": "6",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "The Clean Coder",
+              "authorId": "2",
+              "isbn": "978-0137081073",
+              "price": 37.99,
+              "genre": "technology",
+              "description": "A code of conduct for professional programmers.",
+              "available": true,
+              "stock": 12,
+              "id": "7",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Refactoring",
+              "authorId": "3",
+              "isbn": "978-0134757599",
+              "price": 47.99,
+              "genre": "technology",
+              "description": "Improving the design of existing code.",
+              "available": true,
+              "stock": 28,
+              "id": "8",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "99 Bottles of OOP",
+              "authorId": "5",
+              "isbn": "978-1944823001",
+              "price": 29.95,
+              "genre": "technology",
+              "description": "A practical guide to writing cost-effective, maintainable code.",
+              "available": true,
+              "stock": 10,
+              "id": "9",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Programming Pearls",
+              "authorId": "1",
+              "isbn": "978-0201657883",
+              "price": 34.99,
+              "genre": "technology",
+              "description": "Classic wisdom for the practicing programmer.",
+              "available": false,
+              "stock": 0,
+              "id": "10",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            }
+          ],
+          "total": 10,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 1
+        }
+      }
+    },
+    {
+      "stepId": "step-2",
+      "timestamp": "2026-01-27T11:54:21.410Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/bookstore/authors",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "authors": [
+            {
+              "name": "David Thomas",
+              "bio": "Co-author of The Pragmatic Programmer, software craftsman and educator.",
+              "id": "1",
+              "createdAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "name": "Robert C. Martin",
+              "bio": "Software engineer and author known for promoting clean code practices.",
+              "id": "2",
+              "createdAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "name": "Martin Kleppmann",
+              "bio": "Researcher and author specializing in distributed systems.",
+              "id": "3",
+              "createdAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "name": "Eric Evans",
+              "bio": "Software design consultant, creator of Domain-Driven Design methodology.",
+              "id": "4",
+              "createdAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "name": "Sandi Metz",
+              "bio": "Object-oriented design expert and acclaimed programming author.",
+              "id": "5",
+              "createdAt": "1970-01-01T00:00:00.000Z"
+            }
+          ],
+          "total": 5
+        }
+      }
+    },
+    {
+      "stepId": "step-3",
+      "timestamp": "2026-01-27T11:54:21.424Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/bookstore/categories",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "categories": [
+            {
+              "name": "Technology",
+              "description": "Programming, software engineering, and computer science",
+              "slug": "technology",
+              "id": "1"
+            },
+            {
+              "name": "Business",
+              "description": "Management, entrepreneurship, and strategy",
+              "slug": "business",
+              "id": "2"
+            },
+            {
+              "name": "Science",
+              "description": "Scientific discoveries and research",
+              "slug": "science",
+              "id": "3"
+            },
+            {
+              "name": "Self-Help",
+              "description": "Personal development and productivity",
+              "slug": "self-help",
+              "id": "4"
+            },
+            {
+              "name": "Fiction",
+              "description": "Novels and creative literature",
+              "slug": "fiction",
+              "id": "5"
+            }
+          ],
+          "total": 5
+        }
+      }
+    },
+    {
+      "stepId": "step-4",
+      "timestamp": "2026-01-27T11:54:21.435Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/bookstore/books/",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": "Route not found: GET /books/",
+          "code": "NOT_FOUND"
+        }
+      }
+    },
+    {
+      "stepId": "step-5",
+      "timestamp": "2026-01-27T11:54:21.451Z",
+      "request": {
+        "method": "POST",
+        "url": "https://apis.aximcode.com/v1/bookstore/cart",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "bookId is required",
+          "code": "INVALID_INPUT"
+        }
+      }
+    },
+    {
+      "stepId": "step-6",
+      "timestamp": "2026-01-27T11:54:21.508Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/bookstore/cart",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [],
+          "itemCount": 0,
+          "total": 0
+        }
+      }
+    },
+    {
+      "stepId": "step-7",
+      "timestamp": "2026-01-27T11:54:21.521Z",
+      "request": {
+        "method": "POST",
+        "url": "https://apis.aximcode.com/v1/bookstore/orders",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "Cart is empty",
+          "code": "EMPTY_CART"
+        }
+      }
+    },
+    {
+      "stepId": "step-8",
+      "timestamp": "2026-01-27T11:54:21.534Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/bookstore/orders/",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": "Route not found: GET /orders/",
+          "code": "NOT_FOUND"
+        }
+      }
+    }
+  ]
+}

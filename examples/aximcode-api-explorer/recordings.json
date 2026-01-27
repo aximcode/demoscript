@@ -1,0 +1,456 @@
+{
+  "demoVersion": "1.0",
+  "recordedAt": "2026-01-27T11:54:16.092Z",
+  "recordings": [
+    {
+      "stepId": "step-1",
+      "timestamp": "2026-01-27T11:54:16.038Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/health",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "ok",
+          "timestamp": "2026-01-27T11:54:16.030Z",
+          "version": "1.0.0"
+        }
+      }
+    },
+    {
+      "stepId": "step-2",
+      "timestamp": "2026-01-27T11:54:16.052Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/bookstore/books",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "books": [
+            {
+              "title": "The Pragmatic Programmer",
+              "authorId": "1",
+              "isbn": "978-0135957059",
+              "price": 49.95,
+              "genre": "technology",
+              "description": "Your journey to mastery in software development.",
+              "available": true,
+              "stock": 25,
+              "id": "1",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Clean Code",
+              "authorId": "2",
+              "isbn": "978-0132350884",
+              "price": 39.99,
+              "genre": "technology",
+              "description": "A handbook of agile software craftsmanship.",
+              "available": true,
+              "stock": 30,
+              "id": "2",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Designing Data-Intensive Applications",
+              "authorId": "3",
+              "isbn": "978-1449373320",
+              "price": 44.99,
+              "genre": "technology",
+              "description": "The big ideas behind reliable, scalable systems.",
+              "available": true,
+              "stock": 20,
+              "id": "3",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Domain-Driven Design",
+              "authorId": "4",
+              "isbn": "978-0321125217",
+              "price": 54.99,
+              "genre": "technology",
+              "description": "Tackling complexity in the heart of software.",
+              "available": true,
+              "stock": 15,
+              "id": "4",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Practical Object-Oriented Design",
+              "authorId": "5",
+              "isbn": "978-0134456478",
+              "price": 42.99,
+              "genre": "technology",
+              "description": "An agile primer using Ruby.",
+              "available": true,
+              "stock": 18,
+              "id": "5",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Clean Architecture",
+              "authorId": "2",
+              "isbn": "978-0134494166",
+              "price": 34.99,
+              "genre": "technology",
+              "description": "A craftsman's guide to software structure.",
+              "available": true,
+              "stock": 22,
+              "id": "6",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "The Clean Coder",
+              "authorId": "2",
+              "isbn": "978-0137081073",
+              "price": 37.99,
+              "genre": "technology",
+              "description": "A code of conduct for professional programmers.",
+              "available": true,
+              "stock": 12,
+              "id": "7",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Refactoring",
+              "authorId": "3",
+              "isbn": "978-0134757599",
+              "price": 47.99,
+              "genre": "technology",
+              "description": "Improving the design of existing code.",
+              "available": true,
+              "stock": 28,
+              "id": "8",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "99 Bottles of OOP",
+              "authorId": "5",
+              "isbn": "978-1944823001",
+              "price": 29.95,
+              "genre": "technology",
+              "description": "A practical guide to writing cost-effective, maintainable code.",
+              "available": true,
+              "stock": 10,
+              "id": "9",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "title": "Programming Pearls",
+              "authorId": "1",
+              "isbn": "978-0201657883",
+              "price": 34.99,
+              "genre": "technology",
+              "description": "Classic wisdom for the practicing programmer.",
+              "available": false,
+              "stock": 0,
+              "id": "10",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            }
+          ],
+          "total": 10,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 1
+        }
+      }
+    },
+    {
+      "stepId": "step-3",
+      "timestamp": "2026-01-27T11:54:16.065Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/fintech/accounts",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "accounts": [
+            {
+              "name": "Primary Checking",
+              "type": "checking",
+              "balance": 5432.1,
+              "currency": "USD",
+              "accountNumber": "****1234",
+              "status": "active",
+              "id": "1",
+              "createdAt": "1969-10-03T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "name": "High-Yield Savings",
+              "type": "savings",
+              "balance": 25000,
+              "currency": "USD",
+              "accountNumber": "****5678",
+              "status": "active",
+              "id": "2",
+              "createdAt": "1969-10-03T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "name": "Investment Portfolio",
+              "type": "investment",
+              "balance": 142350.75,
+              "currency": "USD",
+              "accountNumber": "****9012",
+              "status": "active",
+              "id": "3",
+              "createdAt": "1969-10-03T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            }
+          ],
+          "total": 3
+        }
+      }
+    },
+    {
+      "stepId": "step-4",
+      "timestamp": "2026-01-27T11:54:16.078Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/healthcare/patients",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "patients": [
+            {
+              "firstName": "John",
+              "lastName": "Smith",
+              "dateOfBirth": "1985-03-15",
+              "gender": "male",
+              "email": "john.smith@email.com",
+              "phone": "555-0101",
+              "address": "123 Main St, Anytown, USA",
+              "insuranceId": "INS001",
+              "allergies": [
+                "Penicillin"
+              ],
+              "conditions": [
+                "Hypertension"
+              ],
+              "id": "1",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Sarah",
+              "lastName": "Johnson",
+              "dateOfBirth": "1990-07-22",
+              "gender": "female",
+              "email": "sarah.j@email.com",
+              "phone": "555-0102",
+              "address": "456 Oak Ave, Somewhere, USA",
+              "insuranceId": "INS002",
+              "allergies": [],
+              "conditions": [
+                "Type 2 Diabetes"
+              ],
+              "id": "2",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Michael",
+              "lastName": "Williams",
+              "dateOfBirth": "1978-11-08",
+              "gender": "male",
+              "email": "mwilliams@email.com",
+              "phone": "555-0103",
+              "address": "789 Pine Rd, Elsewhere, USA",
+              "insuranceId": "INS003",
+              "allergies": [
+                "Sulfa drugs"
+              ],
+              "conditions": [],
+              "id": "3",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Emily",
+              "lastName": "Brown",
+              "dateOfBirth": "1995-01-30",
+              "gender": "female",
+              "email": "emily.brown@email.com",
+              "phone": "555-0104",
+              "address": "321 Elm St, Nowhere, USA",
+              "insuranceId": "INS004",
+              "allergies": [],
+              "conditions": [
+                "Asthma"
+              ],
+              "id": "4",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "David",
+              "lastName": "Lee",
+              "dateOfBirth": "1982-09-12",
+              "gender": "male",
+              "email": "dlee@email.com",
+              "phone": "555-0105",
+              "address": "654 Maple Dr, Anywhere, USA",
+              "allergies": [
+                "Latex",
+                "Ibuprofen"
+              ],
+              "conditions": [
+                "Chronic Back Pain",
+                "Anxiety"
+              ],
+              "id": "5",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            }
+          ],
+          "total": 5,
+          "page": 1,
+          "limit": 20,
+          "totalPages": 1
+        }
+      }
+    },
+    {
+      "stepId": "step-5",
+      "timestamp": "2026-01-27T11:54:16.091Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/healthcare/providers",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "providers": [
+            {
+              "firstName": "Robert",
+              "lastName": "Chen",
+              "title": "MD",
+              "specialty": "Internal Medicine",
+              "department": "Primary Care",
+              "email": "dr.chen@clinic.com",
+              "phone": "555-1001",
+              "available": true,
+              "id": "1",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Amanda",
+              "lastName": "Patel",
+              "title": "MD",
+              "specialty": "Cardiology",
+              "department": "Cardiology",
+              "email": "dr.patel@clinic.com",
+              "phone": "555-1002",
+              "available": true,
+              "id": "2",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "James",
+              "lastName": "Wilson",
+              "title": "DO",
+              "specialty": "Family Medicine",
+              "department": "Primary Care",
+              "email": "dr.wilson@clinic.com",
+              "phone": "555-1003",
+              "available": true,
+              "id": "3",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Lisa",
+              "lastName": "Thompson",
+              "title": "MD",
+              "specialty": "Endocrinology",
+              "department": "Endocrinology",
+              "email": "dr.thompson@clinic.com",
+              "phone": "555-1004",
+              "available": false,
+              "id": "4",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Mark",
+              "lastName": "Garcia",
+              "title": "PA-C",
+              "specialty": "General Practice",
+              "department": "Primary Care",
+              "email": "pa.garcia@clinic.com",
+              "phone": "555-1005",
+              "available": true,
+              "id": "5",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Jennifer",
+              "lastName": "Adams",
+              "title": "NP",
+              "specialty": "Pediatrics",
+              "department": "Pediatrics",
+              "email": "np.adams@clinic.com",
+              "phone": "555-1006",
+              "available": true,
+              "id": "6",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Christopher",
+              "lastName": "Martinez",
+              "title": "MD",
+              "specialty": "Orthopedics",
+              "department": "Orthopedics",
+              "email": "dr.martinez@clinic.com",
+              "phone": "555-1007",
+              "available": true,
+              "id": "7",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Rachel",
+              "lastName": "Kim",
+              "title": "MD, PhD",
+              "specialty": "Psychiatry",
+              "department": "Behavioral Health",
+              "email": "dr.kim@clinic.com",
+              "phone": "555-1008",
+              "available": true,
+              "id": "8",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            }
+          ],
+          "total": 8
+        }
+      }
+    }
+  ]
+}

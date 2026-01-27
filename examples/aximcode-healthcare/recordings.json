@@ -1,0 +1,1009 @@
+{
+  "demoVersion": "1.0",
+  "recordedAt": "2026-01-27T11:54:22.664Z",
+  "recordings": [
+    {
+      "stepId": "step-1",
+      "timestamp": "2026-01-27T11:54:22.461Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/healthcare/patients",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "patients": [
+            {
+              "firstName": "John",
+              "lastName": "Smith",
+              "dateOfBirth": "1985-03-15",
+              "gender": "male",
+              "email": "john.smith@email.com",
+              "phone": "555-0101",
+              "address": "123 Main St, Anytown, USA",
+              "insuranceId": "INS001",
+              "allergies": [
+                "Penicillin"
+              ],
+              "conditions": [
+                "Hypertension"
+              ],
+              "id": "1",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Sarah",
+              "lastName": "Johnson",
+              "dateOfBirth": "1990-07-22",
+              "gender": "female",
+              "email": "sarah.j@email.com",
+              "phone": "555-0102",
+              "address": "456 Oak Ave, Somewhere, USA",
+              "insuranceId": "INS002",
+              "allergies": [],
+              "conditions": [
+                "Type 2 Diabetes"
+              ],
+              "id": "2",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Michael",
+              "lastName": "Williams",
+              "dateOfBirth": "1978-11-08",
+              "gender": "male",
+              "email": "mwilliams@email.com",
+              "phone": "555-0103",
+              "address": "789 Pine Rd, Elsewhere, USA",
+              "insuranceId": "INS003",
+              "allergies": [
+                "Sulfa drugs"
+              ],
+              "conditions": [],
+              "id": "3",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Emily",
+              "lastName": "Brown",
+              "dateOfBirth": "1995-01-30",
+              "gender": "female",
+              "email": "emily.brown@email.com",
+              "phone": "555-0104",
+              "address": "321 Elm St, Nowhere, USA",
+              "insuranceId": "INS004",
+              "allergies": [],
+              "conditions": [
+                "Asthma"
+              ],
+              "id": "4",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "David",
+              "lastName": "Lee",
+              "dateOfBirth": "1982-09-12",
+              "gender": "male",
+              "email": "dlee@email.com",
+              "phone": "555-0105",
+              "address": "654 Maple Dr, Anywhere, USA",
+              "allergies": [
+                "Latex",
+                "Ibuprofen"
+              ],
+              "conditions": [
+                "Chronic Back Pain",
+                "Anxiety"
+              ],
+              "id": "5",
+              "createdAt": "1969-07-05T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            }
+          ],
+          "total": 5,
+          "page": 1,
+          "limit": 20,
+          "totalPages": 1
+        }
+      }
+    },
+    {
+      "stepId": "step-2",
+      "timestamp": "2026-01-27T11:54:22.477Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/healthcare/patients/",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": "Route not found: GET /patients/",
+          "code": "NOT_FOUND"
+        }
+      }
+    },
+    {
+      "stepId": "step-3",
+      "timestamp": "2026-01-27T11:54:22.493Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/healthcare/providers",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "providers": [
+            {
+              "firstName": "Robert",
+              "lastName": "Chen",
+              "title": "MD",
+              "specialty": "Internal Medicine",
+              "department": "Primary Care",
+              "email": "dr.chen@clinic.com",
+              "phone": "555-1001",
+              "available": true,
+              "id": "1",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Amanda",
+              "lastName": "Patel",
+              "title": "MD",
+              "specialty": "Cardiology",
+              "department": "Cardiology",
+              "email": "dr.patel@clinic.com",
+              "phone": "555-1002",
+              "available": true,
+              "id": "2",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "James",
+              "lastName": "Wilson",
+              "title": "DO",
+              "specialty": "Family Medicine",
+              "department": "Primary Care",
+              "email": "dr.wilson@clinic.com",
+              "phone": "555-1003",
+              "available": true,
+              "id": "3",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Lisa",
+              "lastName": "Thompson",
+              "title": "MD",
+              "specialty": "Endocrinology",
+              "department": "Endocrinology",
+              "email": "dr.thompson@clinic.com",
+              "phone": "555-1004",
+              "available": false,
+              "id": "4",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Mark",
+              "lastName": "Garcia",
+              "title": "PA-C",
+              "specialty": "General Practice",
+              "department": "Primary Care",
+              "email": "pa.garcia@clinic.com",
+              "phone": "555-1005",
+              "available": true,
+              "id": "5",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Jennifer",
+              "lastName": "Adams",
+              "title": "NP",
+              "specialty": "Pediatrics",
+              "department": "Pediatrics",
+              "email": "np.adams@clinic.com",
+              "phone": "555-1006",
+              "available": true,
+              "id": "6",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Christopher",
+              "lastName": "Martinez",
+              "title": "MD",
+              "specialty": "Orthopedics",
+              "department": "Orthopedics",
+              "email": "dr.martinez@clinic.com",
+              "phone": "555-1007",
+              "available": true,
+              "id": "7",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            },
+            {
+              "firstName": "Rachel",
+              "lastName": "Kim",
+              "title": "MD, PhD",
+              "specialty": "Psychiatry",
+              "department": "Behavioral Health",
+              "email": "dr.kim@clinic.com",
+              "phone": "555-1008",
+              "available": true,
+              "id": "8",
+              "createdAt": "1969-01-01T00:00:00.000Z"
+            }
+          ],
+          "total": 8
+        }
+      }
+    },
+    {
+      "stepId": "step-4",
+      "timestamp": "2026-01-27T11:54:22.507Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/healthcare/providers/",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": "Route not found: GET /providers/",
+          "code": "NOT_FOUND"
+        }
+      }
+    },
+    {
+      "stepId": "step-5",
+      "timestamp": "2026-01-27T11:54:22.522Z",
+      "request": {
+        "method": "POST",
+        "url": "https://apis.aximcode.com/v1/healthcare/appointments",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "patientId, providerId, dateTime, type, and reason are required",
+          "code": "INVALID_INPUT"
+        }
+      }
+    },
+    {
+      "stepId": "step-6",
+      "timestamp": "2026-01-27T11:54:22.616Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/healthcare/appointments/",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": "Route not found: GET /appointments/",
+          "code": "NOT_FOUND"
+        }
+      }
+    },
+    {
+      "stepId": "step-7",
+      "timestamp": "2026-01-27T11:54:22.632Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/healthcare/prescriptions?patientId=",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "prescriptions": [
+            {
+              "patientId": "1",
+              "providerId": "2",
+              "medication": "Lisinopril",
+              "dosage": "10mg",
+              "frequency": "Once daily",
+              "duration": "90 days",
+              "refillsRemaining": 3,
+              "status": "active",
+              "prescribedAt": "1969-12-02T00:00:00.000Z",
+              "expiresAt": "1970-03-02T00:00:00.000Z",
+              "id": "1"
+            },
+            {
+              "patientId": "1",
+              "providerId": "1",
+              "medication": "Aspirin",
+              "dosage": "81mg",
+              "frequency": "Once daily",
+              "duration": "365 days",
+              "refillsRemaining": 11,
+              "status": "active",
+              "prescribedAt": "1969-11-25T00:00:00.000Z",
+              "expiresAt": "1970-11-25T00:00:00.000Z",
+              "id": "2"
+            },
+            {
+              "patientId": "2",
+              "providerId": "4",
+              "medication": "Metformin",
+              "dosage": "500mg",
+              "frequency": "Twice daily",
+              "duration": "90 days",
+              "refillsRemaining": 2,
+              "status": "active",
+              "prescribedAt": "1969-11-18T00:00:00.000Z",
+              "expiresAt": "1970-02-16T00:00:00.000Z",
+              "id": "3"
+            },
+            {
+              "patientId": "2",
+              "providerId": "4",
+              "medication": "Glipizide",
+              "dosage": "5mg",
+              "frequency": "Once daily before meals",
+              "duration": "90 days",
+              "refillsRemaining": 1,
+              "status": "active",
+              "prescribedAt": "1969-11-11T00:00:00.000Z",
+              "expiresAt": "1970-02-09T00:00:00.000Z",
+              "id": "4"
+            },
+            {
+              "patientId": "4",
+              "providerId": "1",
+              "medication": "Albuterol Inhaler",
+              "dosage": "90mcg/actuation",
+              "frequency": "As needed",
+              "duration": "180 days",
+              "refillsRemaining": 5,
+              "status": "active",
+              "prescribedAt": "1969-11-04T00:00:00.000Z",
+              "expiresAt": "1970-05-03T00:00:00.000Z",
+              "id": "5"
+            },
+            {
+              "patientId": "4",
+              "providerId": "1",
+              "medication": "Fluticasone",
+              "dosage": "110mcg",
+              "frequency": "Twice daily",
+              "duration": "90 days",
+              "refillsRemaining": 2,
+              "status": "active",
+              "prescribedAt": "1969-10-28T00:00:00.000Z",
+              "expiresAt": "1970-01-26T00:00:00.000Z",
+              "id": "6"
+            },
+            {
+              "patientId": "5",
+              "providerId": "7",
+              "medication": "Cyclobenzaprine",
+              "dosage": "10mg",
+              "frequency": "Three times daily as needed",
+              "duration": "30 days",
+              "refillsRemaining": 0,
+              "status": "active",
+              "prescribedAt": "1969-10-21T00:00:00.000Z",
+              "expiresAt": "1969-11-20T00:00:00.000Z",
+              "id": "7"
+            },
+            {
+              "patientId": "5",
+              "providerId": "8",
+              "medication": "Sertraline",
+              "dosage": "50mg",
+              "frequency": "Once daily",
+              "duration": "90 days",
+              "refillsRemaining": 2,
+              "status": "active",
+              "prescribedAt": "1969-10-14T00:00:00.000Z",
+              "expiresAt": "1970-01-12T00:00:00.000Z",
+              "id": "8"
+            },
+            {
+              "patientId": "3",
+              "providerId": "3",
+              "medication": "Vitamin D",
+              "dosage": "2000 IU",
+              "frequency": "Once daily",
+              "duration": "365 days",
+              "refillsRemaining": 10,
+              "status": "active",
+              "prescribedAt": "1969-10-07T00:00:00.000Z",
+              "expiresAt": "1970-10-07T00:00:00.000Z",
+              "id": "9"
+            },
+            {
+              "patientId": "1",
+              "providerId": "1",
+              "medication": "Atorvastatin",
+              "dosage": "20mg",
+              "frequency": "Once daily at bedtime",
+              "duration": "90 days",
+              "refillsRemaining": 0,
+              "status": "completed",
+              "prescribedAt": "1969-09-30T00:00:00.000Z",
+              "expiresAt": "1969-12-29T00:00:00.000Z",
+              "id": "10"
+            },
+            {
+              "patientId": "2",
+              "providerId": "4",
+              "medication": "Pioglitazone",
+              "dosage": "15mg",
+              "frequency": "Once daily",
+              "duration": "90 days",
+              "refillsRemaining": 0,
+              "status": "cancelled",
+              "prescribedAt": "1969-09-23T00:00:00.000Z",
+              "expiresAt": "1969-12-22T00:00:00.000Z",
+              "id": "11"
+            },
+            {
+              "patientId": "4",
+              "providerId": "1",
+              "medication": "Montelukast",
+              "dosage": "10mg",
+              "frequency": "Once daily at bedtime",
+              "duration": "90 days",
+              "refillsRemaining": 0,
+              "status": "expired",
+              "prescribedAt": "1969-09-16T00:00:00.000Z",
+              "expiresAt": "1969-12-15T00:00:00.000Z",
+              "id": "12"
+            },
+            {
+              "patientId": "3",
+              "providerId": "3",
+              "medication": "Omeprazole",
+              "dosage": "20mg",
+              "frequency": "Once daily before breakfast",
+              "duration": "30 days",
+              "refillsRemaining": 1,
+              "status": "active",
+              "prescribedAt": "1969-09-09T00:00:00.000Z",
+              "expiresAt": "1969-10-09T00:00:00.000Z",
+              "id": "13"
+            },
+            {
+              "patientId": "5",
+              "providerId": "8",
+              "medication": "Lorazepam",
+              "dosage": "0.5mg",
+              "frequency": "As needed for anxiety",
+              "duration": "30 days",
+              "refillsRemaining": 0,
+              "status": "active",
+              "prescribedAt": "1969-09-02T00:00:00.000Z",
+              "expiresAt": "1969-10-02T00:00:00.000Z",
+              "id": "14"
+            },
+            {
+              "patientId": "1",
+              "providerId": "2",
+              "medication": "Amlodipine",
+              "dosage": "5mg",
+              "frequency": "Once daily",
+              "duration": "90 days",
+              "refillsRemaining": 2,
+              "status": "active",
+              "prescribedAt": "1969-08-26T00:00:00.000Z",
+              "expiresAt": "1969-11-24T00:00:00.000Z",
+              "id": "15"
+            }
+          ],
+          "total": 15
+        }
+      }
+    },
+    {
+      "stepId": "step-8",
+      "timestamp": "2026-01-27T11:54:22.647Z",
+      "request": {
+        "method": "POST",
+        "url": "https://apis.aximcode.com/v1/healthcare/prescriptions//refill",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": "Route not found: POST /prescriptions//refill",
+          "code": "NOT_FOUND"
+        }
+      }
+    },
+    {
+      "stepId": "step-9",
+      "timestamp": "2026-01-27T11:54:22.663Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/healthcare/vitals?patientId=",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "vitals": [
+            {
+              "id": "1",
+              "patientId": "1",
+              "type": "blood_pressure",
+              "value": "120/80",
+              "unit": "mmHg",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "4",
+              "patientId": "1",
+              "type": "heart_rate",
+              "value": "72",
+              "unit": "bpm",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "7",
+              "patientId": "1",
+              "type": "temperature",
+              "value": "98.6",
+              "unit": "F",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "10",
+              "patientId": "1",
+              "type": "weight",
+              "value": "175",
+              "unit": "lbs",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "13",
+              "patientId": "1",
+              "type": "oxygen_saturation",
+              "value": "98",
+              "unit": "%",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "16",
+              "patientId": "2",
+              "type": "blood_pressure",
+              "value": "118/78",
+              "unit": "mmHg",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "19",
+              "patientId": "2",
+              "type": "heart_rate",
+              "value": "68",
+              "unit": "bpm",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "22",
+              "patientId": "2",
+              "type": "temperature",
+              "value": "98.4",
+              "unit": "F",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "25",
+              "patientId": "2",
+              "type": "weight",
+              "value": "168",
+              "unit": "lbs",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "28",
+              "patientId": "2",
+              "type": "oxygen_saturation",
+              "value": "99",
+              "unit": "%",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "31",
+              "patientId": "3",
+              "type": "blood_pressure",
+              "value": "125/82",
+              "unit": "mmHg",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "34",
+              "patientId": "3",
+              "type": "heart_rate",
+              "value": "75",
+              "unit": "bpm",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "37",
+              "patientId": "3",
+              "type": "temperature",
+              "value": "99.0",
+              "unit": "F",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "40",
+              "patientId": "3",
+              "type": "weight",
+              "value": "155",
+              "unit": "lbs",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "43",
+              "patientId": "3",
+              "type": "oxygen_saturation",
+              "value": "97",
+              "unit": "%",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "46",
+              "patientId": "4",
+              "type": "blood_pressure",
+              "value": "130/85",
+              "unit": "mmHg",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "49",
+              "patientId": "4",
+              "type": "heart_rate",
+              "value": "80",
+              "unit": "bpm",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "52",
+              "patientId": "4",
+              "type": "temperature",
+              "value": "98.2",
+              "unit": "F",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "55",
+              "patientId": "4",
+              "type": "weight",
+              "value": "142",
+              "unit": "lbs",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "58",
+              "patientId": "4",
+              "type": "oxygen_saturation",
+              "value": "96",
+              "unit": "%",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "61",
+              "patientId": "5",
+              "type": "blood_pressure",
+              "value": "122/79",
+              "unit": "mmHg",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "64",
+              "patientId": "5",
+              "type": "heart_rate",
+              "value": "70",
+              "unit": "bpm",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "67",
+              "patientId": "5",
+              "type": "temperature",
+              "value": "98.8",
+              "unit": "F",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "70",
+              "patientId": "5",
+              "type": "weight",
+              "value": "195",
+              "unit": "lbs",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "73",
+              "patientId": "5",
+              "type": "oxygen_saturation",
+              "value": "98",
+              "unit": "%",
+              "recordedAt": "1970-01-01T00:00:00.000Z",
+              "recordedBy": "1"
+            },
+            {
+              "id": "2",
+              "patientId": "1",
+              "type": "blood_pressure",
+              "value": "120/80",
+              "unit": "mmHg",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "5",
+              "patientId": "1",
+              "type": "heart_rate",
+              "value": "72",
+              "unit": "bpm",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "8",
+              "patientId": "1",
+              "type": "temperature",
+              "value": "98.6",
+              "unit": "F",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "11",
+              "patientId": "1",
+              "type": "weight",
+              "value": "175",
+              "unit": "lbs",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "14",
+              "patientId": "1",
+              "type": "oxygen_saturation",
+              "value": "98",
+              "unit": "%",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "17",
+              "patientId": "2",
+              "type": "blood_pressure",
+              "value": "118/78",
+              "unit": "mmHg",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "20",
+              "patientId": "2",
+              "type": "heart_rate",
+              "value": "68",
+              "unit": "bpm",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "23",
+              "patientId": "2",
+              "type": "temperature",
+              "value": "98.4",
+              "unit": "F",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "26",
+              "patientId": "2",
+              "type": "weight",
+              "value": "168",
+              "unit": "lbs",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "29",
+              "patientId": "2",
+              "type": "oxygen_saturation",
+              "value": "99",
+              "unit": "%",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "32",
+              "patientId": "3",
+              "type": "blood_pressure",
+              "value": "125/82",
+              "unit": "mmHg",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "35",
+              "patientId": "3",
+              "type": "heart_rate",
+              "value": "75",
+              "unit": "bpm",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "38",
+              "patientId": "3",
+              "type": "temperature",
+              "value": "99.0",
+              "unit": "F",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "41",
+              "patientId": "3",
+              "type": "weight",
+              "value": "155",
+              "unit": "lbs",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "44",
+              "patientId": "3",
+              "type": "oxygen_saturation",
+              "value": "97",
+              "unit": "%",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "47",
+              "patientId": "4",
+              "type": "blood_pressure",
+              "value": "130/85",
+              "unit": "mmHg",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "50",
+              "patientId": "4",
+              "type": "heart_rate",
+              "value": "80",
+              "unit": "bpm",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "53",
+              "patientId": "4",
+              "type": "temperature",
+              "value": "98.2",
+              "unit": "F",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "56",
+              "patientId": "4",
+              "type": "weight",
+              "value": "142",
+              "unit": "lbs",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "59",
+              "patientId": "4",
+              "type": "oxygen_saturation",
+              "value": "96",
+              "unit": "%",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "62",
+              "patientId": "5",
+              "type": "blood_pressure",
+              "value": "122/79",
+              "unit": "mmHg",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "65",
+              "patientId": "5",
+              "type": "heart_rate",
+              "value": "70",
+              "unit": "bpm",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "68",
+              "patientId": "5",
+              "type": "temperature",
+              "value": "98.8",
+              "unit": "F",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "71",
+              "patientId": "5",
+              "type": "weight",
+              "value": "195",
+              "unit": "lbs",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            },
+            {
+              "id": "74",
+              "patientId": "5",
+              "type": "oxygen_saturation",
+              "value": "98",
+              "unit": "%",
+              "recordedAt": "1969-12-02T00:00:00.000Z",
+              "recordedBy": "2"
+            }
+          ],
+          "total": 75,
+          "page": 1,
+          "limit": 50,
+          "totalPages": 2
+        }
+      }
+    }
+  ]
+}
