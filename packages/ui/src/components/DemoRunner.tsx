@@ -13,6 +13,7 @@ import { Dashboard } from './Dashboard';
 import { Sidebar } from './Sidebar';
 import { FlowDiagramPanel } from './diagram';
 import { GridBackground, GlowOrbs } from './effects';
+import { PoweredByBadge } from './PoweredByBadge';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { normalizeConfig } from '../lib/normalize-config';
 import { isCloudMode } from '../lib/execute-adapter';
@@ -164,6 +165,7 @@ function DemoContent() {
           <div className="mt-6">
             <Controls />
           </div>
+          <PoweredByBadge />
         </main>
         <KeyboardHelp />
       </div>
