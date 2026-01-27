@@ -266,9 +266,15 @@ if [ "$INSTALL" = true ]; then
         rm -rf dist/ui-dist/dist
     fi
 
-    # Install globally
-    echo -e "  Running: sudo npm install -g ."
-    sudo npm install -g .
+    # Install globally (use sudo only if needed)
+    NPM_PREFIX=$(npm config get prefix)
+    if [ -w "$NPM_PREFIX/lib" ] 2>/dev/null; then
+        echo -e "  Running: npm install -g . (to $NPM_PREFIX)"
+        npm install -g .
+    else
+        echo -e "  Running: sudo npm install -g . (to $NPM_PREFIX)"
+        sudo npm install -g .
+    fi
 
     cd "$SCRIPT_DIR"
     VERSION=$(demoscript --version 2>/dev/null || echo "unknown")
