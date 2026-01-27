@@ -1,5 +1,23 @@
 import * as esbuild from 'esbuild';
-import { writeFileSync, mkdirSync, readFileSync, copyFileSync } from 'fs';
+import { writeFileSync, mkdirSync, readFileSync, copyFileSync, rmSync, existsSync } from 'fs';
+
+// Clean dist folder (except ui-dist which is copied separately)
+if (existsSync('dist')) {
+  // Remove everything except ui-dist
+  rmSync('dist/bundle.cjs', { force: true });
+  rmSync('dist/index.js', { force: true });
+  rmSync('dist/demo.schema.json', { force: true });
+  rmSync('dist/commands', { recursive: true, force: true });
+  rmSync('dist/lib', { recursive: true, force: true });
+  rmSync('dist/server', { recursive: true, force: true });
+  rmSync('dist/types.js', { force: true });
+  rmSync('dist/types.js.map', { force: true });
+  rmSync('dist/types.d.ts', { force: true });
+  rmSync('dist/types.d.ts.map', { force: true });
+  rmSync('dist/index.d.ts', { force: true });
+  rmSync('dist/index.d.ts.map', { force: true });
+  rmSync('dist/index.js.map', { force: true });
+}
 
 // Read version from package.json at build time
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));

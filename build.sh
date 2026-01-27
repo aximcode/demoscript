@@ -10,6 +10,7 @@
 #   ./build.sh --deb                  # Build everything + DEB package
 #   ./build.sh --packages             # Build everything + all packages
 #   ./build.sh --clean                # Clean build artifacts first
+#   ./build.sh --publish [patch|minor|major]  # Build and publish to npm
 #
 # Options:
 #   --clean      Clean build artifacts before building
@@ -19,6 +20,7 @@
 #   --packages   Build all packages (RPM + DEB) after building
 #   --skip-ui    Skip UI build (use existing)
 #   --skip-cli   Skip CLI build (use existing)
+#   --publish    Publish to npm (patch by default, or specify patch/minor/major)
 #   -h, --help   Show this help message
 #
 # Serve examples:
@@ -46,6 +48,8 @@ BUILD_RPM=false
 BUILD_DEB=false
 SKIP_UI=false
 SKIP_CLI=false
+PUBLISH=false
+VERSION_BUMP="patch"
 SERVE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -81,6 +85,15 @@ while [[ $# -gt 0 ]]; do
         --skip-cli)
             SKIP_CLI=true
             shift
+            ;;
+        --publish)
+            PUBLISH=true
+            shift
+            # Check for optional version bump type
+            if [[ $# -gt 0 && "$1" =~ ^(patch|minor|major)$ ]]; then
+                VERSION_BUMP="$1"
+                shift
+            fi
             ;;
         -h|--help)
             head -28 "$0" | tail -27
@@ -191,6 +204,37 @@ if [ "$BUILD_RPM" = true ] || [ "$BUILD_DEB" = true ]; then
     elif [ "$BUILD_DEB" = true ]; then
         ./scripts/build-packages.sh deb
     fi
+    echo
+fi
+
+# Publish to npm if requested
+if [ "$PUBLISH" = true ]; then
+    echo -e "${CYAN}Publishing to npm...${NC}"
+    echo
+
+    # Bump CLI version
+    cd packages/cli
+    OLD_VERSION=$(node -p "require('./package.json').version")
+    npm version "$VERSION_BUMP" --no-git-tag-version
+    NEW_VERSION=$(node -p "require('./package.json').version")
+    echo -e "  Version: ${YELLOW}$OLD_VERSION${NC} → ${GREEN}$NEW_VERSION${NC}"
+
+    # Build with esbuild (bundles everything)
+    echo -e "  Building bundle..."
+    node esbuild.config.js
+
+    # Copy UI dist
+    rm -rf dist/ui-dist
+    cp -r ../ui/dist dist/ui-dist
+    rm -f dist/ui-dist/assets/*.map
+    rm -rf dist/ui-dist/dist  # Remove nested dist if exists
+
+    # Publish
+    echo -e "  Publishing @demoscript/cli@$NEW_VERSION..."
+    npm publish --access public
+
+    cd "$SCRIPT_DIR"
+    echo -e "${GREEN}  Published @demoscript/cli@$NEW_VERSION${NC}"
     echo
 fi
 
