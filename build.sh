@@ -11,6 +11,7 @@
 #   ./build.sh --packages             # Build everything + all packages
 #   ./build.sh --clean                # Clean build artifacts first
 #   ./build.sh --publish [patch|minor|major]  # Build and publish to npm
+#   ./build.sh --install                      # Build and install globally
 #
 # Options:
 #   --clean      Clean build artifacts before building
@@ -21,6 +22,7 @@
 #   --skip-ui    Skip UI build (use existing)
 #   --skip-cli   Skip CLI build (use existing)
 #   --publish    Publish to npm (patch by default, or specify patch/minor/major)
+#   --install    Install CLI globally from local build (uses sudo)
 #   -h, --help   Show this help message
 #
 # Serve examples:
@@ -49,6 +51,7 @@ BUILD_DEB=false
 SKIP_UI=false
 SKIP_CLI=false
 PUBLISH=false
+INSTALL=false
 VERSION_BUMP="patch"
 SERVE_ARGS=()
 
@@ -94,6 +97,10 @@ while [[ $# -gt 0 ]]; do
                 VERSION_BUMP="$1"
                 shift
             fi
+            ;;
+        --install)
+            INSTALL=true
+            shift
             ;;
         -h|--help)
             head -28 "$0" | tail -27
@@ -235,6 +242,37 @@ if [ "$PUBLISH" = true ]; then
 
     cd "$SCRIPT_DIR"
     echo -e "${GREEN}  Published @demoscript/cli@$NEW_VERSION${NC}"
+    echo
+fi
+
+# Install globally if requested
+if [ "$INSTALL" = true ]; then
+    echo -e "${CYAN}Installing CLI globally...${NC}"
+    echo
+
+    cd packages/cli
+
+    # Build with esbuild if not already built
+    if [ ! -f "dist/bundle.cjs" ]; then
+        echo -e "  Building bundle..."
+        node esbuild.config.js
+    fi
+
+    # Ensure UI dist is present
+    if [ ! -d "dist/ui-dist" ]; then
+        rm -rf dist/ui-dist
+        cp -r ../ui/dist dist/ui-dist
+        rm -f dist/ui-dist/assets/*.map
+        rm -rf dist/ui-dist/dist
+    fi
+
+    # Install globally
+    echo -e "  Running: sudo npm install -g ."
+    sudo npm install -g .
+
+    cd "$SCRIPT_DIR"
+    VERSION=$(demoscript --version 2>/dev/null || echo "unknown")
+    echo -e "${GREEN}  Installed demoscript@$VERSION globally${NC}"
     echo
 fi
 
