@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { writeFileSync, mkdirSync, readFileSync } from 'fs';
+import { writeFileSync, mkdirSync, readFileSync, copyFileSync } from 'fs';
 
 // Read version from package.json at build time
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
@@ -46,4 +46,8 @@ const require = createRequire(import.meta.url);
 require('./bundle.cjs');
 `);
   console.log('dist/index.js: ESM entry point created');
+
+  // Copy schema file to dist for validation
+  copyFileSync('../../demo.schema.json', 'dist/demo.schema.json');
+  console.log('dist/demo.schema.json: Schema copied');
 });
