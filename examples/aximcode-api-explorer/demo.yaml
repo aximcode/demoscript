@@ -14,6 +14,7 @@ metadata:
 
 settings:
   base_url: "https://apis.aximcode.com/v1"
+  openapi: "https://apis.aximcode.com/v1/openapi.json"
 
   theme:
     preset: "teal"

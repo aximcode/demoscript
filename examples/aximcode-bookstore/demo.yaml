@@ -95,15 +95,9 @@ steps:
   - rest: POST /cart
     title: "Add to Cart"
     description: "Add the book to our shopping cart"
-    body:
+    defaults:
       bookId: "$bookId"
       quantity: 1
-    results:
-      - key: message
-        label: "Status"
-        type: text
-      - key: cart.itemCount
-        label: "Items in Cart"
 
   - rest: GET /cart
     title: "View Cart"
@@ -121,21 +115,11 @@ steps:
   - rest: POST /orders
     title: "Checkout"
     description: "Complete the purchase"
-    body:
+    defaults:
       shippingAddress: "123 Demo Street, San Francisco, CA 94105"
     save:
       orderId: id
       orderStatus: status
-    results:
-      - key: id
-        label: "Order ID"
-        type: mono
-      - key: status
-        label: "Status"
-        type: text
-      - key: total
-        label: "Total"
-        type: currency
 
   - rest: GET /orders/$orderId
     title: "Order Confirmation"

@@ -89,7 +89,7 @@ steps:
   - rest: POST /transfers
     title: "Transfer Funds"
     description: "Send $100 from $fromAccountName to $toAccountName"
-    body:
+    defaults:
       fromAccountId: "$fromAccount"
       toAccountId: "$toAccount"
       amount: 100
@@ -97,19 +97,6 @@ steps:
     save:
       transferId: id
       transferStatus: status
-    results:
-      - key: id
-        label: "Transfer ID"
-        type: mono
-      - key: amount
-        label: "Amount"
-        type: currency
-      - key: status
-        label: "Status"
-        type: text
-      - key: createdAt
-        label: "Initiated"
-        type: relative_time
 
   - rest: GET /transfers/$transferId
     title: "Transfer Status"
