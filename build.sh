@@ -22,7 +22,7 @@
 #   --skip-ui    Skip UI build (use existing)
 #   --skip-cli   Skip CLI build (use existing)
 #   --publish    Publish to npm (patch by default, or specify patch/minor/major)
-#   --install    Install CLI globally from local build (uses sudo)
+#   --install    Install CLI locally to ~/.local (add -g for global)
 #   -h, --help   Show this help message
 #
 # Serve examples:
@@ -52,6 +52,7 @@ SKIP_UI=false
 SKIP_CLI=false
 PUBLISH=false
 INSTALL=false
+INSTALL_GLOBAL=false
 VERSION_BUMP="patch"
 SERVE_ARGS=()
 
@@ -101,6 +102,11 @@ while [[ $# -gt 0 ]]; do
         --install)
             INSTALL=true
             shift
+            # Check for optional -g flag
+            if [[ $# -gt 0 && "$1" == "-g" ]]; then
+                INSTALL_GLOBAL=true
+                shift
+            fi
             ;;
         -h|--help)
             head -28 "$0" | tail -27
@@ -266,19 +272,30 @@ if [ "$INSTALL" = true ]; then
         rm -rf dist/ui-dist/dist
     fi
 
-    # Install globally (use sudo only if needed)
-    NPM_PREFIX=$(npm config get prefix)
-    if [ -w "$NPM_PREFIX/lib" ] 2>/dev/null; then
-        echo -e "  Running: npm install -g . (to $NPM_PREFIX)"
-        npm install -g .
+    # Install (local by default, global with -g)
+    if [ "$INSTALL_GLOBAL" = true ]; then
+        NPM_PREFIX=$(npm config get prefix)
+        if [ -w "$NPM_PREFIX/lib" ] 2>/dev/null; then
+            echo -e "  Running: npm install -g . (to $NPM_PREFIX)"
+            npm install -g .
+        else
+            echo -e "  Running: sudo npm install -g . (to $NPM_PREFIX)"
+            sudo npm install -g .
+        fi
+        cd "$SCRIPT_DIR"
+        VERSION=$(demoscript --version 2>/dev/null || echo "unknown")
+        echo -e "${GREEN}  Installed demoscript@$VERSION globally${NC}"
     else
-        echo -e "  Running: sudo npm install -g . (to $NPM_PREFIX)"
-        sudo npm install -g .
+        # Local install to ~/.local
+        LOCAL_PREFIX="$HOME/.local"
+        mkdir -p "$LOCAL_PREFIX/bin" "$LOCAL_PREFIX/lib"
+        echo -e "  Running: npm install -g . --prefix $LOCAL_PREFIX"
+        npm install -g . --prefix "$LOCAL_PREFIX"
+        cd "$SCRIPT_DIR"
+        VERSION=$("$LOCAL_PREFIX/bin/demoscript" --version 2>/dev/null || echo "unknown")
+        echo -e "${GREEN}  Installed demoscript@$VERSION to $LOCAL_PREFIX${NC}"
+        echo -e "  ${YELLOW}Ensure $LOCAL_PREFIX/bin is in your PATH${NC}"
     fi
-
-    cd "$SCRIPT_DIR"
-    VERSION=$(demoscript --version 2>/dev/null || echo "unknown")
-    echo -e "${GREEN}  Installed demoscript@$VERSION globally${NC}"
     echo
 fi
 
