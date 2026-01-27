@@ -28,6 +28,11 @@ import {
   destroySandboxSession,
 } from './data.js';
 
+// Import domain handlers
+import { handleBookstoreRequest } from './domains/bookstore/handlers.js';
+import { handleFintechRequest } from './domains/fintech/handlers.js';
+import { handleHealthcareRequest } from './domains/healthcare/handlers.js';
+
 export { resetSandboxData, createSandboxSession, destroySandboxSession };
 
 // Error response helper
@@ -263,6 +268,26 @@ export async function handleSandboxRequest(req: SandboxRequest): Promise<Sandbox
   const path = req.path.startsWith('/') ? req.path : `/${req.path}`;
   const method = req.method.toUpperCase();
   const sessionId = req.sessionId;
+
+  // Route to domain handlers
+  if (path.startsWith('/bookstore')) {
+    return handleBookstoreRequest({
+      ...req,
+      path: path.replace('/bookstore', '') || '/',
+    });
+  }
+  if (path.startsWith('/fintech')) {
+    return handleFintechRequest({
+      ...req,
+      path: path.replace('/fintech', '') || '/',
+    });
+  }
+  if (path.startsWith('/healthcare')) {
+    return handleHealthcareRequest({
+      ...req,
+      path: path.replace('/healthcare', '') || '/',
+    });
+  }
 
   // Health check (no auth required)
   if (path === '/health' && method === 'GET') {

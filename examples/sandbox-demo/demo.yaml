@@ -217,7 +217,9 @@ steps:
       - **Error handling** - Testing error responses
       - **Echo endpoint** - Request/response testing
 
-      The Sandbox API is available at `/sandbox` in CLI mode
-      and `/api/sandbox` in DemoScript Cloud.
+      **API Options:**
+      - `/sandbox` - Local CLI mode (offline capable)
+      - `https://apis.aximcode.com/v1` - Production APIs
 
-      **No external dependencies required!**
+      For production demos, use [AximCode APIs](https://apis.aximcode.com)
+      for additional domains (Bookstore, Fintech, Healthcare) and higher rate limits.

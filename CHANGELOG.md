@@ -5,27 +5,6 @@ All notable changes to DemoScript will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.7] - 2026-01-26
-
-### Changed
-
-- **Simplified npm package** - Reduced package size from 5.8MB to 1.5MB by bundling dependencies
-- **Package renamed** - Now published as `@demoscript/cli` (scoped package)
-
-### Added
-
-- **Build script improvements**
-  - `--install` - Install locally to `~/.local/bin`
-  - `--install -g` - Install globally (uses sudo if needed)
-  - `--publish [patch|minor|major]` - Bump version and publish to npm
-- **esbuild bundling** - All dependencies bundled into single file for faster startup
-
-### Technical
-
-- Removed `@demoscript/shared` and `@demoscript/builder` as npm dependencies (bundled instead)
-- Only `vite` remains as external dependency (for dev server)
-- Clean dist before build (removes old tsc artifacts)
-
 ## [0.2.0] - 2026-01-10
 
 ### Added

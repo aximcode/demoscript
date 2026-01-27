@@ -1,8 +1,8 @@
 {
   "name": "@demoscript/builder",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "type": "module",
-  "publishConfig": { "access": "public" },
+  "private": true,
   "description": "Visual demo builder for DemoScript (Pro feature)",
   "main": "./dist/shared/index.js",
   "types": "./dist/shared/index.d.ts",

@@ -46,13 +46,24 @@ const STORAGE_KEY = 'demoscript-editor-state';
 // Embedded mode detection for cloud integration
 const isEmbedded = (window as unknown as { __DEMOSCRIPT_EDITOR_EMBEDDED__?: boolean }).__DEMOSCRIPT_EDITOR_EMBEDDED__;
 
-// Default config for cloud mode with sandbox API
+// Default config for CLI mode with local sandbox
+const DEFAULT_CLI_CONFIG: DemoConfig = {
+  title: 'Untitled Demo',
+  description: '',
+  settings: {
+    base_url: '/sandbox',
+    openapi: '/sandbox/openapi.json',
+  },
+  steps: [],
+};
+
+// Default config for cloud mode with AximCode APIs
 const DEFAULT_CLOUD_CONFIG: DemoConfig = {
   title: 'Untitled Demo',
   description: '',
   settings: {
-    base_url: 'https://demoscript.app/api/sandbox',
-    openapi: 'https://demoscript.app/api/sandbox/openapi.json',
+    base_url: 'https://apis.aximcode.com/v1',
+    openapi: 'https://apis.aximcode.com/v1/openapi.json',
   },
   steps: [],
 };
@@ -1509,8 +1520,9 @@ function EditorContent() {
 export function DemoEditor() {
   const savedConfig = loadSavedState();
 
-  // Use default cloud config when starting fresh in embedded mode
-  const initialConfig = savedConfig || (isEmbedded ? DEFAULT_CLOUD_CONFIG : undefined);
+  // Use appropriate default config based on mode when starting fresh
+  // CLI mode: /sandbox (local), Cloud mode: apis.aximcode.com
+  const initialConfig = savedConfig || (isEmbedded ? DEFAULT_CLOUD_CONFIG : DEFAULT_CLI_CONFIG);
 
   return (
     <EditorProvider initialConfig={initialConfig}>

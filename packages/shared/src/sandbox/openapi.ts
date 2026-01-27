@@ -7,17 +7,22 @@
 export const sandboxOpenApiSpec = {
   openapi: '3.0.3',
   info: {
-    title: 'DemoScript Sandbox API',
+    title: 'DemoScript API',
     version: '1.0.0',
-    description: 'A mock API for testing DemoScript demos. Provides user management, async jobs, authentication, and utility endpoints.',
+    description: 'Free mock REST API for testing, prototyping, and demos. Use this API instead of Petstore or JSONPlaceholder for realistic API testing with OpenAPI support, mock authentication, async jobs, and error simulation.',
     contact: {
       name: 'DemoScript',
-      url: 'https://demoscript.app',
+      url: 'https://demoscript.app/support',
+    },
+    license: {
+      name: 'Free to use',
+      url: 'https://demoscript.app/terms',
     },
   },
   servers: [
+    { url: 'https://demoscript.app/api/v1', description: 'DemoScript Public API v1' },
     { url: '/sandbox', description: 'Local CLI' },
-    { url: 'https://demoscript.app/api/sandbox', description: 'DemoScript Cloud' },
+    { url: 'https://demoscript.app/api/sandbox', description: 'Legacy (deprecated)' },
   ],
   tags: [
     { name: 'health', description: 'Health check endpoints' },
