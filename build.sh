@@ -161,6 +161,9 @@ fi
 if [ "$SKIP_CLI" = false ]; then
     echo -e "${YELLOW}[4/5] Building CLI package...${NC}"
     cd packages/cli
+    echo -e "      Type checking..."
+    npm run typecheck
+    echo -e "      Bundling..."
     npm run build
     cd "$SCRIPT_DIR"
     echo -e "${GREEN}      CLI build complete!${NC}"
