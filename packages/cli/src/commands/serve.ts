@@ -14,16 +14,65 @@ import chalk from 'chalk';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function getNetworkUrl(port: number): string | null {
+/**
+ * Get the host's LAN IP address (first non-loopback IPv4)
+ */
+function getHostIp(): string | null {
   const nets = networkInterfaces();
   for (const name of Object.keys(nets)) {
     for (const net of nets[name] || []) {
       if (net.family === 'IPv4' && !net.internal) {
-        return `http://${net.address}:${port}`;
+        return net.address;
       }
     }
   }
   return null;
+}
+
+function getNetworkUrl(port: number): string | null {
+  const hostIp = getHostIp();
+  return hostIp ? `http://${hostIp}:${port}` : null;
+}
+
+/**
+ * Replace localhost/127.0.0.1 with the actual host IP in URLs
+ */
+function replaceLocalhostWithIp(url: string, hostIp: string): string {
+  return url
+    .replace(/localhost/gi, hostIp)
+    .replace(/127\.0\.0\.1/g, hostIp);
+}
+
+/**
+ * Substitute ${host_ip} variable and optionally replace localhost in config
+ */
+function processConfigForNetwork(config: Record<string, unknown>, hostIp: string | null, autoReplace: boolean): Record<string, unknown> {
+  if (!hostIp) return config;
+
+  const processValue = (value: unknown): unknown => {
+    if (typeof value === 'string') {
+      // Always substitute ${host_ip} variable
+      let result = value.replace(/\$\{host_ip\}/gi, hostIp);
+      // If autoReplace is enabled, also replace localhost/127.0.0.1
+      if (autoReplace) {
+        result = replaceLocalhostWithIp(result, hostIp);
+      }
+      return result;
+    }
+    if (Array.isArray(value)) {
+      return value.map(processValue);
+    }
+    if (value && typeof value === 'object') {
+      const processed: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value)) {
+        processed[k] = processValue(v);
+      }
+      return processed;
+    }
+    return value;
+  };
+
+  return processValue(config) as Record<string, unknown>;
 }
 
 interface ServeOptions {
@@ -50,13 +99,24 @@ export async function serve(demoPath: string, options: ServeOptions): Promise<vo
   console.log(chalk.green(`  Loaded: ${config.title}`));
   console.log(chalk.gray(`  Steps: ${config.steps.length}`));
 
+  // Get host IP for network substitution
+  // When --host is used (host === '0.0.0.0'), auto-replace localhost with LAN IP
+  const hostIp = getHostIp();
+  const autoReplaceLocalhost = host === '0.0.0.0';
+
+  if (hostIp && autoReplaceLocalhost) {
+    console.log(chalk.gray(`  Host IP: ${hostIp} (auto-replacing localhost)`));
+  }
+
   // Create Express app
   const app = express();
   app.use(express.json());
 
   // API endpoints for demo data
+  // Process config to substitute ${host_ip} and optionally replace localhost
   app.get('/api/demo', (_req, res) => {
-    res.json({ config, recordings, openapiSpec });
+    const processedConfig = processConfigForNetwork(config as unknown as Record<string, unknown>, hostIp, autoReplaceLocalhost);
+    res.json({ config: processedConfig, recordings, openapiSpec });
   });
 
   // Track WebSocket clients for live reload
@@ -231,8 +291,9 @@ export async function serve(demoPath: string, options: ServeOptions): Promise<vo
 
         console.log(chalk.green(`  Reloaded: ${config.title}`));
 
-        // Notify all connected clients
-        const message = JSON.stringify({ type: 'reload', config, recordings, openapiSpec });
+        // Notify all connected clients (with network substitution applied)
+        const processedConfig = processConfigForNetwork(config as unknown as Record<string, unknown>, hostIp, autoReplaceLocalhost);
+        const message = JSON.stringify({ type: 'reload', config: processedConfig, recordings, openapiSpec });
         for (const client of wsClients) {
           if (client.readyState === WebSocket.OPEN) {
             client.send(message);
