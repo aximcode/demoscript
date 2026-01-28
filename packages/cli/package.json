@@ -20,9 +20,9 @@
     "documentation"
   ],
   "scripts": {
-    "build": "tsc && npm run bundle-ui",
-    "bundle": "node esbuild.config.js && npm run bundle-ui",
+    "build": "node esbuild.config.js && npm run bundle-ui",
     "bundle-ui": "cp -r ../ui/dist ./dist/ui-dist && rm -f ./dist/ui-dist/assets/*.map",
+    "typecheck": "tsc --noEmit",
     "dev": "tsc --watch",
     "lint": "eslint src --ext .ts",
     "test": "vitest run",
