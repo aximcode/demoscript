@@ -150,7 +150,7 @@ export async function serve(demoPath: string, options: ServeOptions): Promise<vo
     }
   }
   app.all('/sandbox', sandboxHandler);
-  app.all('/sandbox/*', sandboxHandler);
+  app.all('/sandbox/*path', sandboxHandler);
 
   // Browser opener for browser steps
   app.post('/api/open-browser', async (req, res) => {
