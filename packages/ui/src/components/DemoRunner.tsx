@@ -66,6 +66,21 @@ function DemoContent() {
   const handlePrev = useCallback(() => dispatch({ type: 'PREV_STEP' }), [dispatch]);
   const handleReset = useCallback(() => dispatch({ type: 'RESET' }), [dispatch]);
 
+  // Handle node click in diagram - navigate to first step with that node
+  // NOTE: This must be before early returns to satisfy React's rules of hooks
+  const handleDiagramNodeClick = useCallback((nodeId: string) => {
+    // Find first step that references this node in its diagram path
+    const stepIndex = state.flatSteps.findIndex((step) => {
+      if (!('diagram' in step) || !step.diagram) return false;
+      const path = step.diagram as string;
+      // Match "NodeA->NodeB" or just "NodeA"
+      return path.includes(nodeId);
+    });
+    if (stepIndex >= 0) {
+      dispatch({ type: 'SET_STEP', payload: stepIndex });
+    }
+  }, [state.flatSteps, dispatch]);
+
   useKeyboardNavigation({
     onNext: handleNext,
     onPrev: handlePrev,
@@ -94,20 +109,6 @@ function DemoContent() {
   const handleStepClick = (index: number) => {
     dispatch({ type: 'SET_STEP', payload: index });
   };
-
-  // Handle node click in diagram - navigate to first step with that node
-  const handleDiagramNodeClick = useCallback((nodeId: string) => {
-    // Find first step that references this node in its diagram path
-    const stepIndex = state.flatSteps.findIndex((step) => {
-      if (!('diagram' in step) || !step.diagram) return false;
-      const path = step.diagram as string;
-      // Match "NodeA->NodeB" or just "NodeA"
-      return path.includes(nodeId);
-    });
-    if (stepIndex >= 0) {
-      dispatch({ type: 'SET_STEP', payload: stepIndex });
-    }
-  }, [state.flatSteps, dispatch]);
 
   return (
     <div className="min-h-screen flex flex-col relative z-10">
