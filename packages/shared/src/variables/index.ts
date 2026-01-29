@@ -174,13 +174,27 @@ export function extractValueByPath(obj: unknown, path: string): unknown {
 }
 
 /**
+ * HTTP methods that do not accept request bodies
+ */
+const BODYLESS_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+
+/**
+ * Check if HTTP method supports request body
+ * @param method - HTTP method (e.g., "GET", "POST")
+ * @returns true if the method supports a request body
+ */
+export function methodSupportsBody(method: string): boolean {
+  return !BODYLESS_METHODS.includes(method.toUpperCase());
+}
+
+/**
  * Parse REST step string into method and endpoint
  * @param rest - REST step string (e.g., "POST /users" or "GET /health")
  * @returns Object with method and endpoint
  * @throws Error if the format is invalid
  */
 export function parseRestStep(rest: string): { method: string; endpoint: string } {
-  const match = rest.match(/^(GET|POST|PUT|PATCH|DELETE)\s+(.+)$/i);
+  const match = rest.match(/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+(.+)$/i);
   if (!match) {
     throw new Error(`Invalid REST format: ${rest}`);
   }

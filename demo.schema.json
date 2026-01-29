@@ -604,7 +604,7 @@
       "required": ["step", "method", "path"],
       "properties": {
         "step": { "const": "rest" },
-        "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+        "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] },
         "path": { "type": "string", "description": "API endpoint path" },
         "title": { "type": "string" },
         "id": { "type": "string" },

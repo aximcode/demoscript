@@ -3,6 +3,7 @@ import {
   substituteVariables,
   substituteInObject,
   extractValueByPath,
+  methodSupportsBody,
 } from '@demoscript/shared/variables';
 
 interface ExecutionResult {
@@ -44,7 +45,7 @@ export async function executeRestStep(
 
   // Build body from form defaults or body
   let body: unknown = undefined;
-  if (method !== 'GET') {
+  if (methodSupportsBody(method)) {
     if (step.form) {
       body = Object.fromEntries(
         step.form.map((field) => {

@@ -1,4 +1,5 @@
 import { CurlCommand } from './CurlCommand';
+import { methodSupportsBody } from '../../lib/variable-substitution';
 
 interface Props {
   method: string;
@@ -22,7 +23,7 @@ export function RequestPreview({ method, url, body, headers, showCurl = false }:
       <pre className="bg-gray-100 dark:bg-slate-950 text-gray-800 dark:text-slate-100 p-3 rounded-lg text-sm overflow-x-auto border border-gray-200 dark:border-slate-700/50">
         <code>
           {method} {url}
-          {method !== 'GET' && body && (
+          {methodSupportsBody(method) && body && (
             <>
               {'\n\n'}
               {body}

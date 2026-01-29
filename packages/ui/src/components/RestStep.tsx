@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useDemo } from '../context/DemoContext';
-import { substituteVariables, substituteInObject, extractValueByPath, findVariablesInObject, findMissingVariables } from '../lib/variable-substitution';
+import { substituteVariables, substituteInObject, extractValueByPath, findVariablesInObject, findMissingVariables, methodSupportsBody } from '../lib/variable-substitution';
 import { extractErrorMessage, buildRequestBody, buildQueryString } from '../lib/rest-helpers';
 import { executeRequest } from '../lib/execute-adapter';
 import { parseRestMethod } from '../types/schema';
@@ -184,7 +184,7 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
           method,
           url: requestUrl,
           headers: substituteInObject(step.headers, state.variables) as Record<string, string>,
-          body: method !== 'GET' ? body : undefined,
+          body: methodSupportsBody(method) ? body : undefined,
         });
 
         if (result.error) {
@@ -283,7 +283,7 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
             <RequestPreview
               method={method}
               url={fullUrl + (effectiveForm ? buildQueryString(effectiveForm, formValues) : '')}
-              body={method !== 'GET' && (effectiveForm || step.body) ? getRequestBodyPreview() : undefined}
+              body={methodSupportsBody(method) && (effectiveForm || step.body) ? getRequestBodyPreview() : undefined}
               headers={step.headers ? substituteInObject(step.headers, state.variables) as Record<string, string> : undefined}
               showCurl={step.show_curl}
             />

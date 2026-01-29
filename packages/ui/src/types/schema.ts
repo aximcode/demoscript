@@ -230,7 +230,7 @@ export interface ExplicitSlideStep extends BaseStep {
 
 export interface ExplicitRestStep extends BaseStep {
   step: 'rest';
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
   path: string;
   description?: string;
   base_url?: string;

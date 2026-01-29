@@ -68,7 +68,7 @@ import {
   type StepGroup,
 } from '../../types/schema';
 
-const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
+const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const;
 
 interface StepEditorProps {
   step: StepOrGroup;

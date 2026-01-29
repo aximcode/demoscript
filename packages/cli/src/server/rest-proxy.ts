@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'express';
+import { methodSupportsBody } from '@demoscript/shared/variables';
 
 interface ProxyRequest {
   method: string;
@@ -35,7 +36,7 @@ export function createRestProxy(): RequestHandler {
         headers: fetchHeaders,
       };
 
-      if (body && method !== 'GET') {
+      if (body && methodSupportsBody(method)) {
         fetchOptions.body = JSON.stringify(body);
       }
 

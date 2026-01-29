@@ -9,4 +9,5 @@ export {
   findVariablesInObject,
   findMissingVariables,
   extractValueByPath,
+  methodSupportsBody,
 } from '@demoscript/shared/variables';

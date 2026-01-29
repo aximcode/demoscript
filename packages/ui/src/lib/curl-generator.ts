@@ -7,7 +7,12 @@ export function generateCurl(
   headers?: Record<string, string>,
   body?: unknown
 ): string {
-  const parts: string[] = [`curl -X ${method.toUpperCase()}`];
+  const upperMethod = method.toUpperCase();
+
+  // HEAD uses -I flag, others use -X METHOD
+  const parts: string[] = upperMethod === 'HEAD'
+    ? ['curl -I']
+    : [`curl -X ${upperMethod}`];
 
   // Add URL (escaped)
   parts.push(`'${escapeShell(url)}'`);
@@ -24,7 +29,7 @@ export function generateCurl(
     parts.push("-H 'Content-Type: application/json'");
   }
 
-  // Add body
+  // Add body (only for methods that support it)
   if (body) {
     const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
     parts.push(`-d '${escapeShell(bodyStr)}'`);

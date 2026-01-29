@@ -74,7 +74,7 @@ function highlightCurl(cmd: string): ReactElement {
           return <span key={i} className="text-yellow-400">{part}</span>;
         }
         // HTTP methods
-        if (part.match(/^(GET|POST|PUT|PATCH|DELETE)$/)) {
+        if (part.match(/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/)) {
           return <span key={i} className="text-green-400">{part}</span>;
         }
         // Quoted strings

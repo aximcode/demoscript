@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { substituteInObject } from '../lib/variable-substitution';
+import { substituteInObject, methodSupportsBody } from '../lib/variable-substitution';
 import { executeRequest } from '../lib/execute-adapter';
 import { buildRequestBody } from '../lib/rest-helpers';
 import type { RestStep as RestStepType, ExplicitRestStep } from '../types/schema';
@@ -48,7 +48,7 @@ export function useTryItMode({
         method,
         url: fullUrl,
         headers: substituteInObject(step.headers, variables) as Record<string, string>,
-        body: method !== 'GET' ? body : undefined,
+        body: methodSupportsBody(method) ? body : undefined,
       });
 
       if (result.error) {
