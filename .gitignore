@@ -42,7 +42,9 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# Project instructions (local only, not synced to public repo)
+CLAUDE.md
 demoscript-cli-*.tgz
 assets/builder-frames/
 packages/ui/index.build.html
-CLAUDE.md

@@ -1,0 +1,101 @@
+# Test demo for step-level setting overrides
+title: "Step-Level Overrides Test"
+description: "Tests that step-level settings override global settings"
+
+settings:
+  base_url: "/sandbox"
+  openapi: "/sandbox/openapi.json"
+
+  # Global settings - these should apply to steps without overrides
+  show_curl: true
+  results_position: auto
+  effects:
+    confetti: true
+    sounds: true
+    counters: true
+
+steps:
+  - slide: |
+      # Step-Level Overrides Test
+
+      This demo tests that individual steps can override global settings.
+
+      **Global settings:**
+      - `show_curl: true`
+      - `results_position: auto`
+      - `effects.confetti: true`
+
+  # Step 1: Should inherit all global settings (show_curl visible, confetti fires)
+  - rest: GET /users
+    title: "Inherits Global Settings"
+    description: "This step should show curl command and fire confetti"
+    results:
+      - key: id
+        label: "User ID"
+      - key: name
+        label: "Name"
+
+  # Step 2: Override show_curl to false
+  - rest: GET /users/1
+    title: "Override: show_curl=false"
+    description: "This step should NOT show curl command"
+    show_curl: false
+    results:
+      - key: id
+        label: "User ID"
+      - key: name
+        label: "Name"
+
+  # Step 3: Override results_position to left (even with form)
+  - rest: POST /users
+    title: "Override: results_position=left"
+    description: "Results should appear in LEFT column despite having form fields"
+    results_position: left
+    form:
+      - name: name
+        label: "Name"
+        default: "Test User"
+      - name: email
+        label: "Email"
+        default: "test@example.com"
+    results:
+      - key: id
+        label: "Created ID"
+      - key: name
+        label: "Name"
+
+  # Step 4: Override effects - no confetti
+  - rest: GET /users/2
+    title: "Override: confetti=false"
+    description: "This step should NOT fire confetti on completion"
+    effects:
+      confetti: false
+    results:
+      - key: id
+        label: "User ID"
+      - key: name
+        label: "Name"
+
+  # Step 5: Multiple overrides at once
+  - rest: GET /users/3
+    title: "Multiple Overrides"
+    description: "show_curl=false, results_position=right, no sounds"
+    show_curl: false
+    results_position: right
+    effects:
+      confetti: true
+      sounds: false
+    results:
+      - key: id
+        label: "User ID"
+      - key: name
+        label: "Name"
+
+  - slide: |
+      # Test Complete
+
+      **Expected behaviors:**
+      1. Step 2 - curl command hidden
+      2. Step 3 - results in left column (not right)
+      3. Step 4 - no confetti animation
+      4. Step 5 - no curl, results right, confetti but no sound
