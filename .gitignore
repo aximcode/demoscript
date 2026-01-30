@@ -45,3 +45,4 @@ coverage/
 demoscript-cli-*.tgz
 assets/builder-frames/
 packages/ui/index.build.html
+CLAUDE.md
