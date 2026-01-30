@@ -289,7 +289,7 @@ Makes HTTP API calls.
       type: text
     - key: username
       label: "Username"
-      link: github.user             # Shorthand: handler.template (auto-infers type: id)
+      link: github.user              # Shorthand: handler.template (auto-infers type: id)
 
   # Polling for async operations (optional)
   wait_for: abtJobId                 # Response field containing job ID
@@ -773,6 +773,57 @@ Key files:
 - `packages/ui/src/index.css` - CSS variables and utility classes
 - `packages/ui/tailwind.config.js` - Tailwind color configuration
 
+### Settings Inheritance
+
+DemoScript supports a three-tier settings hierarchy for fine-grained control:
+
+1. **Defaults** - Built-in values (e.g., `show_curl: false`, `confetti: true`)
+2. **Global** - Defined in `settings:` block, applies to all steps
+3. **Step** - Per-step overrides, highest priority
+
+**Resolution Pattern:**
+```typescript
+const value = step.setting ?? globalSettings?.setting ?? defaultValue;
+```
+
+#### Available Step-Level Overrides
+
+| Setting | Global | Step | Default | Description |
+|---------|--------|------|---------|-------------|
+| `show_curl` | ✓ | ✓ | `false` | Show curl command for REST requests |
+| `results_position` | ✓ | ✓ | `'auto'` | Results panel position: left, right, or auto |
+| `effects.confetti` | ✓ | ✓ | `true` | Fire confetti on step completion |
+| `effects.sounds` | ✓ | ✓ | `true` | Play success/error sounds |
+| `effects.counters` | ✓ | ✓ | `true` | Animate numeric values in results |
+
+#### Example
+
+```yaml
+settings:
+  show_curl: true                    # Global: show curl for all REST steps
+  results_position: auto             # Global: auto-detect based on form fields
+  effects:
+    confetti: true
+    sounds: true
+
+steps:
+  - rest: GET /users
+    # Inherits: show_curl=true, results_position=auto, confetti=true
+
+  - rest: POST /users
+    show_curl: false                 # Override: hide curl for this step
+    results_position: left           # Override: force results to left column
+    effects:
+      confetti: false                # Override: no celebration for this step
+    form:
+      - name: email
+        type: text
+```
+
+Key files:
+- `packages/ui/src/lib/step-settings.ts` - Settings resolution utility
+- `packages/ui/src/hooks/useStepEffects.ts` - Step-level effects handling
+
 ### Branching and Navigation
 
 Steps can define unique identifiers and navigation targets for non-linear demo flows.
@@ -944,31 +995,26 @@ settings:
       tx: "https://amoy.polygonscan.com/tx/{value}"
 ```
 
-Then reference handlers in results using shorthand `link: handler.template` syntax:
+Then reference handlers in results:
 
 ```yaml
 results:
+  # Shorthand syntax (preferred) - auto-infers type: id
   - key: username
-    link: github.user      # Shorthand: handler.template (auto-infers type: id)
+    link: github.user      # Opens https://github.com/{username}
   - key: ticketId
-    link: jira.issue       # Opens Jira issue
+    link: jira.issue       # Opens Jira issue page
   - key: walletAddress
-    link: polygonscan.address  # Opens blockchain explorer address page
-```
+    link: polygonscan.address
 
-**Explicit syntax** (equivalent, for edge cases):
-
-```yaml
-results:
-  - key: username
+  # Explicit syntax (backwards compatible)
+  - key: author
     type: id
     link: github
     link_key: user
 ```
 
-The `{value}` placeholder in the handler template is replaced with the actual result value.
-
-**Note:** `ref` is a deprecated alias for `id` and still works for backwards compatibility.
+The `{value}` placeholder is replaced with the actual result value.
 
 ## CLI Commands
 

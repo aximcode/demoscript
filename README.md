@@ -46,7 +46,7 @@ Browse all examples at [demoscript.app/gallery](https://demoscript.app/gallery/)
 ### npm (recommended)
 
 ```bash
-npm install -g @demoscript/cli
+npm install -g demoscript-cli
 ```
 
 Then run with:
@@ -58,7 +58,7 @@ demoscript serve ./my-demo
 Or run directly with npx (no install required):
 
 ```bash
-npx @demoscript/cli serve ./my-demo
+npx demoscript-cli serve ./my-demo
 ```
 
 ### Linux Packages
@@ -108,6 +108,12 @@ steps:
 demoscript serve ./demo.yaml
 ```
 
+3. Or build a static site:
+
+```bash
+demoscript build ./demo.yaml -o dist
+```
+
 ## CLI Commands
 
 ### `demoscript serve <demo>`
@@ -123,10 +129,114 @@ Options:
 - `-H, --host [host]` - Bind to 0.0.0.0 for LAN access
 - `-w, --watch` - Watch demo files and auto-reload on changes
 - `--no-open` - Don't auto-open browser
+- `--tunnel [provider]` - Create public tunnel (ngrok or cloudflare)
+- `--tunnel-auth <user:pass>` - HTTP basic auth for tunnel (ngrok only)
+- `--tunnel-name <name>` - Named Cloudflare tunnel
+- `--tunnel-hostname <host>` - Custom hostname for named tunnel
 
-### Visual Editor
+**Tunnel examples:**
 
-The Visual Editor for creating demos interactively is available in the [DemoScript Cloud dashboard](https://demoscript.app/dashboard). Login and click "Visual Editor" to build demos with drag-and-drop, live preview, and direct cloud save.
+```bash
+# Quick public URL with ngrok (default)
+demoscript serve ./my-demo --tunnel
+
+# Public URL with Cloudflare (no account required)
+demoscript serve ./my-demo --tunnel cloudflare
+
+# Password-protected tunnel
+demoscript serve ./my-demo --tunnel --tunnel-auth "user:secret"
+
+# Named Cloudflare tunnel with custom domain
+demoscript serve ./my-demo --tunnel-name mytunnel --tunnel-hostname demo.example.com
+```
+
+### `demoscript record <demo>`
+
+Execute all steps and save responses to `recordings.json`.
+
+```bash
+demoscript record examples/hello-world -o recordings.json
+```
+
+Options:
+- `-o, --output <file>` - Output filename (default: recordings.json)
+
+### `demoscript build <demo>`
+
+Export demo as a static site.
+
+```bash
+# Single demo
+demoscript build examples/hello-world -o dist
+
+# All demos with gallery index
+demoscript build examples --all -o dist
+```
+
+Options:
+- `-o, --output <dir>` - Output directory (default: dist)
+- `--all` - Build all demos in directory with gallery index
+
+### `demoscript deploy <demo>`
+
+Deploy demo to Netlify with one command.
+
+```bash
+# Draft deploy (preview URL)
+demoscript deploy examples/hello-world
+
+# Production deploy
+demoscript deploy examples/hello-world --prod
+
+# Deploy to specific site
+demoscript deploy examples/hello-world --prod --site my-demo-site
+```
+
+Options:
+- `-o, --output <dir>` - Build output directory (default: dist)
+- `--prod` - Deploy to production (default is draft preview)
+- `-s, --site <name>` - Netlify site name or ID
+
+The deploy command will:
+1. Check for Netlify CLI (installs if missing)
+2. Authenticate with Netlify (if not logged in)
+3. Record the demo (if no recordings.json exists)
+4. Build the static site
+5. Deploy to Netlify
+
+### `demoscript export-video <demo>`
+
+Export demo as an MP4 video.
+
+```bash
+demoscript export-video examples/browser-demo -o demo.mp4
+```
+
+Options:
+- `-o, --output <file>` - Output video file (default: demo.mp4)
+- `-w, --width <pixels>` - Video width (default: 1280)
+- `-h, --height <pixels>` - Video height (default: 720)
+- `-f, --fps <number>` - Frames per second (default: 30)
+- `--delay <ms>` - Delay between steps in milliseconds (default: 2000)
+
+**Note:** Requires a static build first (`demoscript build`).
+
+### `demoscript export-gif <demo>`
+
+Export demo as an animated GIF.
+
+```bash
+demoscript export-gif examples/browser-demo -o demo.gif --optimize
+```
+
+Options:
+- `-o, --output <file>` - Output GIF file (default: demo.gif)
+- `-w, --width <pixels>` - GIF width (default: 800)
+- `-f, --fps <number>` - Frames per second (default: 10)
+- `--delay <ms>` - Delay between steps in milliseconds (default: 2000)
+- `--optimize` - Use two-pass encoding with palette generation (slower but better quality)
+
+**Note:** Requires a static build first (`demoscript build`).
 
 ## YAML Schema
 
@@ -156,7 +266,7 @@ steps:
   # Step definitions...
 ```
 
-Gallery metadata is displayed as badges in the gallery view. Difficulty levels show colored badges (green/yellow/red).
+Gallery metadata is displayed as badges when building with `--all`. Difficulty levels show colored badges (green/yellow/red).
 
 ### Step Types
 
@@ -201,7 +311,7 @@ Make HTTP API calls:
     - key: id
       label: "ID"
     - key: txHash
-      link: polygonscan.tx # Shorthand: handler.template (auto-infers type: id)
+      link: polygonscan.tx  # Shorthand: handler.template (auto-infers type: id)
   poll:
     endpoint: "/api/status/$jobId"
     success_when: "response.status == 'complete'"
@@ -222,7 +332,7 @@ Make HTTP API calls:
 | Type | Description |
 |------|-------------|
 | `text` | Plain text (default) |
-| `id` | Identifier with copy button and optional link (shorthand: `link: handler.template`) |
+| `id` | Identifier with copy button and optional link |
 | `link` | Clickable URL |
 | `currency` | Formatted currency value |
 | `code` | Syntax-highlighted code block |
@@ -231,46 +341,40 @@ Make HTTP API calls:
 | `mono` | Monospace text (for IDs, hashes) |
 | `relative_time` | Human-readable relative time (e.g., "2 hours ago") |
 
-**Note:** `ref` is a deprecated alias for `id` and still works for backwards compatibility.
-
 **Custom link handlers:**
 
-Configure link handlers for any external service (GitHub, Jira, blockchain explorers, etc.):
+Configure link handlers for any external service (GitHub, Jira, AWS, etc.):
 
 ```yaml
 settings:
   links:
-    # GitHub links
     github:
       user: "https://github.com/{value}"
+      repo: "https://github.com/{value}"
       issue: "https://github.com/org/repo/issues/{value}"
-      pr: "https://github.com/org/repo/pull/{value}"
-    # Jira links
     jira:
       issue: "https://mycompany.atlassian.net/browse/{value}"
-    # Blockchain explorer
-    polygonscan:
-      address: "https://amoy.polygonscan.com/address/{value}"
-      tx: "https://amoy.polygonscan.com/tx/{value}"
+    aws:
+      s3: "https://s3.console.aws.amazon.com/s3/buckets/{value}"
 ```
 
-Then reference in results using shorthand `link: handler.template` syntax:
+Reference in results using **shorthand** `link: handler.template` syntax:
 
 ```yaml
 results:
+  # Shorthand - auto-infers type: id
   - key: username
-    link: github.user      # Shorthand: handler.template (auto-infers type: id)
+    link: github.user     # Opens https://github.com/{username}
+
   - key: issueNumber
-    link: jira.issue       # Opens Jira issue
-  - key: contractAddress
-    link: polygonscan.address  # Opens blockchain explorer address page
-```
+    link: jira.issue      # Opens Jira issue
 
-**Explicit syntax** (equivalent, for edge cases):
+  # Plain ID without link
+  - key: requestId
+    type: id
 
-```yaml
-results:
-  - key: username
+  # Explicit (backwards compatible)
+  - key: author
     type: id
     link: github
     link_key: user
@@ -324,6 +428,8 @@ Open URLs in the browser:
 ```
 
 In live mode, clicking "Open in Browser" launches the URL in the system default browser. Variables are substituted in the URL.
+
+During recording (`demoscript record`), browser steps automatically capture a screenshot of the page using Puppeteer. Screenshots are saved to `assets/screenshots/` and displayed in playback mode.
 
 #### Code Step
 
@@ -667,6 +773,40 @@ settings:
 | `glow_orbs` | Floating colored orbs in the background |
 | `sound_volume` | Master volume for all sound effects (0-1) |
 
+### Step-Level Overrides
+
+Settings can be overridden at the step level for fine-grained control:
+
+```yaml
+settings:
+  show_curl: true                    # Global: show curl for all REST steps
+  results_position: auto             # Global: auto-detect based on form fields
+  effects:
+    confetti: true
+    sounds: true
+
+steps:
+  - rest: GET /users
+    # Inherits all global settings
+
+  - rest: POST /users
+    show_curl: false                 # Override: hide curl for this step
+    results_position: left           # Override: force results to left column
+    effects:
+      confetti: false                # Override: no confetti for this step
+      sounds: true                   # Keep sounds enabled
+```
+
+**Available step-level overrides:**
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `show_curl` | `false` | Show curl command for this REST request |
+| `results_position` | `'auto'` | Results position: `left`, `right`, or `auto` |
+| `effects.confetti` | `true` | Fire confetti on step completion |
+| `effects.sounds` | `true` | Play success/error sounds |
+| `effects.counters` | `true` | Animate numeric values |
+
 ### Dual Syntax
 
 DemoScript supports two syntax styles for each step type:
@@ -708,22 +848,54 @@ This binds to `0.0.0.0` and displays both local and network URLs. Share the netw
 **Pros:** Real-time execution, interactive, immediate updates
 **Cons:** Requires server running, only accessible on same network
 
-### Option 2: DemoScript Cloud
+### Option 2: One-Command Deploy to Netlify
 
-Push your demo to DemoScript Cloud for easy sharing:
+Deploy directly to Netlify with a single command:
 
 ```bash
-# Login to DemoScript Cloud
-demoscript login
+# Draft deploy (get preview URL)
+demoscript deploy ./my-demo
 
-# Push demo to cloud
-demoscript push ./my-demo
+# Production deploy
+demoscript deploy ./my-demo --prod
 ```
 
-Get a permanent URL at demoscript.app that works from anywhere.
+This automatically records responses (if needed), builds, and deploys. Share the Netlify URL with anyone.
 
-**Pros:** Easy sharing, permanent URL, works anywhere
-**Cons:** Requires DemoScript Cloud account
+**Pros:** One command, permanent URL, works anywhere, free hosting
+**Cons:** Requires Netlify account, pre-recorded responses only
+
+### Option 3: Manual Static Site Hosting
+
+Build a static site and host it anywhere:
+
+```bash
+# Record responses first
+demoscript record ./my-demo
+
+# Build static site
+demoscript build ./my-demo -o dist
+```
+
+Deploy the `dist` folder to any static hosting:
+- GitHub Pages
+- Netlify
+- Vercel
+- AWS S3
+- Any web server
+
+**Pros:** Full control, works anywhere, permanent URL
+**Cons:** More manual steps, requires pre-recorded responses
+
+### Option 4: Gallery Site
+
+Build multiple demos with a gallery index:
+
+```bash
+demoscript build ./examples --all -o dist
+```
+
+Creates a gallery page linking to all demos in the directory.
 
 ## Try It Mode
 
@@ -797,18 +969,21 @@ See [ROADMAP.md](ROADMAP.md) for the full improvement guide including architectu
 - **Gallery metadata** - Duration, difficulty badges in gallery index
 - **Sound controls** - Volume control and additional sound effects
 - **OpenAPI integration** - Auto-generate form fields from OpenAPI/Swagger specs
-- **Visual Editor** - Create demos interactively at [demoscript.app/dashboard](https://demoscript.app/dashboard)
+- **Screenshot recording** - Browser steps now capture screenshots during recording
+- **Video export** - Generate MP4 videos with `demoscript export-video`
+- **GIF export** - Generate animated GIFs with `demoscript export-gif`
 
 ### Known Limitations
 
 - No integration tests for CLI commands
 - Shell commands require the server to be running locally
+- Video/GIF export requires static build first
 
 ## Development
 
 ```bash
 # Clone repository
-git clone https://github.com/aximcode/demoscript
+git clone https://github.com/your-org/demoscript
 cd demoscript
 
 # Install dependencies
@@ -818,30 +993,17 @@ npm install
 npm run dev
 
 # Build all packages
-./build.sh
-
-# Build and install locally (to ~/.local/bin)
-./build.sh --install
-
-# Build and install globally (uses sudo if needed)
-./build.sh --install -g
-
-# Build and publish to npm
-./build.sh --publish           # patch version bump
-./build.sh --publish minor     # minor version bump
-
-# Build and start dev server
-./build.sh --serve
+npm run build
 
 # Run tests
 cd packages/cli && npm test
 cd packages/ui && npm test
 
 # Build RPM package (requires: dnf install rpm-build)
-./build.sh --rpm
+./scripts/build-packages.sh rpm
 
 # Build DEB package (requires: apt install dpkg-dev debhelper)
-./build.sh --deb
+./scripts/build-packages.sh deb
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
@@ -851,7 +1013,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed development guidelines.
 ```
 demoscript/
 ├── packages/
-│   ├── cli/          # CLI tool (serve, push, login)
+│   ├── cli/          # CLI tool (serve, record, build, export)
 │   └── ui/           # React web interface
 ├── examples/
 │   ├── hello-world/       # Minimal starter demo
