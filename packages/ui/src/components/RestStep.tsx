@@ -3,6 +3,7 @@ import { useDemo } from '../context/DemoContext';
 import { substituteVariables, substituteInObject, extractValueByPath, findVariablesInObject, findMissingVariables, methodSupportsBody } from '../lib/variable-substitution';
 import { extractErrorMessage, buildRequestBody, buildQueryString } from '../lib/rest-helpers';
 import { executeRequest } from '../lib/execute-adapter';
+import { resolveStepSettings, computeResultsPosition } from '../lib/step-settings';
 import { parseRestMethod } from '../types/schema';
 import type { RestStep as RestStepType, ExplicitRestStep } from '../types/schema';
 import { GlowingCard } from './effects';
@@ -49,6 +50,9 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
   const resolvedEndpoint = substituteVariables(endpoint, state.variables);
   const baseUrl = step.base_url || state.config?.settings?.base_url || '';
   const fullUrl = `${baseUrl}${resolvedEndpoint}`;
+
+  // Resolve step settings (step-level > global > default)
+  const stepSettings = resolveStepSettings(step, state.config?.settings);
 
   // Get OpenAPI URL from step or settings
   const openapiUrl = step.openapi || state.config?.settings?.openapi;
@@ -242,8 +246,9 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
   // Check if we have output to show (for two-column layout)
   const hasOutput = (response !== null && response !== undefined && !isTryItMode) || isTryItMode;
 
-  // Check if we have form fields (affects Results placement)
-  const hasFormFields = effectiveForm && effectiveForm.length > 0;
+  // Compute results position (step-level > global > auto based on form fields)
+  const hasFormFields = !!(effectiveForm && effectiveForm.length > 0);
+  const resultsPosition = computeResultsPosition(stepSettings.results_position, hasFormFields);
 
   return (
     <GlowingCard isActive={isExecuting || status === 'complete'} color={glowColor} intensity="medium">
@@ -285,7 +290,7 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
               url={fullUrl + (effectiveForm ? buildQueryString(effectiveForm, formValues) : '')}
               body={methodSupportsBody(method) && (effectiveForm || step.body) ? getRequestBodyPreview() : undefined}
               headers={step.headers ? substituteInObject(step.headers, state.variables) as Record<string, string> : undefined}
-              showCurl={step.show_curl}
+              showCurl={stepSettings.show_curl}
             />
 
             {pollingState && <PollingStatus pollingState={pollingState} />}
@@ -320,8 +325,8 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
               />
             )}
 
-            {/* Results in left column when no form fields (desktop only) */}
-            {!hasFormFields && response !== null && response !== undefined && !isTryItMode && step.results && step.results.length > 0 && (
+            {/* Results in left column when results_position is 'left' (desktop only) */}
+            {resultsPosition === 'left' && response !== null && response !== undefined && !isTryItMode && step.results && step.results.length > 0 && (
               <div className="hidden xl:block">
                 <ResultsDisplay response={response} results={step.results} />
               </div>
@@ -341,8 +346,8 @@ export function RestStep({ step, mode = 'view', onChange: _onChange, onDelete }:
 
               {response !== null && response !== undefined && !isTryItMode && (
                 <>
-                  {/* Results above Response on desktop (only when form fields exist) */}
-                  {hasFormFields && step.results && step.results.length > 0 && (
+                  {/* Results above Response on desktop when results_position is 'right' */}
+                  {resultsPosition === 'right' && step.results && step.results.length > 0 && (
                     <div className="hidden xl:block">
                       <ResultsDisplay response={response} results={step.results} />
                     </div>

@@ -8,6 +8,7 @@ export type {
   ResultField,
   SelectOption,
   TableColumn,
+  StepEffectsOverride,
 } from '@demoscript/shared/types';
 
 // Re-export dashboard data types
@@ -21,7 +22,7 @@ export type {
 } from './dashboard-data';
 
 import type { DataCard, DataList } from './dashboard-data';
-import type { FormField, ResultField } from '@demoscript/shared/types';
+import type { FormField, ResultField, StepEffectsOverride } from '@demoscript/shared/types';
 
 export interface DemoConfig {
   title: string;
@@ -100,6 +101,9 @@ export interface DemoSettings {
   sidebar?: SidebarSettings;  // Sidebar navigation settings
   health_checks?: HealthCheck[];  // Service health check endpoints
   diagram?: DiagramSettings;  // Flow diagram configuration
+  // Global display settings (can be overridden per-step)
+  show_curl?: boolean;  // Show curl command for REST requests by default
+  results_position?: 'left' | 'right' | 'auto';  // Results panel position (default: auto)
 }
 
 export interface ThemeSettings {
@@ -158,6 +162,8 @@ export interface RestStep extends BaseStep {
   openapi?: string;                    // Per-step OpenAPI URL override
   defaults?: Record<string, unknown>;  // Default values for OpenAPI-generated fields
   show_curl?: boolean;                 // Show curl command for this request
+  results_position?: 'left' | 'right' | 'auto';  // Override results panel position
+  effects?: StepEffectsOverride;       // Override effects for this step
 }
 
 export interface ShellStep extends BaseStep {
@@ -204,6 +210,9 @@ export interface GraphQLStep extends BaseStep {
   headers?: Record<string, string>;
   save?: Record<string, string>;
   results?: ResultField[];
+  show_curl?: boolean;                 // Show curl command for this request
+  results_position?: 'left' | 'right' | 'auto';  // Override results panel position
+  effects?: StepEffectsOverride;       // Override effects for this step
 }
 
 export interface DatabaseStep extends BaseStep {
@@ -218,6 +227,8 @@ export interface DatabaseStep extends BaseStep {
   save?: Record<string, string>;
   results?: ResultField[];
   description?: string;
+  results_position?: 'left' | 'right' | 'auto';  // Override results panel position
+  effects?: StepEffectsOverride;       // Override effects for this step
 }
 
 // Explicit step types (new syntax)
@@ -244,6 +255,8 @@ export interface ExplicitRestStep extends BaseStep {
   openapi?: string;                    // Per-step OpenAPI URL override
   defaults?: Record<string, unknown>;  // Default values for OpenAPI-generated fields
   show_curl?: boolean;                 // Show curl command for this request
+  results_position?: 'left' | 'right' | 'auto';  // Override results panel position
+  effects?: StepEffectsOverride;       // Override effects for this step
 }
 
 export interface ExplicitShellStep extends BaseStep {
@@ -296,6 +309,9 @@ export interface ExplicitGraphQLStep extends BaseStep {
   headers?: Record<string, string>;
   save?: Record<string, string>;
   results?: ResultField[];
+  show_curl?: boolean;                 // Show curl command for this request
+  results_position?: 'left' | 'right' | 'auto';  // Override results panel position
+  effects?: StepEffectsOverride;       // Override effects for this step
 }
 
 export interface ExplicitDatabaseStep extends BaseStep {
@@ -311,6 +327,8 @@ export interface ExplicitDatabaseStep extends BaseStep {
   save?: Record<string, string>;
   results?: ResultField[];
   description?: string;
+  results_position?: 'left' | 'right' | 'auto';  // Override results panel position
+  effects?: StepEffectsOverride;       // Override effects for this step
 }
 
 // Form Step - Interactive form without API call

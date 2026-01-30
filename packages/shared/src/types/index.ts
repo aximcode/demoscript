@@ -58,3 +58,13 @@ export interface ResultField {
   // JSON viewer options
   expandedDepth?: number;
 }
+
+/**
+ * Effects that can be overridden at step level
+ * Subset of full EffectsSettings (only per-step applicable ones)
+ */
+export interface StepEffectsOverride {
+  confetti?: boolean;   // Fire confetti on step completion
+  sounds?: boolean;     // Play success/error sounds
+  counters?: boolean;   // Animate numeric values in results
+}

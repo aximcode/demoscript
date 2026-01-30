@@ -63,6 +63,33 @@
           "type": "array",
           "items": { "$ref": "#/$defs/HealthCheck" },
           "description": "Service health check endpoints"
+        },
+        "show_curl": {
+          "type": "boolean",
+          "description": "Show curl command for REST requests by default (default: false)"
+        },
+        "results_position": {
+          "type": "string",
+          "enum": ["left", "right", "auto"],
+          "description": "Default results panel position: left (input column), right (output column), auto (based on form fields). Default: auto"
+        }
+      }
+    },
+    "StepEffectsOverride": {
+      "type": "object",
+      "description": "Step-level effects overrides (subset of EffectsSettings)",
+      "properties": {
+        "confetti": {
+          "type": "boolean",
+          "description": "Fire confetti on step completion (overrides global)"
+        },
+        "sounds": {
+          "type": "boolean",
+          "description": "Play success/error sounds (overrides global)"
+        },
+        "counters": {
+          "type": "boolean",
+          "description": "Animate numeric values (overrides global)"
         }
       }
     },
@@ -598,7 +625,9 @@
         "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." },
         "wait_for": { "type": "string" },
         "poll": { "$ref": "#/$defs/PollingConfig" },
-        "show_curl": { "type": "boolean", "description": "Show curl command for this request (default: false)" }
+        "show_curl": { "type": "boolean", "description": "Show curl command for this request (overrides global)" },
+        "results_position": { "type": "string", "enum": ["left", "right", "auto"], "description": "Results panel position (overrides global)" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
       }
     },
     "RestStepExplicit": {
@@ -623,7 +652,9 @@
         "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." },
         "wait_for": { "type": "string" },
         "poll": { "$ref": "#/$defs/PollingConfig" },
-        "show_curl": { "type": "boolean", "description": "Show curl command for this request (default: false)" }
+        "show_curl": { "type": "boolean", "description": "Show curl command for this request (overrides global)" },
+        "results_position": { "type": "string", "enum": ["left", "right", "auto"], "description": "Results panel position (overrides global)" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
       }
     },
     "ShellStep": {
@@ -782,7 +813,10 @@
         "variables": { "type": "object" },
         "headers": { "type": "object", "additionalProperties": { "type": "string" } },
         "save": { "type": "object", "additionalProperties": { "type": "string" } },
-        "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." }
+        "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." },
+        "show_curl": { "type": "boolean", "description": "Show curl command for this request (overrides global)" },
+        "results_position": { "type": "string", "enum": ["left", "right", "auto"], "description": "Results panel position (overrides global)" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
       }
     },
     "GraphQLStepExplicit": {
@@ -799,7 +833,10 @@
         "variables": { "type": "object" },
         "headers": { "type": "object", "additionalProperties": { "type": "string" } },
         "save": { "type": "object", "additionalProperties": { "type": "string" } },
-        "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." }
+        "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." },
+        "show_curl": { "type": "boolean", "description": "Show curl command for this request (overrides global)" },
+        "results_position": { "type": "string", "enum": ["left", "right", "auto"], "description": "Results panel position (overrides global)" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
       }
     },
     "DatabaseStep": {
@@ -820,7 +857,9 @@
         "document": { "type": "object" },
         "projection": { "type": "object", "additionalProperties": { "type": "integer" } },
         "save": { "type": "object", "additionalProperties": { "type": "string" } },
-        "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." }
+        "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." },
+        "results_position": { "type": "string", "enum": ["left", "right", "auto"], "description": "Results panel position (overrides global)" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
       }
     },
     "DatabaseStepExplicit": {
@@ -842,7 +881,9 @@
         "document": { "type": "object" },
         "projection": { "type": "object", "additionalProperties": { "type": "integer" } },
         "save": { "type": "object", "additionalProperties": { "type": "string" } },
-        "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." }
+        "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." },
+        "results_position": { "type": "string", "enum": ["left", "right", "auto"], "description": "Results panel position (overrides global)" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
       }
     }
   }

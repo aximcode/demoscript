@@ -1,22 +1,28 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useDemo } from '../context/DemoContext';
 import { useConfetti, useSoundEffects } from '../components/effects';
+import { resolveStepSettings } from '../lib/step-settings';
 
 /**
  * Centralized hook for step completion effects.
  * Handles confetti and sound effects for ALL step types.
- * Respects configuration from demo settings.
+ * Respects configuration from demo settings with step-level overrides.
  */
 export function useStepEffects() {
-  const { state, getStepStatus } = useDemo();
+  const { state, getStepStatus, currentStepConfig } = useDemo();
   const confetti = useConfetti();
   const { playSuccess, playError, enabled: soundEnabled } = useSoundEffects();
   const prevStatusRef = useRef<Record<number, string>>({});
 
-  // Get effects configuration from demo settings (defaults to enabled)
-  const effectsConfig = state.config?.settings?.effects;
-  const confettiEnabled = effectsConfig?.confetti ?? true;
-  const soundsEnabled = effectsConfig?.sounds ?? true;
+  // Resolve step settings (step-level > global > default)
+  const stepSettings = useMemo(() => {
+    if (!currentStepConfig) return null;
+    return resolveStepSettings(currentStepConfig, state.config?.settings);
+  }, [currentStepConfig, state.config?.settings]);
+
+  // Get resolved effects (with step-level overrides)
+  const confettiEnabled = stepSettings?.effects.confetti ?? true;
+  const soundsEnabled = stepSettings?.effects.sounds ?? true;
 
   useEffect(() => {
     const currentStep = state.currentStep;
