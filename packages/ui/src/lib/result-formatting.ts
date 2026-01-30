@@ -14,17 +14,18 @@ export function formatCurrency(value: unknown, format?: string): string {
 }
 
 /**
- * Truncate a reference string (address, hash, ID, etc.) for display
+ * Truncate an identifier string (address, hash, ID, etc.) for display
  * Shows first 10 chars ... last 8 chars for long values
  */
-export function truncateRef(value: string, threshold = 16): string {
+export function truncateId(value: string, threshold = 16): string {
   if (value.length <= threshold) return value;
   return `${value.slice(0, 10)}...${value.slice(-8)}`;
 }
 
-// Legacy aliases for backward compatibility
-export const truncateAddress = truncateRef;
-export const truncateTxHash = truncateRef;
+// Aliases for backward compatibility
+export const truncateRef = truncateId;
+export const truncateAddress = truncateId;
+export const truncateTxHash = truncateId;
 
 /**
  * Build a link URL using a configured link handler

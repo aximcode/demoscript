@@ -50,9 +50,9 @@ export interface TableColumn {
 export interface ResultField {
   key: string;
   label?: string;
-  type?: 'text' | 'ref' | 'link' | 'currency' | 'code' | 'table' | 'json' | 'mono' | 'relative_time';
-  link?: string;           // Link handler name (e.g., 'github', 'polygonscan')
-  link_key?: string;       // Key within link handler (e.g., 'user', 'address', 'tx')
+  type?: 'text' | 'id' | 'ref' | 'link' | 'currency' | 'code' | 'table' | 'json' | 'mono' | 'relative_time';
+  link?: string;           // Link handler name (e.g., 'github.user') or shorthand with dot notation
+  link_key?: string;       // Key within link handler (e.g., 'user', 'address', 'tx') - optional with shorthand
   format?: string;
   columns?: TableColumn[];
   // JSON viewer options

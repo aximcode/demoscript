@@ -64,7 +64,7 @@ steps:
     results:
       - key: token
         label: "Access Token"
-        type: ref
+        type: id
 
   # Token validation step
   - slide: |

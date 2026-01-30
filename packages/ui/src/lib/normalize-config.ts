@@ -95,7 +95,27 @@ function normalizeFormField(field: FormField | Record<string, unknown>): FormFie
 }
 
 /**
- * Normalize result field - auto-add link for address/tx/token types
+ * Parse shorthand link syntax: "handler.template" -> { link: "handler", link_key: "template" }
+ * Returns null if not shorthand (no dot in string)
+ */
+function parseShorthandLink(link: string): { link: string; link_key: string } | null {
+  if (!link.includes('.')) {
+    return null;
+  }
+  const dotIndex = link.indexOf('.');
+  const handler = link.slice(0, dotIndex);
+  const template = link.slice(dotIndex + 1);
+  if (!handler || !template) {
+    return null;
+  }
+  return { link: handler, link_key: template };
+}
+
+/**
+ * Normalize result field:
+ * - Normalize 'ref' type to 'id' (ref is deprecated alias)
+ * - Parse shorthand link syntax: "github.user" -> { link: 'github', link_key: 'user', type: 'id' }
+ * - Infer label from key if not provided
  */
 function normalizeResultField(result: ResultField, settings?: DemoConfig['settings']): ResultField {
   const normalized = { ...result };
@@ -105,11 +125,29 @@ function normalizeResultField(result: ResultField, settings?: DemoConfig['settin
     normalized.label = inferLabel(normalized.key);
   }
 
-  // Auto-link for address/tx/token types if link handler is configured
+  // Normalize 'ref' type to 'id' (ref is deprecated)
+  if (normalized.type === 'ref') {
+    normalized.type = 'id';
+  }
+
+  // Handle shorthand link syntax: "github.user" -> { link: 'github', link_key: 'user' }
+  if (normalized.link && !normalized.link_key) {
+    const parsed = parseShorthandLink(normalized.link);
+    if (parsed) {
+      normalized.link = parsed.link;
+      normalized.link_key = parsed.link_key;
+      // Auto-infer type: 'id' when using shorthand (unless type was explicitly set)
+      if (!result.type) {
+        normalized.type = 'id';
+      }
+    }
+  }
+
+  // Legacy: Auto-link for address/tx/token types if link handler is configured
+  // (This is for backwards compatibility with old type names that no longer exist)
   if (!normalized.link && normalized.type && settings?.links) {
     const linkTypes = ['address', 'tx', 'token'] as const;
     if (linkTypes.includes(normalized.type as typeof linkTypes[number])) {
-      // Use the first configured link handler
       const handlerNames = Object.keys(settings.links);
       if (handlerNames.length > 0) {
         normalized.link = handlerNames[0];

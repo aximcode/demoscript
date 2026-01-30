@@ -167,7 +167,8 @@ export function ResultValue({ value, type, link, linkKey, expandedDepth, columns
     );
   }
 
-  if (type === 'ref') {
+  // Handle 'id' (canonical) and 'ref' (deprecated alias)
+  if (type === 'id' || type === 'ref') {
     const truncated = truncateRef(stringValue);
 
     // Build URL from settings.links config or use direct URL

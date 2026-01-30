@@ -569,10 +569,10 @@ function mapSchemaToResultType(
     }
     // Identifiers that benefit from truncation (addresses, hashes, etc.)
     if (nameLower.includes('address') || nameLower.includes('wallet')) {
-      return 'ref';
+      return 'id';
     }
     if (nameLower.includes('hash') || nameLower.includes('txid') || nameLower === 'tx') {
-      return 'ref';
+      return 'id';
     }
   }
 

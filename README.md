@@ -201,8 +201,7 @@ Make HTTP API calls:
     - key: id
       label: "ID"
     - key: txHash
-      type: tx             # Special type with explorer link
-      link: polygonscan    # Links to configured explorer
+      link: polygonscan.tx # Shorthand: handler.template (auto-infers type: id)
   poll:
     endpoint: "/api/status/$jobId"
     success_when: "response.status == 'complete'"
@@ -223,14 +222,16 @@ Make HTTP API calls:
 | Type | Description |
 |------|-------------|
 | `text` | Plain text (default) |
-| `address` | Identifier with copy button and optional link |
-| `tx` | Transaction/reference ID with optional link |
-| `token` | Token/resource identifier with optional link |
+| `id` | Identifier with copy button and optional link (shorthand: `link: handler.template`) |
+| `link` | Clickable URL |
 | `currency` | Formatted currency value |
 | `code` | Syntax-highlighted code block |
-| `json` | Formatted JSON with syntax highlighting |
+| `json` | Formatted JSON with tree view |
 | `table` | Render array data as a table |
-| `link` | Clickable URL |
+| `mono` | Monospace text (for IDs, hashes) |
+| `relative_time` | Human-readable relative time (e.g., "2 hours ago") |
+
+**Note:** `ref` is a deprecated alias for `id` and still works for backwards compatibility.
 
 **Custom link handlers:**
 
@@ -253,19 +254,26 @@ settings:
       tx: "https://amoy.polygonscan.com/tx/{value}"
 ```
 
-Then reference in results:
+Then reference in results using shorthand `link: handler.template` syntax:
 
 ```yaml
 results:
   - key: username
-    type: address
-    link: github       # Opens https://github.com/{username}
+    link: github.user      # Shorthand: handler.template (auto-infers type: id)
   - key: issueNumber
-    type: tx
-    link: jira         # Opens Jira issue
+    link: jira.issue       # Opens Jira issue
   - key: contractAddress
-    type: address
-    link: polygonscan  # Opens blockchain explorer
+    link: polygonscan.address  # Opens blockchain explorer address page
+```
+
+**Explicit syntax** (equivalent, for edge cases):
+
+```yaml
+results:
+  - key: username
+    type: id
+    link: github
+    link_key: user
 ```
 
 #### Shell Step
@@ -784,7 +792,7 @@ See [ROADMAP.md](ROADMAP.md) for the full improvement guide including architectu
 - **Enhanced visual effects** - Neon glow, animated grid background, floating orbs
 - **Tunnel support** - Public URLs via ngrok or Cloudflare tunnels
 - **cURL display** - Show curl commands for REST steps with `show_curl: true`
-- **Result types** - Rich rendering for addresses, transactions, code, tables, JSON
+- **Result types** - Rich rendering for references, code, tables, JSON, relative time
 - **Custom link handlers** - Configurable links for any service (GitHub, Jira, blockchain explorers)
 - **Gallery metadata** - Duration, difficulty badges in gallery index
 - **Sound controls** - Volume control and additional sound effects

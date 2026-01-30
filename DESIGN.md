@@ -289,9 +289,7 @@ Makes HTTP API calls.
       type: text
     - key: username
       label: "Username"
-      type: ref                      # text, ref, link, currency, code, table, json, mono, relative_time
-      link: github                   # Optional: configured link handler
-      link_key: user                 # Optional: key within link handler
+      link: github.user             # Shorthand: handler.template (auto-infers type: id)
 
   # Polling for async operations (optional)
   wait_for: abtJobId                 # Response field containing job ID
@@ -946,25 +944,31 @@ settings:
       tx: "https://amoy.polygonscan.com/tx/{value}"
 ```
 
-Then reference handlers in results:
+Then reference handlers in results using shorthand `link: handler.template` syntax:
 
 ```yaml
 results:
   - key: username
-    type: ref
-    link: github       # Link handler name
-    link_key: user     # Key within handler (uses github.user template)
+    link: github.user      # Shorthand: handler.template (auto-infers type: id)
   - key: ticketId
-    type: ref
-    link: jira         # Link handler name
-    link_key: issue    # Key within handler (uses jira.issue template)
+    link: jira.issue       # Opens Jira issue
   - key: walletAddress
-    type: ref
-    link: polygonscan
-    link_key: address  # Uses polygonscan.address template
+    link: polygonscan.address  # Opens blockchain explorer address page
 ```
 
-The `{value}` placeholder is replaced with the actual result value.
+**Explicit syntax** (equivalent, for edge cases):
+
+```yaml
+results:
+  - key: username
+    type: id
+    link: github
+    link_key: user
+```
+
+The `{value}` placeholder in the handler template is replaced with the actual result value.
+
+**Note:** `ref` is a deprecated alias for `id` and still works for backwards compatibility.
 
 ## CLI Commands
 
