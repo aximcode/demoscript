@@ -1,0 +1,90 @@
+{
+  "demoVersion": "1.0",
+  "recordedAt": "2026-01-30T10:33:20.992Z",
+  "recordings": [
+    {
+      "stepId": "step-1",
+      "timestamp": "2026-01-30T10:33:20.976Z",
+      "request": {
+        "method": "POST",
+        "url": "https://apis.aximcode.com/v1/auth/login",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "demo@example.com",
+          "password": "demo123"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "token": "axim_ml0qvz2d-5_fre1pkaq2tc",
+          "user": {
+            "email": "demo@example.com",
+            "name": "Demo User",
+            "role": "viewer",
+            "id": "0-4",
+            "createdAt": "1970-01-01T00:00:00.000Z",
+            "updatedAt": "1970-01-01T00:00:00.000Z"
+          },
+          "expiresAt": "2026-01-31T10:33:20.965Z"
+        }
+      }
+    },
+    {
+      "stepId": "step-3",
+      "timestamp": "2026-01-30T10:33:20.992Z",
+      "request": {
+        "method": "GET",
+        "url": "https://apis.aximcode.com/v1/users",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "users": [
+            {
+              "email": "admin@example.com",
+              "name": "Admin User",
+              "role": "admin",
+              "id": "0-1",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "email": "alice@example.com",
+              "name": "Alice Johnson",
+              "role": "user",
+              "id": "0-2",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "email": "bob@example.com",
+              "name": "Bob Smith",
+              "role": "user",
+              "id": "0-3",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            },
+            {
+              "email": "demo@example.com",
+              "name": "Demo User",
+              "role": "viewer",
+              "id": "0-4",
+              "createdAt": "1970-01-01T00:00:00.000Z",
+              "updatedAt": "1970-01-01T00:00:00.000Z"
+            }
+          ],
+          "total": 4,
+          "page": 1,
+          "limit": 10,
+          "totalPages": 1
+        }
+      }
+    }
+  ]
+}

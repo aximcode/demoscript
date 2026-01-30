@@ -4,8 +4,43 @@ import yaml from 'js-yaml';
 import type { DemoConfig, DemoRecordings, StepOrGroup, Step, RestStep, ExplicitRestStep, ResultField } from '../types.js';
 import { isRestStep, isStepGroup } from '../types.js';
 import { validateDemoConfig, formatValidationErrors } from './validator.js';
+import { validateSemantics, formatSemanticResults } from './semantic-validator.js';
 import { fetchOpenApiSpec, generateFormFields, mergeFormFields, type OpenApiSpec } from './openapi.js';
 import { sandboxOpenApiSpec } from '@demoscript/shared/sandbox';
+
+/**
+ * Check for nested groups before JSON Schema validation
+ * Returns error message if nested groups found, null otherwise
+ */
+function checkForNestedGroups(config: DemoConfig): string | null {
+  if (!config.steps || !Array.isArray(config.steps)) {
+    return null;
+  }
+
+  for (let i = 0; i < config.steps.length; i++) {
+    const item = config.steps[i];
+    // Check if this is a group
+    if (item && typeof item === 'object' && 'group' in item && 'steps' in item) {
+      const group = item as { group: string; steps: unknown[] };
+      if (Array.isArray(group.steps)) {
+        for (let j = 0; j < group.steps.length; j++) {
+          const innerItem = group.steps[j];
+          // Check if inner item is also a group
+          if (innerItem && typeof innerItem === 'object' && 'group' in innerItem && 'steps' in innerItem) {
+            const innerGroup = innerItem as { group: string };
+            return `Nested groups are not supported.\n\n` +
+              `  Location: /steps/${i}/steps/${j}\n` +
+              `  Issue: Group "${innerGroup.group}" is nested inside group "${group.group}".\n\n` +
+              `  Groups can only contain steps, not other groups.\n` +
+              `  Move the inner group to the top level, or flatten the steps.`;
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
 
 /**
  * Convert camelCase variable name to human-readable label
@@ -59,9 +94,26 @@ export async function loadDemo(demoFile: string, skipValidation = false): Promis
 
   // Validate against JSON Schema
   if (!skipValidation) {
+    // Pre-check for nested groups (gives friendly error before JSON Schema's cryptic one)
+    const nestedGroupError = checkForNestedGroups(config);
+    if (nestedGroupError) {
+      throw new Error(nestedGroupError);
+    }
+
     const result = validateDemoConfig(config);
     if (!result.valid) {
       throw new Error(formatValidationErrors(result.errors));
+    }
+
+    // Perform semantic validation (duplicate IDs, goto targets, variable refs)
+    const semanticResult = validateSemantics(config);
+    if (!semanticResult.valid) {
+      throw new Error(formatSemanticResults(semanticResult));
+    }
+
+    // Show warnings if any (but don't fail)
+    if (semanticResult.warnings.length > 0) {
+      console.warn('\n' + formatSemanticResults({ ...semanticResult, errors: [] }));
     }
   }
 

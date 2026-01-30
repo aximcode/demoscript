@@ -13,8 +13,8 @@ metadata:
   category: "Tutorial"
 
 settings:
-  base_url: "/sandbox"
-  openapi: "/sandbox/openapi.json"
+  base_url: "https://apis.aximcode.com/v1"
+  openapi: "https://apis.aximcode.com/v1/openapi.json"
 
   # Flow diagram configuration - vertical linear flow for sidebar
   diagram:
