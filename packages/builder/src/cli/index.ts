@@ -320,7 +320,7 @@ export async function builder(options: BuilderOptions): Promise<void> {
     const result = await handleSandboxRequest({
       method: req.method,
       path: sandboxPath,
-      params: req.params,
+      params: req.params as Record<string, string>,
       query: req.query as Record<string, string | string[]>,
       body: req.body,
     });
@@ -328,7 +328,7 @@ export async function builder(options: BuilderOptions): Promise<void> {
   }
 
   app.all('/sandbox', sandboxHandler);
-  app.all('/sandbox/*', sandboxHandler);
+  app.all('/sandbox/*path', sandboxHandler);
 
   // Demo file handling for CLI mode
   let loadedDemoPath: string | null = null;

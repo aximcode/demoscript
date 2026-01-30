@@ -30,9 +30,9 @@ function inferResultType(varName: string, jsonPath: string): ResultField['type']
     return 'mono';
   }
 
-  // Address/wallet fields
+  // Address/wallet fields -> id (identifier style with truncation)
   if (nameLower.includes('address') || nameLower.includes('wallet')) {
-    return 'ref';
+    return 'id';
   }
 
   // URL fields

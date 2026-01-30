@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import yaml from 'js-yaml';
 import { useDemo } from '../context/DemoContext';
 import { useTheme } from '../context/ThemeContext';
@@ -60,6 +60,25 @@ function DemoContent() {
 
   // Get current step title for diagram edge label
   const stepTitle = currentStepConfig ? getStepTitle(currentStepConfig, state.currentStep) : '';
+
+  // Build step list for diagram sidebar (only steps with diagram paths)
+  const diagramStepList = useMemo(() => {
+    return state.flatSteps
+      .map((step, index) => {
+        if (!('diagram' in step) || !step.diagram) return null;
+        return {
+          index,
+          title: getStepTitle(step, index),
+          path: step.diagram as string,
+        };
+      })
+      .filter((item): item is { index: number; title: string; path: string } => item !== null);
+  }, [state.flatSteps]);
+
+  // Find current step's position in the diagram step list
+  const currentDiagramStepIndex = useMemo(() => {
+    return diagramStepList.findIndex((item) => item.index === state.currentStep);
+  }, [diagramStepList, state.currentStep]);
 
   // Keyboard shortcuts - only active when not on dashboard
   const handleNext = useCallback(() => dispatch({ type: 'NEXT_STEP' }), [dispatch]);
@@ -128,23 +147,33 @@ function DemoContent() {
       >
         <Header />
 
-        {/* Diagram panel in sidebar mode */}
+        {/* Diagram panel in sidebar mode - integrated with header */}
         {hasDiagram && diagramSettings && diagramPosition === 'sidebar' && state.diagramVisible && (
-          <div className="fixed right-0 top-20 bottom-0 w-80 p-4 z-20">
-            <FlowDiagramPanel
-              settings={diagramSettings}
-              currentPath={currentDiagramPath}
-              completedPaths={state.completedDiagramPaths}
-              stepTitle={stepTitle}
-              isVisible={state.diagramVisible}
-              onToggle={toggleDiagram}
-              onNodeClick={handleDiagramNodeClick}
-            />
+          <div className="fixed right-0 top-0 bottom-0 w-[320px] z-20 bg-white/80 dark:bg-slate-900/95 backdrop-blur-md border-l border-gray-200 dark:border-slate-700 shadow-xl">
+            {/* Sidebar header area that aligns with main header */}
+            <div className="h-[73px] border-b border-gray-200 dark:border-slate-700 flex items-center justify-center px-4">
+              <span className="text-sm font-medium text-gray-600 dark:text-slate-400">Flow Diagram</span>
+            </div>
+            {/* Diagram content - fills remaining height */}
+            <div className="h-[calc(100%-73px)] p-2 pb-12 flex flex-col">
+              <FlowDiagramPanel
+                settings={diagramSettings}
+                currentPath={currentDiagramPath}
+                completedPaths={state.completedDiagramPaths}
+                stepTitle={stepTitle}
+                currentStepIndex={currentDiagramStepIndex >= 0 ? currentDiagramStepIndex : 0}
+                stepList={diagramStepList}
+                isVisible={state.diagramVisible}
+                onToggle={toggleDiagram}
+                onNodeClick={handleDiagramNodeClick}
+                onStepClick={handleStepClick}
+              />
+            </div>
           </div>
         )}
 
-        <main className={`flex-1 mx-auto px-4 py-6 xl:px-8 max-w-5xl xl:max-w-[85vw] 2xl:max-w-[80vw] ${
-          hasDiagram && diagramPosition === 'sidebar' && state.diagramVisible ? 'mr-80' : ''
+        <main className={`flex-1 px-4 py-6 xl:px-8 transition-all duration-300 ${
+          hasDiagram && diagramPosition === 'sidebar' && state.diagramVisible ? 'mr-[320px]' : ''
         }`}>
           {/* Diagram panel in sticky mode */}
           {hasDiagram && diagramSettings && diagramPosition === 'sticky' && (
@@ -153,9 +182,12 @@ function DemoContent() {
               currentPath={currentDiagramPath}
               completedPaths={state.completedDiagramPaths}
               stepTitle={stepTitle}
+              currentStepIndex={currentDiagramStepIndex >= 0 ? currentDiagramStepIndex : 0}
+              stepList={diagramStepList}
               isVisible={state.diagramVisible}
               onToggle={toggleDiagram}
               onNodeClick={handleDiagramNodeClick}
+              onStepClick={handleStepClick}
             />
           )}
 
@@ -178,9 +210,12 @@ function DemoContent() {
           currentPath={currentDiagramPath}
           completedPaths={state.completedDiagramPaths}
           stepTitle={stepTitle}
+          currentStepIndex={currentDiagramStepIndex >= 0 ? currentDiagramStepIndex : 0}
+          stepList={diagramStepList}
           isVisible={state.diagramVisible}
           onToggle={toggleDiagram}
           onNodeClick={handleDiagramNodeClick}
+          onStepClick={handleStepClick}
         />
       )}
     </div>

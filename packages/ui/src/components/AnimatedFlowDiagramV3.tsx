@@ -10,12 +10,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Node,
   Edge,
   Background,
   Controls,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   MarkerType,
   Position,
   Handle,
@@ -31,6 +33,12 @@ interface FlowStep {
   color?: string;
 }
 
+interface StepInfo {
+  index: number;
+  title: string;
+  path: string;
+}
+
 interface AnimatedFlowDiagramV3Props {
   chart: string; // Simplified node definitions (we'll parse this)
   steps: FlowStep[];
@@ -39,10 +47,14 @@ interface AnimatedFlowDiagramV3Props {
   stepDuration?: number;
   onStepChange?: (step: number) => void;
   onNodeClick?: (nodeId: string) => void;
+  onClose?: () => void;              // Close button handler for sidebar mode
+  showStepNumbers?: boolean;         // Show step numbers on edges
+  stepList?: StepInfo[];             // List of all steps with diagram paths
+  currentStepIndex?: number;         // Current step index in the overall demo
   className?: string;
 }
 
-// Custom animated edge with moving particle
+// Custom animated edge with moving particle and step number
 function AnimatedEdge({
   id,
   sourceX,
@@ -67,6 +79,12 @@ function AnimatedEdge({
   const isActive = data?.isActive as boolean;
   const isCompleted = data?.isCompleted as boolean;
   const edgeColor = (data?.color as string) || '#8b5cf6';
+  const stepNumber = data?.stepNumber as number | undefined;
+  const showStepNumber = data?.showStepNumber as boolean;
+
+  // Calculate midpoint for step number badge
+  const midX = (sourceX + targetX) / 2;
+  const midY = (sourceY + targetY) / 2;
 
   return (
     <>
@@ -77,24 +95,43 @@ function AnimatedEdge({
         fill="none"
         stroke={isActive ? edgeColor : isCompleted ? '#10b981' : '#475569'}
         strokeWidth={isActive ? 3 : 2}
-        style={{
-          filter: isActive ? `drop-shadow(0 0 8px ${edgeColor})` : undefined,
-        }}
         markerEnd={typeof markerEnd === 'string' ? markerEnd : undefined}
       />
 
-      {/* Animated particle when active */}
+      {/* Step number badge on edge */}
+      {showStepNumber && stepNumber !== undefined && (
+        <g transform={`translate(${midX}, ${midY})`}>
+          <circle
+            r="14"
+            fill={isActive ? edgeColor : isCompleted ? '#10b981' : '#1e293b'}
+            stroke={isActive ? 'white' : isCompleted ? '#10b981' : '#475569'}
+            strokeWidth="2"
+          />
+          <text
+            x="0"
+            y="1"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="white"
+            fontSize="12"
+            fontWeight="bold"
+          >
+            {stepNumber}
+          </text>
+        </g>
+      )}
+
+      {/* Animated particles when active */}
       {isActive && (
         <>
-          {/* Multiple particles for a stream effect */}
-          <circle r="6" fill={edgeColor} filter={`drop-shadow(0 0 6px ${edgeColor})`}>
-            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+          <circle r="6" fill={edgeColor} style={{ filter: `drop-shadow(0 0 6px ${edgeColor})` }}>
+            <animateMotion dur="1.2s" repeatCount="indefinite" path={edgePath} />
           </circle>
-          <circle r="4" fill="white" opacity="0.8">
-            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} begin="0.5s" />
+          <circle r="4" fill={edgeColor} opacity="0.7">
+            <animateMotion dur="1.2s" repeatCount="indefinite" path={edgePath} begin="0.4s" />
           </circle>
-          <circle r="6" fill={edgeColor} filter={`drop-shadow(0 0 6px ${edgeColor})`}>
-            <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} begin="1s" />
+          <circle r="3" fill={edgeColor} opacity="0.5">
+            <animateMotion dur="1.2s" repeatCount="indefinite" path={edgePath} begin="0.8s" />
           </circle>
         </>
       )}
@@ -103,14 +140,20 @@ function AnimatedEdge({
 }
 
 // Custom node component with glow effects
-function CustomNode({ data }: { data: { label: string; type: string; isActive: boolean; isSource: boolean; isTarget: boolean; color: string } }) {
+// direction prop controls handle positions: 'TD' = top/bottom, 'LR' = left/right
+function CustomNode({ data }: { data: { label: string; type: string; isActive: boolean; isSource: boolean; isTarget: boolean; color: string; direction?: 'LR' | 'TD' } }) {
   const isActive = data.isActive || data.isSource || data.isTarget;
   const color = data.color || '#8b5cf6';
+  const direction = data.direction || 'LR';
+
+  // Handle positions based on flow direction
+  const targetPosition = direction === 'TD' ? Position.Top : Position.Left;
+  const sourcePosition = direction === 'TD' ? Position.Bottom : Position.Right;
 
   // Different shapes based on type
   const getNodeStyle = () => {
     const baseStyle = {
-      padding: '12px 20px',
+      padding: '10px 16px',
       borderRadius: data.type === 'diamond' ? '4px' : data.type === 'circle' ? '50%' : '8px',
       border: `2px solid ${isActive ? color : '#475569'}`,
       background: isActive
@@ -118,35 +161,102 @@ function CustomNode({ data }: { data: { label: string; type: string; isActive: b
         : 'linear-gradient(135deg, #1e293b, #334155)',
       color: '#f8fafc',
       fontWeight: 500,
-      fontSize: '14px',
+      fontSize: '13px',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       boxShadow: isActive
         ? `0 0 20px ${color}60, 0 4px 12px rgba(0,0,0,0.3)`
         : '0 4px 12px rgba(0,0,0,0.2)',
       transform: data.type === 'diamond' ? 'rotate(45deg)' : undefined,
-      minWidth: data.type === 'circle' ? '60px' : undefined,
-      minHeight: data.type === 'circle' ? '60px' : undefined,
+      // Make nodes wider to fill more of the sidebar
+      minWidth: data.type === 'circle' ? '60px' : '180px',
+      minHeight: data.type === 'circle' ? '50px' : undefined,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      textAlign: 'center' as const,
     };
     return baseStyle;
   };
 
   return (
     <div style={getNodeStyle()}>
-      <Handle type="target" position={Position.Left} style={{ background: color, border: 'none' }} />
+      <Handle type="target" position={targetPosition} style={{ background: color, border: 'none' }} />
       <span style={{ transform: data.type === 'diamond' ? 'rotate(-45deg)' : undefined }}>
         {data.label}
       </span>
-      <Handle type="source" position={Position.Right} style={{ background: color, border: 'none' }} />
+      <Handle type="source" position={sourcePosition} style={{ background: color, border: 'none' }} />
     </div>
   );
 }
 
 const nodeTypes = { custom: CustomNode };
 const edgeTypes = { animated: AnimatedEdge };
+
+// Toolbar for sidebar mode - rendered ABOVE the diagram
+function DiagramToolbar({ onReset, onClose }: { onReset?: () => void; onClose?: () => void }) {
+  const { zoomIn, zoomOut, fitView } = useReactFlow();
+
+  return (
+    <div className="flex items-center justify-between px-2 py-1.5 bg-slate-800/50 border-b border-slate-700/50">
+      <div className="flex gap-1">
+        <button
+          onClick={() => zoomOut()}
+          className="p-1.5 rounded bg-slate-700/90 hover:bg-slate-600 text-slate-300 transition-colors"
+          title="Zoom Out"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+          </svg>
+        </button>
+        <button
+          onClick={() => zoomIn()}
+          className="p-1.5 rounded bg-slate-700/90 hover:bg-slate-600 text-slate-300 transition-colors"
+          title="Zoom In"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+        <button
+          onClick={() => fitView({ padding: 0.08 })}
+          className="p-1.5 rounded bg-slate-700/90 hover:bg-slate-600 text-slate-300 transition-colors"
+          title="Fit View"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+        </button>
+        {onReset && (
+          <button
+            onClick={() => {
+              onReset();
+              // Also reset zoom/pan after a brief delay for node positions to update
+              setTimeout(() => fitView({ padding: 0.08 }), 50);
+            }}
+            className="p-1.5 rounded bg-slate-700/90 hover:bg-slate-600 text-slate-300 transition-colors"
+            title="Reset Layout"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        )}
+      </div>
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="p-1.5 rounded bg-slate-700/90 hover:bg-slate-600 text-slate-300 transition-colors"
+          title="Close"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
 
 // Parse simple chart definition to nodes and edges
 function parseChartDefinition(chart: string): { nodeDefinitions: Map<string, { label: string; type: string }>; connections: Array<{ from: string; to: string; label?: string }> } {
@@ -238,9 +348,10 @@ function calculateLayout(
     layers.push(layer);
   }
 
-  // Position nodes
-  const xSpacing = direction === 'LR' ? 200 : 0;
-  const ySpacing = direction === 'LR' ? 100 : 150;
+  // Position nodes - larger spacing for better visibility
+  // TD (top-down) needs more vertical spacing to fill the sidebar height
+  const xSpacing = direction === 'LR' ? 250 : 0;
+  const ySpacing = direction === 'LR' ? 120 : 180;
 
   for (let layerIdx = 0; layerIdx < layers.length; layerIdx++) {
     const layer = layers[layerIdx];
@@ -274,12 +385,17 @@ export function AnimatedFlowDiagramV3({
   stepDuration = 2000,
   onStepChange,
   onNodeClick,
+  onClose,
+  showStepNumbers = false,
+  stepList = [],
+  currentStepIndex: _currentStepIndex = 0,
   className = '',
 }: AnimatedFlowDiagramV3Props) {
   const [internalStep, setInternalStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(autoPlay);
 
-  const currentStep = onStepChange ? externalStep : internalStep;
+  // Use externalStep when provided, otherwise use internal state
+  const currentStep = externalStep ?? internalStep;
   const setCurrentStep = onStepChange || setInternalStep;
 
   // Parse chart and create initial nodes/edges
@@ -302,6 +418,7 @@ export function AnimatedFlowDiagramV3({
           isSource: false,
           isTarget: false,
           color: '#8b5cf6',
+          direction, // Pass direction for handle positioning
         },
       });
     }
@@ -320,6 +437,42 @@ export function AnimatedFlowDiagramV3({
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Store initial positions for reset functionality
+  const initialPositions = useMemo(() => {
+    const positions = new Map<string, { x: number; y: number }>();
+    initialNodes.forEach((node) => {
+      positions.set(node.id, { ...node.position });
+    });
+    return positions;
+  }, [initialNodes]);
+
+  // Reset nodes to initial positions
+  const handleResetLayout = useCallback(() => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        const initialPos = initialPositions.get(node.id);
+        return initialPos ? { ...node, position: initialPos } : node;
+      })
+    );
+  }, [setNodes, initialPositions]);
+
+  // Build a map from edge key to step number (for showing numbers on edges)
+  const edgeToStepNumber = useMemo(() => {
+    const map = new Map<string, number>();
+    stepList.forEach((step, idx) => {
+      // Parse the path to get from/to
+      const match = step.path.match(/^(\w+)\s*->\s*(\w+)$/);
+      if (match) {
+        const key = `${match[1]}-${match[2]}`;
+        // Only store the first step that uses this edge
+        if (!map.has(key)) {
+          map.set(key, idx + 1); // 1-indexed step numbers
+        }
+      }
+    });
+    return map;
+  }, [stepList]);
 
   // Update nodes and edges based on current step
   useEffect(() => {
@@ -350,6 +503,10 @@ export function AnimatedFlowDiagramV3({
           (s) => edge.source === s.from && edge.target === s.to
         );
 
+        // Get step number for this edge
+        const edgeKey = `${edge.source}-${edge.target}`;
+        const stepNumber = edgeToStepNumber.get(edgeKey);
+
         return {
           ...edge,
           data: {
@@ -357,6 +514,8 @@ export function AnimatedFlowDiagramV3({
             isActive,
             isCompleted,
             color: activeStep.color || '#8b5cf6',
+            stepNumber,
+            showStepNumber: showStepNumbers,
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
@@ -365,7 +524,7 @@ export function AnimatedFlowDiagramV3({
         };
       })
     );
-  }, [currentStep, steps, setNodes, setEdges]);
+  }, [currentStep, steps, setNodes, setEdges, edgeToStepNumber, showStepNumbers]);
 
   // Auto-play
   useEffect(() => {
@@ -416,34 +575,47 @@ export function AnimatedFlowDiagramV3({
 
   const activeStep = steps[currentStep];
 
+  // In sidebar mode, we only show the diagram - the parent handles step list/controls
+  const compactMode = showStepNumbers;
+
   return (
-    <div className={`animated-flow-diagram-v3 ${className}`}>
-      {/* Diagram */}
-      <div className="h-[400px] bg-slate-900/50 rounded-lg border border-slate-700 overflow-hidden">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeClick={handleNodeClick}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.3 }}
-          minZoom={0.5}
-          maxZoom={2}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background color="#334155" gap={20} size={1} />
-          <Controls
-            className="!bg-slate-800 !border-slate-600 !rounded-lg"
-            showInteractive={false}
-          />
-        </ReactFlow>
+    <div className={`animated-flow-diagram-v3 ${className} ${compactMode ? 'flex flex-col' : ''}`}>
+      {/* Diagram container - flexbox for toolbar + diagram */}
+      <div className={`${compactMode ? 'flex-1 min-h-0 flex flex-col' : 'h-[400px]'} bg-slate-900/50 rounded-lg border border-slate-700 overflow-hidden`}>
+        <ReactFlowProvider>
+          {/* Toolbar above diagram in compact/sidebar mode */}
+          {compactMode && <DiagramToolbar onReset={handleResetLayout} onClose={onClose} />}
+
+          {/* Diagram fills remaining space */}
+          <div className={compactMode ? 'flex-1 min-h-0' : 'h-full'}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeClick={handleNodeClick}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              fitView
+              fitViewOptions={{ padding: 0.08, minZoom: 0.5, maxZoom: 2 }}
+              minZoom={0.3}
+              maxZoom={2}
+              proOptions={{ hideAttribution: true }}
+            >
+              <Background color="#334155" gap={20} size={1} />
+              {!compactMode && (
+                <Controls
+                  className="!bg-slate-800 !border-slate-600 !rounded-lg"
+                  showInteractive={false}
+                />
+              )}
+            </ReactFlow>
+          </div>
+        </ReactFlowProvider>
       </div>
 
-      {/* Current Step Label */}
-      {activeStep && (
+      {/* Current Step Label - hidden in compact/sidebar mode */}
+      {!compactMode && activeStep && (
         <div className="mt-4 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border border-purple-500/30">
           <div className="flex items-center gap-3">
             <div
@@ -467,73 +639,77 @@ export function AnimatedFlowDiagramV3({
         </div>
       )}
 
-      {/* Step Timeline */}
-      <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-2">
-        {steps.map((step, index) => (
-          <button
-            key={index}
-            onClick={() => handleStepClick(index)}
-            className={`
-              flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-all
-              ${index === currentStep
-                ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
-                : index < currentStep
-                  ? 'bg-emerald-500/20 text-emerald-300'
-                  : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-              }
-            `}
-          >
-            <span className="font-bold mr-1">{index + 1}.</span>
-            {step.label}
-          </button>
-        ))}
-      </div>
+      {/* Step Timeline - hidden in compact/sidebar mode */}
+      {!compactMode && (
+        <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-2">
+          {steps.map((step, index) => (
+            <button
+              key={index}
+              onClick={() => handleStepClick(index)}
+              className={`
+                flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-all
+                ${index === currentStep
+                  ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/30'
+                  : index < currentStep
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                }
+              `}
+            >
+              <span className="font-bold mr-1">{index + 1}.</span>
+              {step.label}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Controls */}
-      <div className="mt-4 flex items-center justify-center gap-3">
-        <button
-          onClick={handleReset}
-          className="p-2 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
-          title="Reset"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
-
-        {isPlaying ? (
+      {/* Controls - hidden in compact/sidebar mode */}
+      {!compactMode && (
+        <div className="mt-4 flex items-center justify-center gap-3">
           <button
-            onClick={handlePause}
-            className="p-3 rounded-full bg-purple-500 text-white shadow-lg shadow-purple-500/30 hover:bg-purple-600 transition-colors"
-            title="Pause"
+            onClick={handleReset}
+            className="p-2 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors"
+            title="Reset"
           >
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
-        ) : (
+
+          {isPlaying ? (
+            <button
+              onClick={handlePause}
+              className="p-3 rounded-full bg-purple-500 text-white shadow-lg shadow-purple-500/30 hover:bg-purple-600 transition-colors"
+              title="Pause"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handlePlay}
+              className="p-3 rounded-full bg-purple-500 text-white shadow-lg shadow-purple-500/30 hover:bg-purple-600 transition-colors"
+              title="Play"
+            >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </button>
+          )}
+
           <button
-            onClick={handlePlay}
-            className="p-3 rounded-full bg-purple-500 text-white shadow-lg shadow-purple-500/30 hover:bg-purple-600 transition-colors"
-            title="Play"
+            onClick={() => setCurrentStep(Math.min(currentStep + 1, steps.length - 1))}
+            disabled={currentStep >= steps.length - 1}
+            className="p-2 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors disabled:opacity-40"
+            title="Next Step"
           >
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
-        )}
-
-        <button
-          onClick={() => setCurrentStep(Math.min(currentStep + 1, steps.length - 1))}
-          disabled={currentStep >= steps.length - 1}
-          className="p-2 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors disabled:opacity-40"
-          title="Next Step"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

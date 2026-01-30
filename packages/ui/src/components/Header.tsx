@@ -13,11 +13,16 @@ export function Header() {
     enabled: !!healthChecks?.length && state.isLiveAvailable,
   });
 
+  // Check if diagram sidebar is visible to adjust header layout
+  const diagramSettings = state.config?.settings?.diagram;
+  const diagramPosition = diagramSettings?.position || 'toggle';
+  const sidebarVisible = hasDiagram && diagramPosition === 'sidebar' && state.diagramVisible;
+
   if (!state.config) return null;
 
   return (
     <header className="header-themed bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-700 shadow-sm dark:shadow-lg relative z-10 transition-colors duration-300">
-      <div className="container mx-auto px-4 py-4 max-w-5xl">
+      <div className={`px-4 py-4 transition-all duration-300 ${sidebarVisible ? 'pr-[340px]' : 'container mx-auto max-w-5xl'}`}>
         <div className="flex items-center justify-between">
           <div>
             {state.config.title && (

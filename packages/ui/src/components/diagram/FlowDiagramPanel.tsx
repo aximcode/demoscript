@@ -6,14 +6,23 @@
 import { FlowDiagram } from './FlowDiagram';
 import type { DiagramSettings } from '../../types/schema';
 
+interface StepInfo {
+  index: number;
+  title: string;
+  path: string;
+}
+
 interface FlowDiagramPanelProps {
   settings: DiagramSettings;
   currentPath?: string;
   completedPaths?: string[];
   stepTitle?: string;
+  currentStepIndex?: number;
+  stepList?: StepInfo[];
   isVisible?: boolean;
   onToggle?: () => void;
   onNodeClick?: (nodeId: string) => void;
+  onStepClick?: (index: number) => void;
   className?: string;
 }
 
@@ -22,9 +31,12 @@ export function FlowDiagramPanel({
   currentPath,
   completedPaths,
   stepTitle,
+  currentStepIndex = 0,
+  stepList = [],
   isVisible = true,
   onToggle,
   onNodeClick,
+  onStepClick: _onStepClick,
   className = '',
 }: FlowDiagramPanelProps) {
   const position = settings.position || 'toggle';
@@ -35,11 +47,12 @@ export function FlowDiagramPanel({
     return null;
   }
 
-  // Panel content
+
+  // Panel content - close button is now in the diagram toolbar for sidebar mode
   const panelContent = (
-    <div className={`relative ${className}`}>
-      {/* Header with toggle button (for sticky/sidebar modes) */}
-      {(position === 'sticky' || position === 'sidebar') && onToggle && (
+    <div className={`relative ${position === 'sidebar' ? 'h-full flex flex-col' : ''} ${className}`}>
+      {/* Header with toggle button only for sticky mode (sidebar has it in toolbar) */}
+      {position === 'sticky' && onToggle && (
         <div className="absolute top-2 right-2 z-10">
           <button
             onClick={onToggle}
@@ -53,14 +66,19 @@ export function FlowDiagramPanel({
         </div>
       )}
 
-      {/* Diagram */}
+      {/* Diagram - fills the panel in sidebar mode */}
       <FlowDiagram
         chart={settings.chart}
         currentPath={currentPath}
         completedPaths={completedPaths}
         stepTitle={stepTitle}
-        height={height}
+        height={position === 'sidebar' ? undefined : height}
         onNodeClick={onNodeClick}
+        onClose={position === 'sidebar' ? onToggle : undefined}
+        showStepNumbers={position === 'sidebar'}
+        stepList={stepList}
+        currentStepIndex={currentStepIndex}
+        className={position === 'sidebar' ? 'flex-1 min-h-0' : ''}
       />
     </div>
   );
@@ -76,7 +94,7 @@ export function FlowDiagramPanel({
 
     case 'sidebar':
       return (
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 backdrop-blur-sm h-full">
+        <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-2 backdrop-blur-sm h-full flex flex-col">
           {panelContent}
         </div>
       );

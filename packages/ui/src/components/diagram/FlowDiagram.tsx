@@ -13,6 +13,12 @@ interface FlowStep {
   color?: string;
 }
 
+interface StepInfo {
+  index: number;
+  title: string;
+  path: string;
+}
+
 interface FlowDiagramProps {
   chart: string;                    // Mermaid flowchart syntax
   currentPath?: string;             // Current path: "NodeA->NodeB" or "NodeA"
@@ -20,6 +26,10 @@ interface FlowDiagramProps {
   stepTitle?: string;               // Label to show on current edge
   height?: number;                  // Diagram height (default: 300)
   onNodeClick?: (nodeId: string) => void;
+  onClose?: () => void;             // Close button handler for sidebar mode
+  showStepNumbers?: boolean;        // Show step numbers on edges
+  stepList?: StepInfo[];            // List of all steps with diagram paths
+  currentStepIndex?: number;        // Current step index in the step list
   className?: string;
 }
 
@@ -91,6 +101,10 @@ export function FlowDiagram({
   stepTitle,
   height = 300,
   onNodeClick,
+  onClose,
+  showStepNumbers = false,
+  stepList = [],
+  currentStepIndex = 0,
   className = '',
 }: FlowDiagramProps) {
   // Build steps array from paths
@@ -116,13 +130,17 @@ export function FlowDiagram({
   }
 
   return (
-    <div className={className} style={{ height }}>
+    <div className={`${className} ${!height ? 'flex flex-col' : ''}`} style={height ? { height } : undefined}>
       <AnimatedFlowDiagramV3
         chart={chart}
         steps={steps}
         currentStep={currentStep}
         onNodeClick={handleNodeClick}
-        className="h-full"
+        onClose={onClose}
+        showStepNumbers={showStepNumbers}
+        stepList={stepList}
+        currentStepIndex={currentStepIndex}
+        className={height ? 'h-full' : 'flex-1 min-h-0'}
       />
     </div>
   );

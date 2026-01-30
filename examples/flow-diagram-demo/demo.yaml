@@ -16,23 +16,20 @@ settings:
   base_url: "/sandbox"
   openapi: "/sandbox/openapi.json"
 
-  # Flow diagram configuration
+  # Flow diagram configuration - vertical linear flow for sidebar
   diagram:
     chart: |
-      flowchart LR
+      flowchart TD
         Client([Client])
+        Gateway[API Gateway]
         API[API Server]
-        Auth{Auth Service}
         DB[(Database)]
 
-        Client -->|Request| API
-        API -->|Validate| Auth
-        Auth -->|Token OK| API
-        API -->|Query| DB
-        DB -->|Data| API
-        API -->|Response| Client
-    position: toggle  # sticky | sidebar | toggle
-    height: 300
+        Client --> Gateway
+        Gateway --> API
+        API --> DB
+    position: sidebar
+    height: 400
 
   effects:
     confetti: true
@@ -44,18 +41,18 @@ steps:
   - slide: |
       # API Flow Diagram Demo
 
-      This demo shows how the flow diagram highlights the current step
+      This demo shows how the flow diagram highlights each step
       in your API architecture as you progress through the demo.
 
-      Click the **Diagram** button in the header to toggle the flow view.
+      Watch the sidebar diagram - edges turn **green** when completed.
     title: "Welcome"
-    diagram: Client  # Just highlight the client node
+    diagram: Client
 
-  # Authentication step
+  # Step 1: Client to Gateway
   - rest: POST /auth/login
-    title: "Authenticate User"
-    description: "User logs in to get an access token"
-    diagram: Client->API  # Highlight edge from Client to API
+    title: "Authenticate"
+    description: "Client sends credentials to the API Gateway"
+    diagram: Client->Gateway
     defaults:
       email: "demo@example.com"
       password: "demo123"
@@ -66,49 +63,35 @@ steps:
         label: "Access Token"
         type: id
 
-  # Token validation step
+  # Step 2: Gateway to API
   - slide: |
-      # Token Validation
+      # Request Processing
 
-      The API server validates the JWT token with the Auth Service.
+      The API Gateway validates the token and forwards
+      the request to the API Server.
+    title: "Gateway → API"
+    diagram: Gateway->API
 
-      This happens automatically on each authenticated request.
-    title: "Token Validation"
-    diagram: API->Auth  # Highlight edge from API to Auth
-
-  - slide: |
-      # Auth Service Response
-
-      The Auth Service confirms the token is valid and returns user info.
-    title: "Auth Response"
-    diagram: Auth->API  # Highlight return edge
-
-  # Database query
+  # Step 3: API to Database
   - rest: GET /users
-    title: "Fetch Users"
-    description: "Query the database for user records"
-    diagram: API->DB  # Highlight edge from API to DB
+    title: "Fetch Data"
+    description: "API Server queries the database"
+    diagram: API->DB
     results:
       - key: users
         label: "Users"
         type: json
 
-  # Database response
+  # Complete
   - slide: |
-      # Database Response
+      # Flow Complete!
 
-      The database returns the requested data to the API server.
-    title: "DB Response"
-    diagram: DB->API  # Highlight return edge
+      The diagram shows the linear request flow:
 
-  # Final response
-  - slide: |
-      # Response to Client
+      1. **Client → Gateway**: Authentication
+      2. **Gateway → API**: Request forwarding
+      3. **API → DB**: Data retrieval
 
-      The API server formats and returns the response to the client.
-
-      **Flow Complete!**
-
-      The diagram shows the full request/response cycle through your architecture.
+      All edges are now green ✓
     title: "Complete"
-    diagram: API->Client  # Highlight final edge
+    diagram: DB
