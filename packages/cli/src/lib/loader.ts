@@ -5,6 +5,7 @@ import type { DemoConfig, DemoRecordings, StepOrGroup, Step, RestStep, ExplicitR
 import { isRestStep, isStepGroup } from '../types.js';
 import { validateDemoConfig, formatValidationErrors } from './validator.js';
 import { fetchOpenApiSpec, generateFormFields, mergeFormFields, type OpenApiSpec } from './openapi.js';
+import { sandboxOpenApiSpec } from '@demoscript/shared/sandbox';
 
 /**
  * Convert camelCase variable name to human-readable label
@@ -87,7 +88,12 @@ export async function loadDemo(demoFile: string, skipValidation = false): Promis
   let openapiSpec: OpenApiSpec | null = null;
 
   if (openapiUrl) {
-    openapiSpec = await fetchOpenApiSpec(openapiUrl);
+    // Use embedded sandbox spec for sandbox URLs (avoids fetch during load)
+    if (openapiUrl === '/sandbox/openapi.json' || openapiUrl.endsWith('/sandbox/openapi.json')) {
+      openapiSpec = sandboxOpenApiSpec as unknown as OpenApiSpec;
+    } else {
+      openapiSpec = await fetchOpenApiSpec(openapiUrl);
+    }
     if (openapiSpec) {
       // Process steps to generate forms from OpenAPI
       config.steps = processStepsWithOpenApi(config.steps, openapiSpec, config.settings?.base_url);
