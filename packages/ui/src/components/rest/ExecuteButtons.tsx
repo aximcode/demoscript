@@ -27,6 +27,7 @@ export function ExecuteButtons({
       <button
         onClick={onExecute}
         disabled={isExecuting || isTryItExecuting}
+        data-export-execute="true"
         className="px-6 py-2.5 bg-gradient-to-r from-theme-primary to-theme-accent text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)] transition-all duration-300 hover:shadow-xl hover:shadow-[rgba(var(--color-primary-rgb),0.4)] border border-[rgba(var(--color-primary-rgb),0.3)]"
       >
         {isExecuting ? (

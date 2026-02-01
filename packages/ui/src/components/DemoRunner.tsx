@@ -128,12 +128,21 @@ function DemoContent() {
     return false;
   }, [state.flatSteps]);
 
-  // Trigger execution for a step - in recorded mode, just wait for animation
-  // In live mode, this would click the execute button
+  // Trigger execution for a step - clicks the Execute button to show response
   const handleExportExecute = useCallback(async (_stepIndex: number) => {
-    // For recorded demos, the response is already pre-loaded
-    // Just wait briefly for any state updates to render
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Find and click the Execute/Run button within the demo area
+    const executeBtn = captureRef.current?.querySelector(
+      '[data-export-execute]'
+    ) as HTMLButtonElement | null;
+
+    if (executeBtn) {
+      executeBtn.click();
+      // Wait for execution and response animation
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    } else {
+      // Fallback: just wait if button not found
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
   }, []);
 
   // Show login screen if auth is required and user is not authenticated

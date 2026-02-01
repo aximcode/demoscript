@@ -262,6 +262,7 @@ export function ShellStep({ step, mode = 'view', onChange: _onChange, onDelete }
             <button
               onClick={handleExecute}
               disabled={status === 'executing' || (!isStepTypeSupported('shell') && state.mode === 'live')}
+              data-export-execute="true"
               className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium rounded-lg hover:from-orange-400 hover:to-orange-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/25 transition-all duration-300 flex items-center gap-2"
             >
               {status === 'executing' ? (
