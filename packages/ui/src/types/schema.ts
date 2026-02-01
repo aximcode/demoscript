@@ -155,6 +155,7 @@ export interface BaseStep {
   goto?: string;
   diagram?: string;  // Diagram path to highlight: "NodeA->NodeB" or "NodeA" or "A->B: label"
   diagram_label?: string;  // Optional label for diagram edge (alternative to inline label)
+  diagram_style?: 'normal' | 'dashed' | 'thick' | 'dotted';  // Edge line style
 }
 
 export interface Choice {

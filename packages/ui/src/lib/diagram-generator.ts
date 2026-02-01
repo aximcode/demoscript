@@ -30,6 +30,7 @@ interface Edge {
   from: string;
   to: string;
   label?: string;
+  style?: 'normal' | 'dashed' | 'thick' | 'dotted';
 }
 
 /**
@@ -92,6 +93,10 @@ function generateFlowDiagram(
         if (!edge.label && step.diagram_label) {
           edge.label = step.diagram_label;
         }
+        // Use diagram_style property if provided
+        if (step.diagram_style) {
+          edge.style = step.diagram_style;
+        }
         edges.push(edge);
         pathToIndex.set(path, i);
         prevNode = edge.to;
@@ -127,7 +132,8 @@ function generateFlowDiagram(
     if (!seenEdges.has(key)) {
       seenEdges.add(key);
       const label = edge.label ? `|${edge.label}|` : '';
-      chart += `  ${edge.from} -->${label} ${edge.to}\n`;
+      const arrow = getArrowStyle(edge.style);
+      chart += `  ${edge.from} ${arrow}${label} ${edge.to}\n`;
     }
   }
 
@@ -338,6 +344,18 @@ export function formatNode(nodeId: string, config?: NodeConfig): string {
     case 'stadium': return `${nodeId}([${label}])`;
     case 'rounded': return `${nodeId}(${label})`;
     default: return `${nodeId}[${label}]`;
+  }
+}
+
+/**
+ * Get Mermaid arrow style syntax
+ */
+function getArrowStyle(style?: 'normal' | 'dashed' | 'thick' | 'dotted'): string {
+  switch (style) {
+    case 'dashed': return '-.->';
+    case 'dotted': return '-.->';  // Mermaid uses same syntax for dotted
+    case 'thick': return '==>';
+    default: return '-->';
   }
 }
 
