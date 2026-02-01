@@ -34,6 +34,21 @@ export async function captureFrame(
     useCORS: true,
     allowTaint: false,
     logging: false,
+    // Performance optimizations
+    imageTimeout: 0, // Don't wait for images that fail to load
+    removeContainer: true, // Clean up cloned elements faster
+    // Disable animations in the cloned document for faster capture
+    onclone: (clonedDoc) => {
+      // Disable all CSS animations and transitions
+      const style = clonedDoc.createElement('style');
+      style.textContent = `
+        *, *::before, *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      `;
+      clonedDoc.head.appendChild(style);
+    },
     // Ignore elements that shouldn't be in the export
     ignoreElements: (el) => {
       // Ignore export modal itself
@@ -41,6 +56,8 @@ export async function captureFrame(
       // Ignore any hidden elements
       const style = window.getComputedStyle(el);
       if (style.display === 'none' || style.visibility === 'hidden') return true;
+      // Ignore video/canvas elements that slow down capture
+      if (el.tagName === 'VIDEO' || el.tagName === 'IFRAME') return true;
       return false;
     },
   });
@@ -146,8 +163,8 @@ export async function captureAllFrames(
     // Navigate to step
     await onNavigate(step);
 
-    // Wait for animations/rendering to settle
-    await sleep(500);
+    // Wait for React render to complete (minimal delay)
+    await sleep(150);
 
     const progressPercent = (step / totalSteps) * 100;
     onProgress?.(progressPercent, `Capturing step ${step + 1}/${totalSteps}...`);
@@ -165,8 +182,8 @@ export async function captureAllFrames(
       // Trigger execution
       await onExecute(step);
 
-      // Wait for execution animation to complete
-      await sleep(800);
+      // Wait for response to render
+      await sleep(300);
 
       // Capture "after" state (with response)
       const afterFrame = await captureFrame(element, captureOptions);
@@ -193,9 +210,9 @@ export async function captureAllFrames(
  */
 export function getRecommendedDimensions(): { width: number; height: number } {
   // Standard 16:9 aspect ratio options
+  // Default to 720p for better performance (html2canvas is slow at higher res)
   const options = [
-    { width: 1920, height: 1080 }, // 1080p
-    { width: 1280, height: 720 },  // 720p
+    { width: 1280, height: 720 },  // 720p (recommended for browser export)
     { width: 854, height: 480 },   // 480p
   ];
 

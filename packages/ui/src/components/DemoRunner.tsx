@@ -132,9 +132,8 @@ function DemoContent() {
   // In live mode, this would click the execute button
   const handleExportExecute = useCallback(async (_stepIndex: number) => {
     // For recorded demos, the response is already pre-loaded
-    // Just wait for the response animation to complete
-    // The animation typically takes ~300-500ms
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    // Just wait briefly for any state updates to render
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }, []);
 
   // Show login screen if auth is required and user is not authenticated
