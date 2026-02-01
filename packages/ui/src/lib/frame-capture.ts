@@ -47,7 +47,11 @@ export async function captureFrame(
           transition: none !important;
         }
       `;
-      clonedDoc.head.appendChild(style);
+      // Append to head or body (head may be null in some edge cases)
+      const target = clonedDoc.head || clonedDoc.body || clonedDoc.documentElement;
+      if (target) {
+        target.appendChild(style);
+      }
     },
     // Ignore elements that shouldn't be in the export
     ignoreElements: (el) => {
