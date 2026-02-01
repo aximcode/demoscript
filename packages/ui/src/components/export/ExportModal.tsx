@@ -4,7 +4,7 @@
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { isFFmpegSupported, getUnsupportedReason, unloadFFmpeg } from '../../lib/ffmpeg-loader';
-import { captureAllFrames, getRecommendedDimensions } from '../../lib/frame-capture';
+import { captureAllFrames } from '../../lib/frame-capture';
 import {
   encodeVideo,
   downloadBlob,
@@ -69,6 +69,14 @@ const DURATION_OPTIONS = [
   { value: 5000, label: '5 seconds' },
 ];
 
+type Resolution = '1080p' | '720p' | '480p';
+
+const RESOLUTION_OPTIONS: { value: Resolution; label: string; width: number; height: number; description: string }[] = [
+  { value: '1080p', label: '1080p', width: 1920, height: 1080, description: 'Full HD (slower)' },
+  { value: '720p', label: '720p', width: 1280, height: 720, description: 'HD (recommended)' },
+  { value: '480p', label: '480p', width: 854, height: 480, description: 'SD (fastest)' },
+];
+
 export function ExportModal({
   isOpen,
   onClose,
@@ -81,6 +89,7 @@ export function ExportModal({
 }: ExportModalProps) {
   const [format, setFormat] = useState<ExportFormat>('mp4');
   const [quality, setQuality] = useState<ExportQuality>('medium');
+  const [resolution, setResolution] = useState<Resolution>('720p');
   const [stepDuration, setStepDuration] = useState(3000);
   const [progress, setProgress] = useState<ExportProgress>({
     stage: 'options',
@@ -121,8 +130,9 @@ export function ExportModal({
     setResultBlob(null);
 
     try {
-      // Get dimensions
-      const dimensions = getRecommendedDimensions();
+      // Get dimensions from selected resolution
+      const resOption = RESOLUTION_OPTIONS.find(r => r.value === resolution) || RESOLUTION_OPTIONS[1];
+      const dimensions = { width: resOption.width, height: resOption.height };
       const fps = format === 'gif' ? 15 : 30;
 
       // Stage 1: Capture frames
@@ -172,7 +182,7 @@ export function ExportModal({
       setError(err instanceof Error ? err.message : 'Export failed');
       setProgress({ stage: 'error', percent: 0, message: '' });
     }
-  }, [captureRef, format, quality, stepDuration, totalSteps, onNavigate, isExecutableStep, onExecute, isSupported]);
+  }, [captureRef, format, quality, resolution, stepDuration, totalSteps, onNavigate, isExecutableStep, onExecute, isSupported]);
 
   const handleDownload = useCallback(() => {
     if (!resultBlob) return;
@@ -205,7 +215,8 @@ export function ExportModal({
   const totalDurationSeconds = (stepDuration / 1000) * totalSteps;
   const fps = format === 'gif' ? 15 : 30;
   const estimatedFrames = Math.ceil(totalDurationSeconds * fps);
-  const dimensions = getRecommendedDimensions();
+  const resOption = RESOLUTION_OPTIONS.find(r => r.value === resolution) || RESOLUTION_OPTIONS[1];
+  const dimensions = { width: resOption.width, height: resOption.height };
   const estimatedSize = estimateFileSize(estimatedFrames, {
     format,
     fps,
@@ -401,6 +412,30 @@ export function ExportModal({
                     } ${!isSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Resolution selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Resolution
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {RESOLUTION_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setResolution(option.value)}
+                    disabled={!isSupported}
+                    className={`py-2 px-3 rounded-lg border-2 text-sm transition-all ${
+                      resolution === option.value
+                        ? 'border-theme-primary bg-theme-primary/5 text-theme-primary'
+                        : 'border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-slate-500'
+                    } ${!isSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className="font-medium">{option.label}</div>
+                    <div className="text-xs opacity-70">{option.description}</div>
                   </button>
                 ))}
               </div>
