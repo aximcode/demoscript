@@ -88,6 +88,10 @@ function generateFlowDiagram(
     if (path) {
       const edge = parseEdge(path);
       if (edge) {
+        // Use diagram_label property if no inline label provided
+        if (!edge.label && step.diagram_label) {
+          edge.label = step.diagram_label;
+        }
         edges.push(edge);
         pathToIndex.set(path, i);
         prevNode = edge.to;
@@ -182,8 +186,8 @@ function generateSequenceDiagram(
           participantOrder.push(to);
         }
 
-        // Generate message label if not provided
-        const messageLabel = label || generateMessageLabel(step, i);
+        // Generate message label: inline label > diagram_label property > auto-generated
+        const messageLabel = label || step.diagram_label || generateMessageLabel(step, i);
         const msg = messageLabel ? `${from}${arrow}${to}: ${messageLabel}` : `${from}${arrow}${to}`;
         messages.push(`  ${msg}`);
 

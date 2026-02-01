@@ -504,7 +504,8 @@
         "title": { "type": "string", "description": "Step title" },
         "id": { "type": "string", "description": "Unique identifier for goto targets" },
         "goto": { "type": "string", "description": "Step ID to navigate to after completion" },
-        "diagram": { "type": "string", "description": "Diagram path to highlight (e.g., 'NodeA->NodeB' for edge, 'NodeA' for node)" }
+        "diagram": { "type": "string", "description": "Diagram path to highlight (e.g., 'NodeA->NodeB' for edge, 'NodeA' for node, or 'A->B: label' with inline label)" },
+        "diagram_label": { "type": "string", "description": "Optional label for the diagram edge (alternative to inline 'A->B: label' syntax)" }
       }
     },
     "Choice": {
