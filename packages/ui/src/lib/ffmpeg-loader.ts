@@ -28,6 +28,18 @@ export function getUnsupportedReason(): string | null {
 }
 
 /**
+ * Create a timeout promise
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(message)), ms)
+    ),
+  ]);
+}
+
+/**
  * Load ffmpeg.wasm from CDN
  * Returns cached instance if already loaded
  */
@@ -58,40 +70,57 @@ export async function loadFFmpeg(
       onProgress?.(50 + progress * 50, 'Encoding video...');
     });
 
-    onProgress?.(0, 'Loading ffmpeg.wasm (~25MB)...');
+    onProgress?.(0, 'Downloading ffmpeg.wasm (~25MB)...');
 
-    // Load from unpkg CDN
-    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+    // Load from unpkg CDN (jsdelivr as fallback)
+    const cdnOptions = [
+      'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm',
+      'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm',
+    ];
 
-    try {
-      // Convert CDN URLs to blob URLs to avoid CORS issues
-      const coreURL = await toBlobURL(
-        `${baseURL}/ffmpeg-core.js`,
-        'text/javascript'
-      );
-      onProgress?.(15, 'Loading ffmpeg.wasm (~25MB)...');
+    let lastError: Error | null = null;
 
-      const wasmURL = await toBlobURL(
-        `${baseURL}/ffmpeg-core.wasm`,
-        'application/wasm'
-      );
-      onProgress?.(40, 'Initializing ffmpeg...');
+    for (const baseURL of cdnOptions) {
+      try {
+        // Convert CDN URLs to blob URLs to avoid CORS issues
+        onProgress?.(5, 'Downloading ffmpeg core...');
+        const coreURL = await withTimeout(
+          toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          30000,
+          'Timeout downloading ffmpeg core JS'
+        );
+        onProgress?.(15, 'Downloading WASM module (~25MB)...');
 
-      await ffmpeg.load({
-        coreURL,
-        wasmURL,
-      });
+        const wasmURL = await withTimeout(
+          toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+          120000, // 2 minutes for the large WASM file
+          'Timeout downloading WASM module. Check your internet connection.'
+        );
+        onProgress?.(40, 'Initializing encoder...');
 
-      onProgress?.(50, 'Ready to encode');
+        // ffmpeg.load can also hang, add timeout
+        await withTimeout(
+          ffmpeg.load({ coreURL, wasmURL }),
+          60000, // 1 minute to initialize
+          'Timeout initializing ffmpeg. Try refreshing the page.'
+        );
 
-      ffmpegInstance = ffmpeg;
-      return ffmpeg;
-    } catch (error) {
-      loadingPromise = null;
-      throw new Error(
-        `Failed to load ffmpeg.wasm: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+        onProgress?.(50, 'Ready to encode');
+
+        ffmpegInstance = ffmpeg;
+        return ffmpeg;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.warn(`Failed to load from ${baseURL}:`, lastError.message);
+        // Try next CDN
+        continue;
+      }
     }
+
+    loadingPromise = null;
+    throw new Error(
+      `Failed to load ffmpeg.wasm: ${lastError?.message || 'All CDNs failed'}`
+    );
   })();
 
   return loadingPromise;
