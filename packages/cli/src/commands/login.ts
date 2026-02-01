@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import readline from 'readline';
-import { loadConfig, saveConfig, getApiUrl, clearConfig } from '../lib/config.js';
+import { loadConfig, saveConfig, getApiUrl, clearConfig, CLI_USER_AGENT } from '../lib/config.js';
 
 interface LoginResponse {
   token: string;
@@ -74,6 +74,7 @@ export async function login(): Promise<void> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'User-Agent': CLI_USER_AGENT,
       },
       body: JSON.stringify({ email, password }),
     });

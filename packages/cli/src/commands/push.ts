@@ -1,7 +1,7 @@
 import { resolve, dirname, basename } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import chalk from 'chalk';
-import { loadConfig, getApiUrl } from '../lib/config.js';
+import { loadConfig, apiRequest, getApiUrl } from '../lib/config.js';
 
 interface PushOptions {
   slug?: string;
@@ -94,11 +94,7 @@ export async function push(demoPath: string, options: PushOptions): Promise<void
 
   try {
     // Check if demo already exists
-    const listResponse = await fetch(`${apiUrl}/api/demos`, {
-      headers: {
-        'Authorization': `Bearer ${config.token}`,
-      },
-    });
+    const listResponse = await apiRequest('/api/demos');
 
     if (!listResponse.ok) {
       if (listResponse.status === 401) {
@@ -113,16 +109,13 @@ export async function push(demoPath: string, options: PushOptions): Promise<void
     const existingDemo = demosData.demos.find(d => d.slug === slug);
 
     let response: Response;
-    let method: string;
 
     if (existingDemo) {
       // Update existing demo
       console.log(chalk.gray(`Updating existing demo (${existingDemo.id})...`));
-      method = 'PUT';
-      response = await fetch(`${apiUrl}/api/demos/${existingDemo.id}`, {
+      response = await apiRequest(`/api/demos/${existingDemo.id}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${config.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -136,11 +129,9 @@ export async function push(demoPath: string, options: PushOptions): Promise<void
     } else {
       // Create new demo
       console.log(chalk.gray('Creating new demo...'));
-      method = 'POST';
-      response = await fetch(`${apiUrl}/api/demos`, {
+      response = await apiRequest('/api/demos', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${config.token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

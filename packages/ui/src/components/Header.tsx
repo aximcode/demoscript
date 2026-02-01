@@ -4,8 +4,13 @@ import { SoundToggle } from './effects';
 import { DiagramToggleButton } from './diagram';
 import { useHealthCheck } from '../hooks/useHealthCheck';
 import { ServiceHealthHeader } from './ServiceHealth';
+import { isFFmpegSupported } from '../lib/ffmpeg-loader';
 
-export function Header() {
+interface HeaderProps {
+  onExport?: () => void;
+}
+
+export function Header({ onExport }: HeaderProps) {
   const { state, dispatch, hasDiagram, toggleDiagram } = useDemo();
 
   const healthChecks = state.config?.settings?.health_checks;
@@ -68,6 +73,18 @@ export function Header() {
                 isVisible={state.diagramVisible}
                 onClick={toggleDiagram}
               />
+            )}
+            {/* Export button - only show if browser supports ffmpeg.wasm */}
+            {onExport && isFFmpegSupported() && (
+              <button
+                onClick={onExport}
+                className="p-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors"
+                title="Export as video"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
             )}
             <SoundToggle />
             <ThemeToggle />

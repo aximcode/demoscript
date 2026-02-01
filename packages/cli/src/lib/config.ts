@@ -50,3 +50,38 @@ export function clearConfig(): void {
     writeFileSync(CONFIG_FILE, JSON.stringify({}, null, 2));
   }
 }
+
+export function updateToken(token: string): void {
+  const config = loadConfig();
+  config.token = token;
+  saveConfig(config);
+}
+
+// CLI User-Agent for API requests (used by server to determine token expiry)
+export const CLI_USER_AGENT = 'demoscript-cli/1.0';
+
+// Helper to make authenticated API requests with automatic token refresh
+export async function apiRequest(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const config = loadConfig();
+  const apiUrl = getApiUrl();
+
+  const response = await fetch(`${apiUrl}${endpoint}`, {
+    ...options,
+    headers: {
+      'User-Agent': CLI_USER_AGENT,
+      ...(config.token && { 'Authorization': `Bearer ${config.token}` }),
+      ...options.headers,
+    },
+  });
+
+  // Check for refreshed token
+  const newToken = response.headers.get('X-New-Token');
+  if (newToken) {
+    updateToken(newToken);
+  }
+
+  return response;
+}

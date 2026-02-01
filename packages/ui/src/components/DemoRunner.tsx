@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import yaml from 'js-yaml';
 import { useDemo } from '../context/DemoContext';
 import { useTheme } from '../context/ThemeContext';
@@ -14,6 +14,7 @@ import { Sidebar } from './Sidebar';
 import { FlowDiagramPanel } from './diagram';
 import { GridBackground, GlowOrbs } from './effects';
 import { PoweredByBadge } from './PoweredByBadge';
+import { ExportModal } from './export';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { normalizeConfig } from '../lib/normalize-config';
 import { isCloudMode } from '../lib/execute-adapter';
@@ -50,9 +51,11 @@ declare global {
 
 // Inner component that renders the demo content
 function DemoContent() {
-  const { state, dispatch, hasDiagram, toggleDiagram, currentDiagramPath, currentStepConfig } = useDemo();
+  const { state, dispatch, hasDiagram, toggleDiagram, currentDiagramPath, currentStepConfig, totalSteps } = useDemo();
   const { isAuthenticated, isAuthRequired } = useAuth();
   const [showDashboard, setShowDashboard] = useState(true);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
 
   const dashboardEnabled = state.config?.settings?.dashboard?.enabled === true;
   const diagramSettings = state.config?.settings?.diagram;
@@ -107,6 +110,33 @@ function DemoContent() {
     enabled: !(dashboardEnabled && showDashboard),
   });
 
+  // Export navigation handler - navigates to a step and waits for render
+  const handleExportNavigate = useCallback(async (stepIndex: number) => {
+    dispatch({ type: 'SET_STEP', payload: stepIndex });
+    // Wait for React to render the new step
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }, [dispatch]);
+
+  // Check if a step is executable (REST or shell)
+  const isExecutableStep = useCallback((stepIndex: number): boolean => {
+    const step = state.flatSteps[stepIndex];
+    if (!step) return false;
+    // Check for REST step (has 'rest' property)
+    if ('rest' in step) return true;
+    // Check for shell step (has 'shell' property)
+    if ('shell' in step) return true;
+    return false;
+  }, [state.flatSteps]);
+
+  // Trigger execution for a step - in recorded mode, just wait for animation
+  // In live mode, this would click the execute button
+  const handleExportExecute = useCallback(async (_stepIndex: number) => {
+    // For recorded demos, the response is already pre-loaded
+    // Just wait for the response animation to complete
+    // The animation typically takes ~300-500ms
+    await new Promise((resolve) => setTimeout(resolve, 600));
+  }, []);
+
   // Show login screen if auth is required and user is not authenticated
   if (isAuthRequired && !isAuthenticated) {
     return <LoginScreen />;
@@ -130,7 +160,7 @@ function DemoContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative z-10">
+    <div className="min-h-screen flex flex-col relative z-10" ref={captureRef}>
       {/* Sidebar */}
       {state.config && sidebarEnabled && (
         <Sidebar
@@ -145,7 +175,7 @@ function DemoContent() {
           sidebarEnabled ? (sidebarCollapsed ? 'ml-14' : 'ml-72') : ''
         }`}
       >
-        <Header />
+        <Header onExport={() => setShowExportModal(true)} />
 
         {/* Diagram panel in sidebar mode - integrated with header */}
         {/* Mobile: Full-screen overlay, Desktop: Fixed sidebar */}
@@ -304,6 +334,18 @@ function DemoContent() {
           onStepClick={handleStepClick}
         />
       )}
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        captureRef={captureRef}
+        totalSteps={totalSteps}
+        demoTitle={state.config?.title}
+        onNavigate={handleExportNavigate}
+        isExecutableStep={isExecutableStep}
+        onExecute={handleExportExecute}
+      />
     </div>
   );
 }
