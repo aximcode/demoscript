@@ -94,6 +94,7 @@ export interface DiagramSettings {
   // Display options
   position?: 'auto' | 'top' | 'bottom' | 'sidebar' | 'sticky' | 'toggle';  // Display position
   height?: number;                                  // Diagram height in px (default: 300)
+  show_step_numbers?: boolean;                      // Show circled step numbers on edges (default: false)
 }
 
 export interface HealthCheck {

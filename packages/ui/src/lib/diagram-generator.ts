@@ -18,6 +18,7 @@ export interface DiagramGeneratorConfig {
   nodes?: Record<string, NodeConfig>;
   participants?: Record<string, { label?: string }>;
   default_participants?: string[];
+  show_step_numbers?: boolean;
 }
 
 export interface GeneratedDiagram {
@@ -131,7 +132,20 @@ function generateFlowDiagram(
     const key = `${edge.from}->${edge.to}`;
     if (!seenEdges.has(key)) {
       seenEdges.add(key);
-      const label = edge.label ? `|${edge.label}|` : '';
+      // Build label with optional step number prefix
+      let labelText = edge.label || '';
+      if (config.show_step_numbers) {
+        // Find step index for this edge
+        const edgePath = edge.label
+          ? `${edge.from}->${edge.to}: ${edge.label}`
+          : `${edge.from}->${edge.to}`;
+        const stepIndex = pathToIndex.get(edgePath) ?? pathToIndex.get(`${edge.from}->${edge.to}`);
+        if (stepIndex !== undefined) {
+          const circled = toCircledNumber(stepIndex + 1);
+          labelText = labelText ? `${circled} ${labelText}` : circled;
+        }
+      }
+      const label = labelText ? `|${labelText}|` : '';
       const arrow = getArrowStyle(edge.style);
       chart += `  ${edge.from} ${arrow}${label} ${edge.to}\n`;
     }
@@ -193,7 +207,12 @@ function generateSequenceDiagram(
         }
 
         // Generate message label: inline label > diagram_label property > auto-generated
-        const messageLabel = label || step.diagram_label || generateMessageLabel(step, i);
+        let messageLabel = label || step.diagram_label || generateMessageLabel(step, i);
+        // Add step number prefix if enabled
+        if (config.show_step_numbers) {
+          const circled = toCircledNumber(i + 1);
+          messageLabel = messageLabel ? `${circled} ${messageLabel}` : circled;
+        }
         const msg = messageLabel ? `${from}${arrow}${to}: ${messageLabel}` : `${from}${arrow}${to}`;
         messages.push(`  ${msg}`);
 
@@ -264,6 +283,25 @@ function generateMessageLabel(step: Step, _index: number): string {
   }
 
   return '';
+}
+
+/**
+ * Convert a number to a circled Unicode character (①②③...)
+ * Supports 1-50 for circled numbers, falls back to parentheses for others
+ */
+function toCircledNumber(n: number): string {
+  // Unicode circled numbers: ① is U+2460 (decimal 9312)
+  // Range: ① (1) to ⑳ (20) at U+2460-U+2473
+  // Extended: ㉑ (21) to ㊿ (50) at U+3251-U+325F then U+32B1-U+32BF
+  if (n >= 1 && n <= 20) {
+    return String.fromCodePoint(0x2460 + n - 1);
+  } else if (n >= 21 && n <= 35) {
+    return String.fromCodePoint(0x3251 + n - 21);
+  } else if (n >= 36 && n <= 50) {
+    return String.fromCodePoint(0x32B1 + n - 36);
+  }
+  // Fallback for numbers > 50
+  return `(${n})`;
 }
 
 /**

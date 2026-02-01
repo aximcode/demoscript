@@ -400,6 +400,10 @@
           "type": "integer",
           "minimum": 30,
           "description": "Diagram height in pixels (default: 300, minimum: 30 for compact sticky)"
+        },
+        "show_step_numbers": {
+          "type": "boolean",
+          "description": "Show circled step numbers (①②③...) on edges (default: false)"
         }
       }
     },
