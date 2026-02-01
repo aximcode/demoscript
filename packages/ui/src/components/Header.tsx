@@ -4,7 +4,7 @@ import { SoundToggle } from './effects';
 import { DiagramToggleButton } from './diagram';
 import { useHealthCheck } from '../hooks/useHealthCheck';
 import { ServiceHealthHeader } from './ServiceHealth';
-import { isFFmpegSupported } from '../lib/ffmpeg-loader';
+import { isTabCaptureSupported } from '../lib/tab-capture';
 
 interface HeaderProps {
   onExport?: () => void;
@@ -74,8 +74,8 @@ export function Header({ onExport }: HeaderProps) {
                 onClick={toggleDiagram}
               />
             )}
-            {/* Export button - only show if browser supports ffmpeg.wasm */}
-            {onExport && isFFmpegSupported() && (
+            {/* Export button - only show if browser supports screen capture */}
+            {onExport && isTabCaptureSupported() && (
               <button
                 onClick={onExport}
                 className="p-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors"

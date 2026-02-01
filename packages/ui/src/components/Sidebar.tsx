@@ -87,6 +87,8 @@ export function Sidebar({ steps, onStepClick }: Props) {
 
   return (
     <aside
+      data-sidebar="true"
+      data-export-ignore="true"
       className={`fixed left-0 top-0 h-full sidebar-themed bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 transition-all duration-300 z-40 flex flex-col ${
         isCollapsed ? 'w-14' : 'w-72'
       }`}

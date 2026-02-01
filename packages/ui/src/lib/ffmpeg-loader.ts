@@ -7,8 +7,17 @@ import { toBlobURL } from '@ffmpeg/util';
 
 let ffmpegInstance: FFmpeg | null = null;
 let loadingPromise: Promise<FFmpeg> | null = null;
+let currentProgressCallback: ProgressCallback | null = null;
 
 export type ProgressCallback = (progress: number, message: string) => void;
+
+/**
+ * Set the current progress callback for encoding operations
+ * This allows updating the callback after ffmpeg is already loaded
+ */
+export function setProgressCallback(callback: ProgressCallback | undefined): void {
+  currentProgressCallback = callback ?? null;
+}
 
 /**
  * Check if the browser supports SharedArrayBuffer (required for ffmpeg.wasm)
@@ -39,6 +48,35 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   ]);
 }
 
+// CDN options - Cloudflare R2 primary, external CDNs as fallback
+interface CDNOption {
+  name: string;
+  coreURL: string;
+  wasmURL: string;
+}
+
+function getCDNOptions(): CDNOption[] {
+  return [
+    // Primary: Our own Cloudflare R2 (fast, reliable)
+    {
+      name: 'cloudflare',
+      coreURL: 'https://demoscript.app/assets/ffmpeg/ffmpeg-core.js',
+      wasmURL: 'https://demoscript.app/assets/ffmpeg/ffmpeg-core.wasm',
+    },
+    // Fallback: External CDNs
+    {
+      name: 'unpkg',
+      coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+      wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm',
+    },
+    {
+      name: 'jsdelivr',
+      coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+      wasmURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm',
+    },
+  ];
+}
+
 /**
  * Load ffmpeg.wasm from CDN
  * Returns cached instance if already loaded
@@ -65,55 +103,77 @@ export async function loadFFmpeg(
   loadingPromise = (async () => {
     const ffmpeg = new FFmpeg();
 
-    // Track encoding progress
+    // Track encoding progress - uses mutable callback so it can be updated later
+    // Note: During transcoding (WebM→MP4), ffmpeg reports garbage progress values
+    // (negative numbers, values > 1). We filter these out to prevent UI issues.
     ffmpeg.on('progress', ({ progress }) => {
-      onProgress?.(50 + progress * 50, 'Encoding video...');
+      // Skip invalid progress values (common during transcoding)
+      if (progress < 0 || progress > 1 || !isFinite(progress)) {
+        return;
+      }
+      const percent = Math.round(70 + progress * 25); // 70-95% during encoding
+      currentProgressCallback?.(percent, `Encoding: ${Math.round(progress * 100)}%`);
     });
 
+    // Log loading events for debugging
+    ffmpeg.on('log', ({ message }) => {
+      console.log('[ffmpeg]', message);
+    });
+
+    // Set initial callback for loading progress
+    currentProgressCallback = onProgress ?? null;
     onProgress?.(0, 'Downloading ffmpeg.wasm (~25MB)...');
 
-    // Load from unpkg CDN (jsdelivr as fallback)
-    const cdnOptions = [
-      'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm',
-      'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm',
-    ];
-
+    const cdnOptions = getCDNOptions();
     let lastError: Error | null = null;
 
-    for (const baseURL of cdnOptions) {
+    for (let i = 0; i < cdnOptions.length; i++) {
+      const cdn = cdnOptions[i];
+      const isLastOption = i === cdnOptions.length - 1;
+
       try {
-        // Convert CDN URLs to blob URLs to avoid CORS issues
-        onProgress?.(5, 'Downloading ffmpeg core...');
+        console.log(`[ffmpeg] Trying ${cdn.name}...`);
+
+        // Download and convert to blob URLs
+        onProgress?.(5, `Downloading ffmpeg (${cdn.name})...`);
         const coreURL = await withTimeout(
-          toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-          30000,
-          'Timeout downloading ffmpeg core JS'
+          toBlobURL(cdn.coreURL, 'text/javascript'),
+          60000, // 1 minute for core JS
+          `Timeout downloading ffmpeg core from ${cdn.name}`
         );
-        onProgress?.(15, 'Downloading WASM module (~25MB)...');
 
+        onProgress?.(20, 'Downloading WASM (~25MB)...');
         const wasmURL = await withTimeout(
-          toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-          120000, // 2 minutes for the large WASM file
-          'Timeout downloading WASM module. Check your internet connection.'
+          toBlobURL(cdn.wasmURL, 'application/wasm'),
+          180000, // 3 minutes for WASM
+          'Timeout downloading WASM. Check your connection.'
         );
-        onProgress?.(40, 'Initializing encoder...');
 
-        // ffmpeg.load can also hang, add timeout
+        onProgress?.(40, 'Compiling WASM (may take 1-2 min)...');
+        console.log('[ffmpeg] WASM downloaded, compiling...');
+        const startTime = Date.now();
+
+        // Load ffmpeg - WASM compilation can be very slow
         await withTimeout(
           ffmpeg.load({ coreURL, wasmURL }),
-          60000, // 1 minute to initialize
-          'Timeout initializing ffmpeg. Try refreshing the page.'
+          300000, // 5 minutes for compilation
+          'WASM compilation timeout. Try using CLI: demoscript export-video'
         );
 
-        onProgress?.(50, 'Ready to encode');
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`[ffmpeg] Loaded from ${cdn.name} in ${elapsed}s`);
+        onProgress?.(50, 'Encoder ready');
 
         ffmpegInstance = ffmpeg;
         return ffmpeg;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        console.warn(`Failed to load from ${baseURL}:`, lastError.message);
-        // Try next CDN
-        continue;
+        console.warn(`[ffmpeg] ${cdn.name} failed:`, lastError.message);
+
+        if (!isLastOption) {
+          onProgress?.(5, 'Trying next CDN...');
+          continue;
+        }
       }
     }
 
@@ -142,4 +202,19 @@ export function unloadFFmpeg(): void {
  */
 export function isFFmpegLoaded(): boolean {
   return ffmpegInstance?.loaded ?? false;
+}
+
+/**
+ * Preload ffmpeg in the background (no UI feedback)
+ * Call this when the export button becomes visible to start loading early
+ */
+export function preloadFFmpeg(): void {
+  if (ffmpegInstance?.loaded || loadingPromise || !isFFmpegSupported()) {
+    return;
+  }
+
+  console.log('[ffmpeg] Preloading in background...');
+  loadFFmpeg().catch((err) => {
+    console.warn('[ffmpeg] Background preload failed:', err.message);
+  });
 }

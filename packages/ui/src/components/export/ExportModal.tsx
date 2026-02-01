@@ -1,23 +1,20 @@
 /**
  * Export Modal Component
- * Allows users to export demos as MP4 or GIF videos
+ * Allows users to export demos as WebM, MP4, or GIF videos
+ *
+ * Uses MediaRecorder + getDisplayMedia for perfect visual fidelity.
+ * This captures exactly what's displayed on screen, unlike html2canvas.
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { isFFmpegSupported, getUnsupportedReason, unloadFFmpeg } from '../../lib/ffmpeg-loader';
-import { captureAllFrames } from '../../lib/frame-capture';
-import {
-  encodeVideo,
-  downloadBlob,
-  estimateFileSize,
-  type ExportFormat,
-  type ExportQuality,
-} from '../../lib/video-encoder';
+import { isTabCaptureSupported, getTabCaptureUnsupportedReason, startTabCapture, type TabCaptureControls } from '../../lib/tab-capture';
+import { isFFmpegSupported } from '../../lib/ffmpeg-loader';
+import { downloadBlob, convertWebMToMP4, convertWebMToGIF, type ExportQuality } from '../../lib/video-encoder';
 
 export interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   /**
-   * Reference to the demo content element to capture
+   * Reference to the demo content element (kept for compatibility)
    */
   captureRef: React.RefObject<HTMLElement | null>;
   /**
@@ -34,17 +31,16 @@ export interface ExportModalProps {
   onNavigate: (stepIndex: number) => Promise<void>;
   /**
    * Check if step has an execute action (REST/shell steps)
-   * If provided, these steps get before/after captures
    */
   isExecutableStep?: (stepIndex: number) => boolean;
   /**
    * Trigger execution for a step (clicks the Execute button)
-   * Required if isExecutableStep is provided
    */
   onExecute?: (stepIndex: number) => Promise<void>;
 }
 
-type ExportStage = 'options' | 'capturing' | 'encoding' | 'complete' | 'error';
+type ExportFormat = 'webm' | 'mp4' | 'gif';
+type ExportStage = 'options' | 'recording' | 'converting' | 'complete' | 'error';
 
 interface ExportProgress {
   stage: ExportStage;
@@ -52,15 +48,10 @@ interface ExportProgress {
   message: string;
 }
 
-const FORMAT_OPTIONS: { value: ExportFormat; label: string; description: string }[] = [
-  { value: 'mp4', label: 'MP4 Video', description: 'Best quality, smaller file size' },
-  { value: 'gif', label: 'Animated GIF', description: 'Universal compatibility, larger file' },
-];
-
-const QUALITY_OPTIONS: { value: ExportQuality; label: string; description: string }[] = [
-  { value: 'low', label: 'Low', description: 'Fastest encoding, smaller file' },
-  { value: 'medium', label: 'Medium', description: 'Balanced quality and size' },
-  { value: 'high', label: 'High', description: 'Best quality, larger file' },
+const FORMAT_OPTIONS: { value: ExportFormat; label: string; description: string; warning?: string }[] = [
+  { value: 'webm', label: 'WebM', description: 'Instant, native quality' },
+  { value: 'mp4', label: 'MP4', description: 'Universal compatibility', warning: 'Slow conversion' },
+  { value: 'gif', label: 'GIF', description: 'Animated image', warning: 'Slow conversion' },
 ];
 
 const DURATION_OPTIONS = [
@@ -69,28 +60,28 @@ const DURATION_OPTIONS = [
   { value: 5000, label: '5 seconds' },
 ];
 
-type Resolution = '1080p' | '720p' | '480p';
-
-const RESOLUTION_OPTIONS: { value: Resolution; label: string; width: number; height: number; description: string }[] = [
-  { value: '1080p', label: '1080p', width: 1920, height: 1080, description: 'Full HD (slower)' },
-  { value: '720p', label: '720p', width: 1280, height: 720, description: 'HD (recommended)' },
-  { value: '480p', label: '480p', width: 854, height: 480, description: 'SD (fastest)' },
+const QUALITY_OPTIONS: { value: ExportQuality; label: string }[] = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
 ];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function ExportModal({
   isOpen,
   onClose,
-  captureRef,
   totalSteps,
   demoTitle,
   onNavigate,
   isExecutableStep,
   onExecute,
 }: ExportModalProps) {
-  const [format, setFormat] = useState<ExportFormat>('mp4');
-  const [quality, setQuality] = useState<ExportQuality>('medium');
-  const [resolution, setResolution] = useState<Resolution>('720p');
+  const [format, setFormat] = useState<ExportFormat>('webm');
   const [stepDuration, setStepDuration] = useState(3000);
+  const [gifQuality, setGifQuality] = useState<ExportQuality>('medium');
   const [progress, setProgress] = useState<ExportProgress>({
     stage: 'options',
     percent: 0,
@@ -98,10 +89,17 @@ export function ExportModal({
   });
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef(false);
 
-  const isSupported = isFFmpegSupported();
-  const unsupportedReason = getUnsupportedReason();
+  const abortRef = useRef(false);
+  const captureRef = useRef<TabCaptureControls | null>(null);
+  const originalTitleRef = useRef<string>('');
+
+  // Check browser support
+  const isSupported = isTabCaptureSupported();
+  const unsupportedReason = getTabCaptureUnsupportedReason();
+
+  // MP4/GIF conversion requires ffmpeg.wasm which needs SharedArrayBuffer
+  const canConvert = isFFmpegSupported();
 
   // Reset state when modal opens
   useEffect(() => {
@@ -116,114 +114,216 @@ export function ExportModal({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (resultBlob) {
-        URL.revokeObjectURL(URL.createObjectURL(resultBlob));
+      if (captureRef.current) {
+        captureRef.current.stream.getTracks().forEach((t) => t.stop());
       }
     };
-  }, [resultBlob]);
+  }, []);
+
+  // Update document title during recording (shows in browser tab, not in capture)
+  useEffect(() => {
+    if (progress.stage === 'recording') {
+      // Save original title on first recording state
+      if (!originalTitleRef.current) {
+        originalTitleRef.current = document.title;
+      }
+      // Extract step info from message (e.g., "Recording step 3/7...")
+      const stepMatch = progress.message.match(/step (\d+)\/(\d+)/);
+      if (stepMatch) {
+        document.title = `🔴 Recording ${stepMatch[1]}/${stepMatch[2]} | ${originalTitleRef.current}`;
+      } else {
+        document.title = `🔴 Recording... | ${originalTitleRef.current}`;
+      }
+    } else if (progress.stage === 'converting') {
+      document.title = `⏳ Converting... | ${originalTitleRef.current}`;
+    } else if (progress.stage === 'complete') {
+      document.title = `✅ Export ready! | ${originalTitleRef.current}`;
+      // Restore after a delay
+      setTimeout(() => {
+        if (originalTitleRef.current) {
+          document.title = originalTitleRef.current;
+        }
+      }, 3000);
+    } else if (originalTitleRef.current && progress.stage === 'options') {
+      // Restore original title when back to options
+      document.title = originalTitleRef.current;
+      originalTitleRef.current = '';
+    }
+  }, [progress.stage, progress.message]);
 
   const handleExport = useCallback(async () => {
-    if (!captureRef.current || !isSupported) return;
+    if (!isSupported) return;
 
     abortRef.current = false;
     setError(null);
     setResultBlob(null);
 
     try {
-      // Get dimensions from selected resolution
-      const resOption = RESOLUTION_OPTIONS.find(r => r.value === resolution) || RESOLUTION_OPTIONS[1];
-      const dimensions = { width: resOption.width, height: resOption.height };
-      const fps = format === 'gif' ? 15 : 30;
+      // Stage 1: Start tab capture (user sees browser permission prompt)
+      setProgress({ stage: 'recording', percent: 0, message: 'Select this tab to share...' });
 
-      // Stage 1: Capture frames
-      setProgress({ stage: 'capturing', percent: 0, message: 'Preparing capture...' });
-
-      const frames = await captureAllFrames(captureRef.current, {
-        ...dimensions,
-        fps,
-        stepDuration,
-        totalSteps,
-        onNavigate,
-        isExecutableStep,
-        onExecute,
+      const capture = await startTabCapture({
         onProgress: (percent, message) => {
-          if (abortRef.current) throw new Error('Export cancelled');
-          setProgress({ stage: 'capturing', percent: percent * 0.4, message });
+          setProgress({ stage: 'recording', percent, message });
         },
       });
 
-      if (abortRef.current) throw new Error('Export cancelled');
+      captureRef.current = capture;
 
-      // Stage 2: Encode video
-      setProgress({ stage: 'encoding', percent: 40, message: 'Loading encoder...' });
+      // Check if user cancelled
+      if (abortRef.current) {
+        capture.stream.getTracks().forEach((t) => t.stop());
+        throw new Error('Export cancelled');
+      }
 
-      const blob = await encodeVideo(frames, {
-        format,
-        fps,
-        quality,
-        width: dimensions.width,
-        height: dimensions.height,
-      }, (percent, message) => {
-        if (abortRef.current) throw new Error('Export cancelled');
-        // Map encoder progress (0-100) to our remaining 60% (40-100)
-        const mappedPercent = 40 + (percent * 0.6);
-        setProgress({ stage: 'encoding', percent: mappedPercent, message });
-      });
+      setProgress({ stage: 'recording', percent: 20, message: 'Recording started...' });
 
-      if (abortRef.current) throw new Error('Export cancelled');
+      // Small delay to let user see recording has started
+      await sleep(500);
 
-      setResultBlob(blob);
-      setProgress({ stage: 'complete', percent: 100, message: 'Export complete!' });
+      // Stage 2: Auto-play through all steps
+      for (let step = 0; step < totalSteps; step++) {
+        if (abortRef.current) {
+          capture.stream.getTracks().forEach((t) => t.stop());
+          throw new Error('Export cancelled');
+        }
+
+        // Navigate to step
+        await onNavigate(step);
+
+        // For executable steps, trigger execution
+        if (isExecutableStep?.(step) && onExecute) {
+          await sleep(500); // Let step render
+          await onExecute(step);
+          await sleep(1500); // Show result longer for executable steps
+        } else {
+          await sleep(stepDuration);
+        }
+
+        const percent = 20 + ((step + 1) / totalSteps) * 60;
+        setProgress({
+          stage: 'recording',
+          percent,
+          message: `Recording step ${step + 1}/${totalSteps}...`,
+        });
+      }
+
+      // Hold on last step briefly
+      await sleep(1000);
+
+      // Stage 3: Stop recording
+      setProgress({ stage: 'recording', percent: 85, message: 'Finalizing recording...' });
+
+      const result = await capture.stop();
+      captureRef.current = null;
+
+      console.log(`[export] Recorded ${result.duration.toFixed(1)}s, ${(result.blob.size / 1024 / 1024).toFixed(2)} MB`);
+
+      // Stage 4: Convert if needed
+      if (format === 'webm') {
+        // No conversion needed
+        setResultBlob(result.blob);
+        setProgress({ stage: 'complete', percent: 100, message: 'Done!' });
+      } else if (format === 'mp4') {
+        if (!canConvert) {
+          throw new Error('MP4 conversion requires SharedArrayBuffer support. Try WebM format instead.');
+        }
+        setProgress({ stage: 'converting', percent: 90, message: 'Converting to MP4...' });
+
+        const mp4Blob = await convertWebMToMP4(result.blob, (percent, message) => {
+          // Map 0-100 to 90-100
+          const mappedPercent = 90 + (percent * 0.1);
+          setProgress({ stage: 'converting', percent: mappedPercent, message });
+        });
+
+        setResultBlob(mp4Blob);
+        setProgress({ stage: 'complete', percent: 100, message: 'Done!' });
+      } else if (format === 'gif') {
+        if (!canConvert) {
+          throw new Error('GIF conversion requires SharedArrayBuffer support. Try WebM format instead.');
+        }
+        setProgress({ stage: 'converting', percent: 90, message: 'Converting to GIF...' });
+
+        const gifBlob = await convertWebMToGIF(result.blob, (percent, message) => {
+          const mappedPercent = 90 + (percent * 0.1);
+          setProgress({ stage: 'converting', percent: mappedPercent, message });
+        }, { quality: gifQuality });
+
+        setResultBlob(gifBlob);
+        setProgress({ stage: 'complete', percent: 100, message: 'Done!' });
+      }
     } catch (err) {
+      captureRef.current = null;
+
       if (err instanceof Error && err.message === 'Export cancelled') {
         setProgress({ stage: 'options', percent: 0, message: '' });
         return;
       }
+
+      console.error('[export] Error:', err);
       setError(err instanceof Error ? err.message : 'Export failed');
       setProgress({ stage: 'error', percent: 0, message: '' });
     }
-  }, [captureRef, format, quality, resolution, stepDuration, totalSteps, onNavigate, isExecutableStep, onExecute, isSupported]);
+  }, [isSupported, canConvert, format, stepDuration, gifQuality, totalSteps, onNavigate, isExecutableStep, onExecute]);
 
   const handleDownload = useCallback(() => {
     if (!resultBlob) return;
 
-    const extension = format === 'mp4' ? 'mp4' : 'gif';
-    const filename = `${demoTitle?.toLowerCase().replace(/\s+/g, '-') || 'demo'}.${extension}`;
+    const extensions: Record<ExportFormat, string> = {
+      webm: 'webm',
+      mp4: 'mp4',
+      gif: 'gif',
+    };
+    const filename = `${demoTitle?.toLowerCase().replace(/\s+/g, '-') || 'demo'}.${extensions[format]}`;
     downloadBlob(resultBlob, filename);
   }, [resultBlob, format, demoTitle]);
 
   const handleCancel = useCallback(() => {
     abortRef.current = true;
-    unloadFFmpeg();
-    onClose();
-  }, [onClose]);
+    if (captureRef.current) {
+      captureRef.current.stream.getTracks().forEach((t) => t.stop());
+      captureRef.current = null;
+    }
+    setProgress({ stage: 'options', percent: 0, message: '' });
+  }, []);
 
   const handleClose = useCallback(() => {
-    if (progress.stage === 'capturing' || progress.stage === 'encoding') {
-      // Confirm before closing during export
+    if (progress.stage === 'recording' || progress.stage === 'converting') {
       if (window.confirm('Cancel the export?')) {
         handleCancel();
+        onClose();
       }
     } else {
       onClose();
     }
   }, [progress.stage, handleCancel, onClose]);
 
+  // Allow Escape key to cancel recording even when modal is hidden
+  useEffect(() => {
+    if (progress.stage !== 'recording') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleCancel();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [progress.stage, handleCancel]);
+
   if (!isOpen) return null;
 
-  const isExporting = progress.stage === 'capturing' || progress.stage === 'encoding';
+  const isExporting = progress.stage === 'recording' || progress.stage === 'converting';
+  const isRecording = progress.stage === 'recording';
   const totalDurationSeconds = (stepDuration / 1000) * totalSteps;
-  const fps = format === 'gif' ? 15 : 30;
-  const estimatedFrames = Math.ceil(totalDurationSeconds * fps);
-  const resOption = RESOLUTION_OPTIONS.find(r => r.value === resolution) || RESOLUTION_OPTIONS[1];
-  const dimensions = { width: resOption.width, height: resOption.height };
-  const estimatedSize = estimateFileSize(estimatedFrames, {
-    format,
-    fps,
-    quality,
-    width: dimensions.width,
-    height: dimensions.height,
-  });
+
+  // During recording, hide the modal completely so it doesn't appear in the capture
+  // The demo auto-plays through all steps and stops automatically
+  if (isRecording) {
+    return null;
+  }
 
   return (
     <div
@@ -292,30 +392,51 @@ export function ExportModal({
           <div className="space-y-4">
             <div className="text-center">
               <div className="w-16 h-16 mx-auto mb-4 relative">
-                <svg className="w-full h-full animate-spin text-theme-primary/20" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none" />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    style={{ fill: 'var(--theme-primary)' }}
-                  />
-                </svg>
+                {progress.stage === 'recording' ? (
+                  // Recording indicator
+                  <div className="w-full h-full rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-red-500 animate-pulse" />
+                  </div>
+                ) : (
+                  // Spinner for converting
+                  <svg className="w-full h-full animate-spin text-theme-primary/20" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none" />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      style={{ fill: 'var(--theme-primary)' }}
+                    />
+                  </svg>
+                )}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {Math.round(progress.percent)}%
-                  </span>
+                  {progress.stage !== 'recording' && (
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {Math.round(progress.percent)}%
+                    </span>
+                  )}
                 </div>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{progress.message}</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {progress.stage === 'recording' ? 'Recording...' : 'Converting...'}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{progress.message}</p>
             </div>
 
             <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-theme-primary transition-all duration-300"
+                className={`h-full transition-all duration-300 ${
+                  progress.stage === 'recording' ? 'bg-red-500' : 'bg-theme-primary'
+                }`}
                 style={{ width: `${progress.percent}%` }}
               />
             </div>
+
+            {progress.stage === 'recording' && (
+              <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+                Keep this tab visible during recording
+              </p>
+            )}
 
             <button
               onClick={handleCancel}
@@ -371,75 +492,72 @@ export function ExportModal({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Format
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                {FORMAT_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setFormat(option.value)}
-                    disabled={!isSupported}
-                    className={`p-3 rounded-lg border-2 text-left transition-all ${
-                      format === option.value
-                        ? 'border-theme-primary bg-theme-primary/5'
-                        : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500'
-                    } ${!isSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="font-medium text-gray-900 dark:text-white text-sm">
+              <div className="grid grid-cols-3 gap-2">
+                {FORMAT_OPTIONS.map((option) => {
+                  const needsConversion = option.value !== 'webm';
+                  const isDisabled = !isSupported || (needsConversion && !canConvert);
+
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => setFormat(option.value)}
+                      disabled={isDisabled}
+                      className={`p-3 rounded-lg border-2 text-left transition-all ${
+                        format === option.value
+                          ? 'border-theme-primary bg-theme-primary/5'
+                          : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500'
+                      } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="font-medium text-gray-900 dark:text-white text-sm flex items-center gap-1">
+                        {option.label}
+                        {option.warning && (
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 font-normal">
+                            Slow
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {option.description}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {!canConvert && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                  MP4/GIF conversion unavailable (requires SharedArrayBuffer)
+                </p>
+              )}
+              {canConvert && format !== 'webm' && (
+                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-xs text-amber-700 dark:text-amber-400">
+                  <strong>Note:</strong> {format.toUpperCase()} conversion runs in-browser and may take several minutes. For faster exports, use WebM.
+                </div>
+              )}
+            </div>
+
+            {/* GIF quality (only show for GIF format) */}
+            {format === 'gif' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  GIF Quality
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {QUALITY_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setGifQuality(option.value)}
+                      className={`py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                        gifQuality === option.value
+                          ? 'border-theme-primary bg-theme-primary/5 text-theme-primary'
+                          : 'border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-slate-500'
+                      }`}
+                    >
                       {option.label}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {option.description}
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Quality selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Quality
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {QUALITY_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setQuality(option.value)}
-                    disabled={!isSupported}
-                    className={`py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                      quality === option.value
-                        ? 'border-theme-primary bg-theme-primary/5 text-theme-primary'
-                        : 'border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-slate-500'
-                    } ${!isSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Resolution selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Resolution
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {RESOLUTION_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setResolution(option.value)}
-                    disabled={!isSupported}
-                    className={`py-2 px-3 rounded-lg border-2 text-sm transition-all ${
-                      resolution === option.value
-                        ? 'border-theme-primary bg-theme-primary/5 text-theme-primary'
-                        : 'border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-slate-500'
-                    } ${!isSupported ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <div className="font-medium">{option.label}</div>
-                    <div className="text-xs opacity-70">{option.description}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Duration per step */}
             <div>
@@ -471,13 +589,20 @@ export function ExportModal({
                 <span className="font-medium text-gray-900 dark:text-white">{totalSteps}</span>
               </div>
               <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-600 dark:text-gray-400">Resolution</span>
-                <span className="font-medium text-gray-900 dark:text-white">{dimensions.width}×{dimensions.height}</span>
+                <span className="text-gray-600 dark:text-gray-400">Est. duration</span>
+                <span className="font-medium text-gray-900 dark:text-white">~{Math.ceil(totalDurationSeconds)}s</span>
               </div>
               <div className="flex justify-between text-sm mt-1">
-                <span className="text-gray-600 dark:text-gray-400">Est. size</span>
-                <span className="font-medium text-gray-900 dark:text-white">~{estimatedSize}</span>
+                <span className="text-gray-600 dark:text-gray-400">Resolution</span>
+                <span className="font-medium text-gray-900 dark:text-white">Your screen</span>
               </div>
+            </div>
+
+            {/* How it works */}
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-xs text-blue-800 dark:text-blue-300">
+                <strong>How it works:</strong> Click Start Recording, select "This Tab" in the browser prompt, then the demo will auto-play while recording.
+              </p>
             </div>
 
             {/* Export button */}
@@ -491,14 +616,11 @@ export function ExportModal({
               }`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <circle cx="12" cy="12" r="10" strokeWidth={2} />
+                <circle cx="12" cy="12" r="3" fill="currentColor" />
               </svg>
-              Start Export
+              Start Recording
             </button>
-
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400">
-              First export downloads ~25MB encoder
-            </p>
           </div>
         )}
       </div>

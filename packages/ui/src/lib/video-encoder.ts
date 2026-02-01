@@ -1,169 +1,22 @@
 /**
  * Video encoder service using ffmpeg.wasm
- * Orchestrates frame encoding to MP4 or GIF
+ *
+ * Used for converting WebM (from tab capture) to MP4 or GIF formats.
+ * The actual recording is done by MediaRecorder in tab-capture.ts.
  */
-import { loadFFmpeg, type ProgressCallback } from './ffmpeg-loader';
-import type { FrameWithDuration } from './frame-capture';
+import { loadFFmpeg, setProgressCallback, type ProgressCallback } from './ffmpeg-loader';
 
-export type ExportFormat = 'mp4' | 'gif';
+export type ExportFormat = 'webm' | 'mp4' | 'gif';
 export type ExportQuality = 'low' | 'medium' | 'high';
 
-export interface EncodeOptions {
-  /**
-   * Output format
-   */
-  format: ExportFormat;
-  /**
-   * Frames per second (for output video smoothness)
-   */
-  fps: number;
-  /**
-   * Output width (height calculated from frames)
-   */
-  width: number;
-  /**
-   * Output height
-   */
-  height: number;
-  /**
-   * Quality preset
-   */
-  quality?: ExportQuality;
-  /**
-   * Output filename (without extension)
-   */
-  filename?: string;
-}
-
 /**
- * Quality presets for encoding
+ * Quality presets for GIF encoding
  */
-const QUALITY_PRESETS = {
-  mp4: {
-    low: { crf: '28', preset: 'ultrafast' },
-    medium: { crf: '23', preset: 'fast' },
-    high: { crf: '18', preset: 'medium' },
-  },
-  gif: {
-    low: { scale: 0.5, fps: 10 },
-    medium: { scale: 0.75, fps: 15 },
-    high: { scale: 1, fps: 24 },
-  },
+const GIF_QUALITY_PRESETS = {
+  low: { scale: 0.5, fps: 10 },
+  medium: { scale: 0.75, fps: 15 },
+  high: { scale: 1, fps: 24 },
 };
-
-/**
- * Encode frames to video using ffmpeg.wasm
- * Uses concat demuxer to handle per-frame durations efficiently
- */
-export async function encodeVideo(
-  frames: FrameWithDuration[],
-  options: EncodeOptions,
-  onProgress?: ProgressCallback
-): Promise<Blob> {
-  if (frames.length === 0) {
-    throw new Error('No frames to encode');
-  }
-
-  const ffmpeg = await loadFFmpeg(onProgress);
-  const quality = options.quality ?? 'medium';
-  const outputExt = options.format;
-  const outputFile = `output.${outputExt}`;
-
-  try {
-    // Write all frames to virtual filesystem
-    onProgress?.(50, 'Processing frames...');
-    const filenames: string[] = [];
-
-    for (let i = 0; i < frames.length; i++) {
-      const filename = `frame${i.toString().padStart(6, '0')}.png`;
-      filenames.push(filename);
-      await ffmpeg.writeFile(filename, frames[i].data);
-
-      const frameProgress = (i / frames.length) * 20;
-      onProgress?.(50 + frameProgress, `Processing frame ${i + 1}/${frames.length}`);
-    }
-
-    // Create concat demuxer file with frame durations
-    const concatContent = frames.map((frame, i) =>
-      `file '${filenames[i]}'\nduration ${frame.duration}`
-    ).join('\n');
-    await ffmpeg.writeFile('concat.txt', concatContent);
-
-    onProgress?.(70, 'Encoding video...');
-
-    // Build ffmpeg command based on format and quality
-    if (options.format === 'mp4') {
-      const preset = QUALITY_PRESETS.mp4[quality];
-      await ffmpeg.exec([
-        '-f', 'concat',
-        '-safe', '0',
-        '-i', 'concat.txt',
-        '-c:v', 'libx264',
-        '-pix_fmt', 'yuv420p',
-        '-crf', preset.crf,
-        '-preset', preset.preset,
-        '-r', String(options.fps), // Output framerate
-        // Ensure dimensions are even (required for libx264)
-        '-vf', `scale=trunc(iw/2)*2:trunc(ih/2)*2`,
-        '-movflags', '+faststart', // Enable streaming
-        outputFile,
-      ]);
-    } else {
-      // GIF with palette optimization for better quality/size
-      const preset = QUALITY_PRESETS.gif[quality];
-      const scaledWidth = Math.round(options.width * preset.scale);
-
-      await ffmpeg.exec([
-        '-f', 'concat',
-        '-safe', '0',
-        '-i', 'concat.txt',
-        '-vf', `fps=${preset.fps},scale=${scaledWidth}:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5`,
-        '-loop', '0', // Infinite loop
-        outputFile,
-      ]);
-    }
-
-    onProgress?.(90, 'Finalizing...');
-
-    // Read the output file
-    const fileData = await ffmpeg.readFile(outputFile);
-    // Ensure we have binary data (FileData can be string or Uint8Array)
-    // Copy to a new ArrayBuffer to avoid SharedArrayBuffer issues with Blob
-    let data: Uint8Array;
-    if (typeof fileData === 'string') {
-      data = new TextEncoder().encode(fileData);
-    } else {
-      // Copy to new ArrayBuffer (Blob doesn't accept SharedArrayBuffer)
-      data = new Uint8Array(fileData.length);
-      data.set(fileData);
-    }
-
-    // Cleanup virtual filesystem
-    for (const filename of filenames) {
-      try {
-        await ffmpeg.deleteFile(filename);
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
-    try {
-      await ffmpeg.deleteFile('concat.txt');
-      await ffmpeg.deleteFile(outputFile);
-    } catch {
-      // Ignore cleanup errors
-    }
-
-    onProgress?.(100, 'Complete!');
-
-    // Create blob with appropriate MIME type
-    const mimeType = options.format === 'mp4' ? 'video/mp4' : 'image/gif';
-    return new Blob([data as BlobPart], { type: mimeType });
-  } catch (error) {
-    throw new Error(
-      `Encoding failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
-  }
-}
 
 /**
  * Trigger browser download of the encoded video
@@ -180,30 +33,149 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * Get estimated file size based on options
+ * Convert WebM blob to MP4 using ffmpeg.wasm
+ *
+ * This is used after MediaRecorder captures a WebM video from tab capture.
+ * The conversion is much faster than encoding from frames since the video
+ * is already compressed - we're just remuxing/transcoding.
  */
-export function estimateFileSize(
-  frameCount: number,
-  options: EncodeOptions
-): string {
-  // Very rough estimates based on typical compression ratios
-  const quality = options.quality ?? 'medium';
-  const pixelCount = options.width * options.height;
+export async function convertWebMToMP4(
+  webmBlob: Blob,
+  onProgress?: ProgressCallback
+): Promise<Blob> {
+  console.log(`[video-encoder] Converting WebM (${(webmBlob.size / 1024 / 1024).toFixed(2)} MB) to MP4...`);
 
-  let bytesPerFrame: number;
-  if (options.format === 'mp4') {
-    // H.264 compression is very efficient
-    const qualityMultiplier = { low: 0.5, medium: 1, high: 2 }[quality];
-    bytesPerFrame = (pixelCount * 0.02 * qualityMultiplier) / options.fps;
-  } else {
-    // GIF is less efficient
-    const scaleMultiplier = QUALITY_PRESETS.gif[quality].scale;
-    bytesPerFrame = pixelCount * 0.1 * scaleMultiplier * scaleMultiplier;
+  const ffmpeg = await loadFFmpeg(onProgress);
+
+  // Clear the progress callback - ffmpeg's internal progress events report
+  // garbage values during transcoding (it's designed for frame encoding)
+  setProgressCallback(undefined);
+
+  try {
+    // Write WebM to virtual filesystem
+    onProgress?.(30, 'Loading video...');
+    const webmData = new Uint8Array(await webmBlob.arrayBuffer());
+    await ffmpeg.writeFile('input.webm', webmData);
+
+    onProgress?.(50, 'Converting to MP4...');
+
+    // Transcode WebM (VP8/VP9) to MP4 (H.264)
+    // This is relatively fast since we're not re-encoding at a different quality
+    await ffmpeg.exec([
+      '-i', 'input.webm',
+      '-c:v', 'libx264',
+      '-preset', 'fast',
+      '-crf', '23',
+      '-pix_fmt', 'yuv420p',
+      // Ensure even dimensions (required for H.264)
+      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+      '-movflags', '+faststart', // Enable progressive download
+      'output.mp4',
+    ]);
+
+    onProgress?.(90, 'Finalizing...');
+
+    // Read output file
+    const fileData = await ffmpeg.readFile('output.mp4');
+
+    // Cleanup virtual filesystem
+    try {
+      await ffmpeg.deleteFile('input.webm');
+      await ffmpeg.deleteFile('output.mp4');
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    // Handle SharedArrayBuffer issue - copy to regular ArrayBuffer
+    let mp4Data: Uint8Array;
+    if (typeof fileData === 'string') {
+      mp4Data = new TextEncoder().encode(fileData);
+    } else {
+      mp4Data = new Uint8Array(fileData.length);
+      mp4Data.set(fileData);
+    }
+
+    onProgress?.(100, 'Conversion complete!');
+
+    console.log(`[video-encoder] MP4 created: ${(mp4Data.length / 1024 / 1024).toFixed(2)} MB`);
+
+    return new Blob([mp4Data as BlobPart], { type: 'video/mp4' });
+  } catch (error) {
+    throw new Error(
+      `MP4 conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
+}
 
-  const totalBytes = frameCount * bytesPerFrame;
+/**
+ * Convert WebM blob to GIF using ffmpeg.wasm
+ *
+ * Creates an optimized GIF with palette generation for smaller file sizes.
+ */
+export async function convertWebMToGIF(
+  webmBlob: Blob,
+  onProgress?: ProgressCallback,
+  options?: { fps?: number; width?: number; quality?: ExportQuality }
+): Promise<Blob> {
+  const quality = options?.quality ?? 'medium';
+  const preset = GIF_QUALITY_PRESETS[quality];
 
-  if (totalBytes < 1024) return `${Math.round(totalBytes)} B`;
-  if (totalBytes < 1024 * 1024) return `${Math.round(totalBytes / 1024)} KB`;
-  return `${(totalBytes / (1024 * 1024)).toFixed(1)} MB`;
+  console.log(`[video-encoder] Converting WebM to GIF (${preset.fps}fps, quality: ${quality})...`);
+
+  const ffmpeg = await loadFFmpeg(onProgress);
+
+  // Clear the progress callback - ffmpeg's internal progress events report
+  // garbage values during transcoding (it's designed for frame encoding)
+  setProgressCallback(undefined);
+
+  try {
+    onProgress?.(30, 'Loading video...');
+    const webmData = new Uint8Array(await webmBlob.arrayBuffer());
+    await ffmpeg.writeFile('input.webm', webmData);
+
+    onProgress?.(50, 'Creating GIF...');
+
+    // Calculate scaled width based on input video
+    // We'll use a filter to scale proportionally
+    const scaleFilter = preset.scale < 1
+      ? `scale=iw*${preset.scale}:-1:flags=lanczos`
+      : 'scale=iw:-1:flags=lanczos';
+
+    // GIF with palette optimization for better quality/size
+    await ffmpeg.exec([
+      '-i', 'input.webm',
+      '-vf', `fps=${preset.fps},${scaleFilter},split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5`,
+      '-loop', '0', // Infinite loop
+      'output.gif',
+    ]);
+
+    onProgress?.(90, 'Finalizing...');
+
+    const fileData = await ffmpeg.readFile('output.gif');
+
+    try {
+      await ffmpeg.deleteFile('input.webm');
+      await ffmpeg.deleteFile('output.gif');
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    let gifData: Uint8Array;
+    if (typeof fileData === 'string') {
+      gifData = new TextEncoder().encode(fileData);
+    } else {
+      gifData = new Uint8Array(fileData.length);
+      gifData.set(fileData);
+    }
+
+    onProgress?.(100, 'GIF created!');
+
+    console.log(`[video-encoder] GIF created: ${(gifData.length / 1024 / 1024).toFixed(2)} MB`);
+
+    return new Blob([gifData as BlobPart], { type: 'image/gif' });
+  } catch (error) {
+    throw new Error(
+      `GIF conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
 }
