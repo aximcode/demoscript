@@ -148,34 +148,92 @@ function DemoContent() {
         <Header />
 
         {/* Diagram panel in sidebar mode - integrated with header */}
+        {/* Mobile: Full-screen overlay, Desktop: Fixed sidebar */}
         {hasDiagram && diagramSettings && diagramPosition === 'sidebar' && state.diagramVisible && (
-          <div className="fixed right-0 top-0 bottom-0 w-[320px] z-20 bg-white/80 dark:bg-slate-900/95 backdrop-blur-md border-l border-gray-200 dark:border-slate-700 shadow-xl">
-            {/* Sidebar header area that aligns with main header */}
-            <div className="h-[73px] border-b border-gray-200 dark:border-slate-700 flex items-center justify-center px-4">
-              <span className="text-sm font-medium text-gray-600 dark:text-slate-400">Flow Diagram</span>
+          <>
+            {/* Mobile: Full-screen overlay */}
+            <div className="md:hidden fixed inset-0 z-30 bg-white/95 dark:bg-slate-900/98 backdrop-blur-md">
+              {/* Header with close button */}
+              <div className="h-14 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between px-4">
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-300">Flow Diagram</span>
+                <button
+                  onClick={toggleDiagram}
+                  className="p-2 rounded-lg bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-600 dark:text-slate-300 transition-colors touch-manipulation"
+                  title="Close Diagram"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              {/* Diagram content */}
+              <div className="h-[calc(100%-56px)] p-4 overflow-auto">
+                <FlowDiagramPanel
+                  settings={diagramSettings}
+                  steps={state.flatSteps}
+                  currentPath={currentDiagramPath}
+                  completedPaths={state.completedDiagramPaths}
+                  stepTitle={stepTitle}
+                  currentStepIndex={currentDiagramStepIndex >= 0 ? currentDiagramStepIndex : 0}
+                  stepList={diagramStepList}
+                  isVisible={state.diagramVisible}
+                  onToggle={toggleDiagram}
+                  onNodeClick={handleDiagramNodeClick}
+                  onStepClick={handleStepClick}
+                />
+              </div>
             </div>
-            {/* Diagram content - fills remaining height */}
-            <div className="h-[calc(100%-73px)] p-2 pb-12 flex flex-col">
-              <FlowDiagramPanel
-                settings={diagramSettings}
-                steps={state.flatSteps}
-                currentPath={currentDiagramPath}
-                completedPaths={state.completedDiagramPaths}
-                stepTitle={stepTitle}
-                currentStepIndex={currentDiagramStepIndex >= 0 ? currentDiagramStepIndex : 0}
-                stepList={diagramStepList}
-                isVisible={state.diagramVisible}
-                onToggle={toggleDiagram}
-                onNodeClick={handleDiagramNodeClick}
-                onStepClick={handleStepClick}
-              />
+
+            {/* Desktop: Fixed sidebar */}
+            <div className="hidden md:block fixed right-0 top-0 bottom-0 w-[320px] z-20 bg-white/80 dark:bg-slate-900/95 backdrop-blur-md border-l border-gray-200 dark:border-slate-700 shadow-xl">
+              {/* Sidebar header area that aligns with main header */}
+              <div className="h-[73px] border-b border-gray-200 dark:border-slate-700 flex items-center justify-center px-4">
+                <span className="text-sm font-medium text-gray-600 dark:text-slate-400">Flow Diagram</span>
+              </div>
+              {/* Diagram content - fills remaining height */}
+              <div className="h-[calc(100%-73px)] p-2 pb-12 flex flex-col">
+                <FlowDiagramPanel
+                  settings={diagramSettings}
+                  steps={state.flatSteps}
+                  currentPath={currentDiagramPath}
+                  completedPaths={state.completedDiagramPaths}
+                  stepTitle={stepTitle}
+                  currentStepIndex={currentDiagramStepIndex >= 0 ? currentDiagramStepIndex : 0}
+                  stepList={diagramStepList}
+                  isVisible={state.diagramVisible}
+                  onToggle={toggleDiagram}
+                  onNodeClick={handleDiagramNodeClick}
+                  onStepClick={handleStepClick}
+                />
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         <main className={`flex-1 px-4 py-6 xl:px-8 transition-all duration-300 ${
-          hasDiagram && diagramPosition === 'sidebar' && state.diagramVisible ? 'mr-[320px]' : ''
+          hasDiagram && diagramPosition === 'sidebar' && state.diagramVisible ? 'md:mr-[320px]' : ''
         }`}>
+          {/* Diagram panel in top position (replaces stepper) */}
+          {hasDiagram && diagramSettings && diagramPosition === 'top' && (
+            <FlowDiagramPanel
+              settings={diagramSettings}
+              steps={state.flatSteps}
+              currentPath={currentDiagramPath}
+              completedPaths={state.completedDiagramPaths}
+              stepTitle={stepTitle}
+              currentStepIndex={currentDiagramStepIndex >= 0 ? currentDiagramStepIndex : 0}
+              stepList={diagramStepList}
+              isVisible={state.diagramVisible}
+              onToggle={toggleDiagram}
+              onNodeClick={handleDiagramNodeClick}
+              onStepClick={handleStepClick}
+              totalSteps={state.flatSteps.length}
+              currentStepNumber={state.currentStep + 1}
+              onPrev={handlePrev}
+              onNext={handleNext}
+            />
+          )}
+
           {/* Diagram panel in sticky mode */}
           {hasDiagram && diagramSettings && diagramPosition === 'sticky' && (
             <FlowDiagramPanel
@@ -200,6 +258,28 @@ function DemoContent() {
           <div className="mt-6">
             <StepViewer />
           </div>
+
+          {/* Diagram panel in bottom position */}
+          {hasDiagram && diagramSettings && diagramPosition === 'bottom' && (
+            <FlowDiagramPanel
+              settings={diagramSettings}
+              steps={state.flatSteps}
+              currentPath={currentDiagramPath}
+              completedPaths={state.completedDiagramPaths}
+              stepTitle={stepTitle}
+              currentStepIndex={currentDiagramStepIndex >= 0 ? currentDiagramStepIndex : 0}
+              stepList={diagramStepList}
+              isVisible={state.diagramVisible}
+              onToggle={toggleDiagram}
+              onNodeClick={handleDiagramNodeClick}
+              onStepClick={handleStepClick}
+              totalSteps={state.flatSteps.length}
+              currentStepNumber={state.currentStep + 1}
+              onPrev={handlePrev}
+              onNext={handleNext}
+            />
+          )}
+
           <div className="mt-6">
             <Controls />
           </div>

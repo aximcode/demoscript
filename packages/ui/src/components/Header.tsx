@@ -22,7 +22,7 @@ export function Header() {
 
   return (
     <header className="header-themed bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-700 shadow-sm dark:shadow-lg relative z-10 transition-colors duration-300">
-      <div className={`px-4 py-4 transition-all duration-300 ${sidebarVisible ? 'pr-[340px]' : 'container mx-auto max-w-5xl'}`}>
+      <div className={`px-4 py-4 transition-all duration-300 ${sidebarVisible ? 'md:pr-[340px]' : 'container mx-auto max-w-5xl'}`}>
         <div className="flex items-center justify-between">
           <div>
             {state.config.title && (
