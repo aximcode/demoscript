@@ -129,7 +129,13 @@ export function FlowDiagramPanel({
           chart={chart}
           currentPath={currentPath}
           completedPaths={completedPaths}
+          stepTitle={stepTitle}
           height={position === 'sidebar' ? height : height}
+          onNodeClick={onNodeClick}
+          onClose={position === 'sidebar' ? onToggle : undefined}
+          showStepNumbers={position === 'sidebar'}
+          stepList={stepList}
+          currentStepIndex={currentStepIndex}
           minimalMode={position === 'sticky' || position === 'top'}
           className={position === 'sidebar' ? 'flex-1 min-h-0' : ''}
         />

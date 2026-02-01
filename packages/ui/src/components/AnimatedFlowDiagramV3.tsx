@@ -19,29 +19,17 @@ import {
   useEdgesState,
   useReactFlow,
   MarkerType,
-  Position,
-  Handle,
-  EdgeProps,
-  getSmoothStepPath,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-interface FlowStep {
-  from: string;
-  to: string;
-  label: string;
-  color?: string;
-}
+import { AnimatedEdge, FlowNode, type DiagramStep, type StepInfo } from './diagram/core';
 
-interface StepInfo {
-  index: number;
-  title: string;
-  path: string;
-}
+// Re-export types for backwards compatibility
+export type FlowStep = DiagramStep;
 
 interface AnimatedFlowDiagramV3Props {
   chart: string; // Simplified node definitions (we'll parse this)
-  steps: FlowStep[];
+  steps: DiagramStep[];
   currentStep: number;
   autoPlay?: boolean;
   stepDuration?: number;
@@ -55,157 +43,8 @@ interface AnimatedFlowDiagramV3Props {
   className?: string;
 }
 
-// Custom animated edge with moving particle and step number
-function AnimatedEdge({
-  id,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  markerEnd,
-  data,
-}: EdgeProps) {
-  const [edgePath] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetX,
-    targetY,
-    targetPosition,
-    borderRadius: 16,
-  });
-
-  const isActive = data?.isActive as boolean;
-  const isCompleted = data?.isCompleted as boolean;
-  const edgeColor = (data?.color as string) || '#8b5cf6';
-  const stepNumber = data?.stepNumber as number | undefined;
-  const showStepNumber = data?.showStepNumber as boolean;
-
-  // Calculate midpoint for step number badge
-  const midX = (sourceX + targetX) / 2;
-  const midY = (sourceY + targetY) / 2;
-
-  return (
-    <>
-      {/* Base edge */}
-      <path
-        id={id}
-        d={edgePath}
-        fill="none"
-        stroke={isActive ? edgeColor : isCompleted ? '#10b981' : '#475569'}
-        strokeWidth={isActive ? 3 : 2}
-        markerEnd={typeof markerEnd === 'string' ? markerEnd : undefined}
-      />
-
-      {/* Step number badge on edge */}
-      {showStepNumber && stepNumber !== undefined && (
-        <g transform={`translate(${midX}, ${midY})`}>
-          <circle
-            r="14"
-            fill={isActive ? edgeColor : isCompleted ? '#10b981' : '#1e293b'}
-            stroke={isActive ? 'white' : isCompleted ? '#10b981' : '#475569'}
-            strokeWidth="2"
-          />
-          <text
-            x="0"
-            y="1"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="white"
-            fontSize="12"
-            fontWeight="bold"
-          >
-            {stepNumber}
-          </text>
-        </g>
-      )}
-
-      {/* Animated particles when active - CSS offset-path for GPU acceleration */}
-      {isActive && (
-        <>
-          <circle
-            r="6"
-            fill={edgeColor}
-            className="flow-particle flow-particle-1"
-            style={{ offsetPath: `path('${edgePath}')` }}
-          />
-          <circle
-            r="4"
-            fill={edgeColor}
-            opacity="0.7"
-            className="flow-particle flow-particle-2"
-            style={{ offsetPath: `path('${edgePath}')` }}
-          />
-          <circle
-            r="3"
-            fill={edgeColor}
-            opacity="0.5"
-            className="flow-particle flow-particle-3"
-            style={{ offsetPath: `path('${edgePath}')` }}
-          />
-        </>
-      )}
-    </>
-  );
-}
-
-// Custom node component with glow effects
-// direction prop controls handle positions: 'TD' = top/bottom, 'LR' = left/right
-function CustomNode({ data }: { data: { label: string; type: string; isActive: boolean; isSource: boolean; isTarget: boolean; color: string; direction?: 'LR' | 'TD' } }) {
-  const isActive = data.isActive || data.isSource || data.isTarget;
-  const color = data.color || '#8b5cf6';
-  const direction = data.direction || 'LR';
-
-  // Handle positions based on flow direction
-  const targetPosition = direction === 'TD' ? Position.Top : Position.Left;
-  const sourcePosition = direction === 'TD' ? Position.Bottom : Position.Right;
-
-  // Different shapes based on type - compact sizing for edge alignment
-  const getNodeStyle = () => {
-    // Use fixed height for ALL shapes to ensure horizontal edge alignment
-    const nodeHeight = 20;
-    const baseStyle = {
-      padding: '2px 8px',
-      borderRadius: data.type === 'diamond' ? '4px' : data.type === 'circle' ? '50%' : '6px',
-      border: `1px solid ${isActive ? color : '#475569'}`,
-      background: isActive
-        ? `linear-gradient(135deg, ${color}20, ${color}40)`
-        : 'linear-gradient(135deg, #1e293b, #334155)',
-      color: '#f8fafc',
-      fontWeight: 500,
-      fontSize: '10px',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      boxShadow: isActive
-        ? `0 0 8px ${color}50, 0 1px 4px rgba(0,0,0,0.3)`
-        : '0 1px 4px rgba(0,0,0,0.2)',
-      transform: data.type === 'diamond' ? 'rotate(45deg)' : undefined,
-      // Consistent sizing for ALL shapes to ensure horizontal edges
-      minWidth: data.type === 'circle' ? `${nodeHeight}px` : '60px',
-      height: `${nodeHeight}px`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      textAlign: 'center' as const,
-      whiteSpace: 'nowrap' as const,
-    };
-    return baseStyle;
-  };
-
-  return (
-    <div style={getNodeStyle()}>
-      <Handle type="target" position={targetPosition} style={{ background: color, border: 'none' }} />
-      <span style={{ transform: data.type === 'diamond' ? 'rotate(-45deg)' : undefined }}>
-        {data.label}
-      </span>
-      <Handle type="source" position={sourcePosition} style={{ background: color, border: 'none' }} />
-    </div>
-  );
-}
-
-const nodeTypes = { custom: CustomNode };
+// Node and edge type registrations using core components
+const nodeTypes = { custom: FlowNode };
 const edgeTypes = { animated: AnimatedEdge };
 
 // Toolbar for sidebar mode - rendered ABOVE the diagram
