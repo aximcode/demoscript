@@ -197,6 +197,29 @@ html:not(.dark) .light-glow-primary {
   animation: glow-pulse 2s ease-in-out infinite;
 }
 
+/* Flow diagram particle animations - GPU accelerated via CSS offset-path */
+@keyframes flow-particle {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
+}
+
+.flow-particle {
+  offset-rotate: 0deg;
+  will-change: offset-distance;
+}
+
+.flow-particle-1 {
+  animation: flow-particle 1.2s linear infinite;
+}
+
+.flow-particle-2 {
+  animation: flow-particle 1.2s linear infinite 0.4s;
+}
+
+.flow-particle-3 {
+  animation: flow-particle 1.2s linear infinite 0.8s;
+}
+
 /* Light mode prose */
 .prose pre {
   @apply bg-gray-100 text-gray-800 border border-gray-200;

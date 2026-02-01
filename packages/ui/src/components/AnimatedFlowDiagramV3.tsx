@@ -122,18 +122,29 @@ function AnimatedEdge({
         </g>
       )}
 
-      {/* Animated particles when active */}
+      {/* Animated particles when active - CSS offset-path for GPU acceleration */}
       {isActive && (
         <>
-          <circle r="6" fill={edgeColor} style={{ filter: `drop-shadow(0 0 6px ${edgeColor})` }}>
-            <animateMotion dur="1.2s" repeatCount="indefinite" path={edgePath} />
-          </circle>
-          <circle r="4" fill={edgeColor} opacity="0.7">
-            <animateMotion dur="1.2s" repeatCount="indefinite" path={edgePath} begin="0.4s" />
-          </circle>
-          <circle r="3" fill={edgeColor} opacity="0.5">
-            <animateMotion dur="1.2s" repeatCount="indefinite" path={edgePath} begin="0.8s" />
-          </circle>
+          <circle
+            r="6"
+            fill={edgeColor}
+            className="flow-particle flow-particle-1"
+            style={{ offsetPath: `path('${edgePath}')` }}
+          />
+          <circle
+            r="4"
+            fill={edgeColor}
+            opacity="0.7"
+            className="flow-particle flow-particle-2"
+            style={{ offsetPath: `path('${edgePath}')` }}
+          />
+          <circle
+            r="3"
+            fill={edgeColor}
+            opacity="0.5"
+            className="flow-particle flow-particle-3"
+            style={{ offsetPath: `path('${edgePath}')` }}
+          />
         </>
       )}
     </>
