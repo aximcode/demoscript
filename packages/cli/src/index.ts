@@ -15,7 +15,7 @@ const program = new Command();
 
 program
   .name('demoscript')
-  .description('Framework for creating scripted, shareable product demonstrations')
+  .description('Framework for creating scripted, shareable product demonstrations with flow diagrams')
   .version(pkg.version);
 
 program
