@@ -23,6 +23,7 @@ A framework for creating scripted, shareable product demonstrations. Write YAML 
 - **Dashboard** - Overview screen with health checks and demo stats
 - **Sidebar navigation** - Collapsible step list with completion status
 - **Visual effects** - Confetti, sounds, neon glow, animated backgrounds
+- **Flow diagrams** - Auto-generated flowcharts and sequence diagrams from step definitions
 - **Tunnel support** - Share demos publicly via ngrok or Cloudflare tunnels
 - **Schema validation** - JSON Schema validates YAML with helpful error messages
 - **Live reload** - Watch mode auto-refreshes on file changes
@@ -773,6 +774,54 @@ settings:
 | `glow_orbs` | Floating colored orbs in the background |
 | `sound_volume` | Master volume for all sound effects (0-1) |
 
+### Flow Diagrams
+
+Visualize demo flow with auto-generated diagrams:
+
+```yaml
+settings:
+  diagram:
+    enabled: true                 # Auto-generate from step diagram: values
+    type: flowchart               # flowchart | sequence (auto-detected)
+    direction: LR                 # LR (left-right) | TD (top-down)
+    position: sidebar             # sidebar | sticky | top | bottom | toggle
+    height: 300                   # Height in pixels
+    nodes:                        # Optional node customization
+      Client:
+        label: "Web Browser"
+        shape: stadium            # rectangle | rounded | circle | diamond | cylinder | stadium
+      API:
+        label: "API Server"
+
+steps:
+  - rest: POST /login
+    diagram: Client->Auth         # Define edge for flowchart
+
+  - rest: GET /users
+    diagram: Auth->API            # Progress through the flow
+```
+
+**Sequence diagrams** use `->>` and `-->>` syntax:
+
+```yaml
+settings:
+  diagram:
+    enabled: true
+    type: sequence
+    participants:
+      C: { label: "Client" }
+      S: { label: "Server" }
+
+steps:
+  - rest: POST /login
+    diagram: "C->>S: POST /login"    # Sync request (solid arrow)
+
+  - slide: "Response"
+    diagram: "S-->>C: 200 OK"        # Async response (dashed arrow)
+```
+
+**Priority:** If both `chart:` and `nodes:`/`enabled:` are provided, `chart:` takes precedence (full Mermaid control).
+
 ### Step-Level Overrides
 
 Settings can be overridden at the step level for fine-grained control:
@@ -958,6 +1007,7 @@ See [ROADMAP.md](ROADMAP.md) for the full improvement guide including architectu
 
 ### Recently Added
 
+- **Flow diagrams** - Auto-generated flowcharts and sequence diagrams with step highlighting
 - **Authentication** - Password-protect demos with SHA-256 hashing
 - **Dashboard** - Overview screen with health checks and demo statistics
 - **Sidebar navigation** - Collapsible step list with completion status
