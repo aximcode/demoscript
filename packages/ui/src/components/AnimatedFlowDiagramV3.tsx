@@ -51,6 +51,7 @@ interface AnimatedFlowDiagramV3Props {
   showStepNumbers?: boolean;         // Show step numbers on edges
   stepList?: StepInfo[];             // List of all steps with diagram paths
   currentStepIndex?: number;         // Current step index in the overall demo
+  minimalMode?: boolean;             // Hide extras (step label, timeline, controls) for sticky/top
   className?: string;
 }
 
@@ -150,31 +151,34 @@ function CustomNode({ data }: { data: { label: string; type: string; isActive: b
   const targetPosition = direction === 'TD' ? Position.Top : Position.Left;
   const sourcePosition = direction === 'TD' ? Position.Bottom : Position.Right;
 
-  // Different shapes based on type
+  // Different shapes based on type - compact sizing for edge alignment
   const getNodeStyle = () => {
+    // Use fixed height for ALL shapes to ensure horizontal edge alignment
+    const nodeHeight = 20;
     const baseStyle = {
-      padding: '10px 16px',
-      borderRadius: data.type === 'diamond' ? '4px' : data.type === 'circle' ? '50%' : '8px',
-      border: `2px solid ${isActive ? color : '#475569'}`,
+      padding: '2px 8px',
+      borderRadius: data.type === 'diamond' ? '4px' : data.type === 'circle' ? '50%' : '6px',
+      border: `1px solid ${isActive ? color : '#475569'}`,
       background: isActive
         ? `linear-gradient(135deg, ${color}20, ${color}40)`
         : 'linear-gradient(135deg, #1e293b, #334155)',
       color: '#f8fafc',
       fontWeight: 500,
-      fontSize: '13px',
+      fontSize: '10px',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       boxShadow: isActive
-        ? `0 0 20px ${color}60, 0 4px 12px rgba(0,0,0,0.3)`
-        : '0 4px 12px rgba(0,0,0,0.2)',
+        ? `0 0 8px ${color}50, 0 1px 4px rgba(0,0,0,0.3)`
+        : '0 1px 4px rgba(0,0,0,0.2)',
       transform: data.type === 'diamond' ? 'rotate(45deg)' : undefined,
-      // Make nodes wider to fill more of the sidebar
-      minWidth: data.type === 'circle' ? '60px' : '180px',
-      minHeight: data.type === 'circle' ? '50px' : undefined,
+      // Consistent sizing for ALL shapes to ensure horizontal edges
+      minWidth: data.type === 'circle' ? `${nodeHeight}px` : '60px',
+      height: `${nodeHeight}px`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       textAlign: 'center' as const,
+      whiteSpace: 'nowrap' as const,
     };
     return baseStyle;
   };
@@ -348,10 +352,10 @@ function calculateLayout(
     layers.push(layer);
   }
 
-  // Position nodes - larger spacing for better visibility
+  // Position nodes - compact spacing for sticky mode, larger for sidebar
   // TD (top-down) needs more vertical spacing to fill the sidebar height
-  const xSpacing = direction === 'LR' ? 250 : 0;
-  const ySpacing = direction === 'LR' ? 120 : 180;
+  const xSpacing = direction === 'LR' ? 120 : 0;
+  const ySpacing = direction === 'LR' ? 60 : 150;
 
   for (let layerIdx = 0; layerIdx < layers.length; layerIdx++) {
     const layer = layers[layerIdx];
@@ -389,6 +393,7 @@ export function AnimatedFlowDiagramV3({
   showStepNumbers = false,
   stepList = [],
   currentStepIndex: _currentStepIndex = 0,
+  minimalMode = false,
   className = '',
 }: AnimatedFlowDiagramV3Props) {
   const [internalStep, setInternalStep] = useState(0);
@@ -577,11 +582,20 @@ export function AnimatedFlowDiagramV3({
 
   // In sidebar mode, we only show the diagram - the parent handles step list/controls
   const compactMode = showStepNumbers;
+  // Hide extras (step label, timeline, controls) for minimal/sticky/top modes
+  const hideExtras = compactMode || minimalMode;
+
+  // Clean container for minimal mode (no extra borders/padding)
+  const containerClass = hideExtras
+    ? 'h-full'
+    : compactMode
+      ? 'flex-1 min-h-0 flex flex-col bg-slate-900/50 rounded-lg border border-slate-700 overflow-hidden'
+      : 'h-full bg-slate-900/50 rounded-lg border border-slate-700 overflow-hidden';
 
   return (
     <div className={`animated-flow-diagram-v3 ${className} ${compactMode ? 'flex flex-col' : ''}`}>
       {/* Diagram container - flexbox for toolbar + diagram */}
-      <div className={`${compactMode ? 'flex-1 min-h-0 flex flex-col' : 'h-[400px]'} bg-slate-900/50 rounded-lg border border-slate-700 overflow-hidden`}>
+      <div className={containerClass}>
         <ReactFlowProvider>
           {/* Toolbar above diagram in compact/sidebar mode */}
           {compactMode && <DiagramToolbar onReset={handleResetLayout} onClose={onClose} />}
@@ -603,7 +617,7 @@ export function AnimatedFlowDiagramV3({
               proOptions={{ hideAttribution: true }}
             >
               <Background color="#334155" gap={20} size={1} />
-              {!compactMode && (
+              {!hideExtras && (
                 <Controls
                   className="!bg-slate-800 !border-slate-600 !rounded-lg"
                   showInteractive={false}
@@ -614,8 +628,8 @@ export function AnimatedFlowDiagramV3({
         </ReactFlowProvider>
       </div>
 
-      {/* Current Step Label - hidden in compact/sidebar mode */}
-      {!compactMode && activeStep && (
+      {/* Current Step Label - hidden in compact/sidebar/minimal mode */}
+      {!hideExtras && activeStep && (
         <div className="mt-4 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border border-purple-500/30">
           <div className="flex items-center gap-3">
             <div
@@ -639,8 +653,8 @@ export function AnimatedFlowDiagramV3({
         </div>
       )}
 
-      {/* Step Timeline - hidden in compact/sidebar mode */}
-      {!compactMode && (
+      {/* Step Timeline - hidden in compact/sidebar/minimal mode */}
+      {!hideExtras && (
         <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-2">
           {steps.map((step, index) => (
             <button
@@ -663,8 +677,8 @@ export function AnimatedFlowDiagramV3({
         </div>
       )}
 
-      {/* Controls - hidden in compact/sidebar mode */}
-      {!compactMode && (
+      {/* Controls - hidden in compact/sidebar/minimal mode */}
+      {!hideExtras && (
         <div className="mt-4 flex items-center justify-center gap-3">
           <button
             onClick={handleReset}

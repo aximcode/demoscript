@@ -16,20 +16,26 @@ settings:
   base_url: "https://apis.aximcode.com/v1"
   openapi: "https://apis.aximcode.com/v1/openapi.json"
 
-  # Flow diagram configuration - vertical linear flow for sidebar
+  # Flow diagram configuration - auto-generated with node customization
   diagram:
-    chart: |
-      flowchart TD
-        Client([Client])
-        Gateway[API Gateway]
-        API[API Server]
-        DB[(Database)]
-
-        Client --> Gateway
-        Gateway --> API
-        API --> DB
+    enabled: true
+    direction: TD                 # Top-down flow for sidebar
     position: sidebar
     height: 400
+    # Node customization (labels and shapes)
+    nodes:
+      Client:
+        label: "Client"
+        shape: stadium            # Rounded ends for external actors
+      Gateway:
+        label: "API Gateway"
+        shape: rectangle
+      API:
+        label: "API Server"
+        shape: rectangle
+      DB:
+        label: "Database"
+        shape: cylinder           # Database shape
 
   effects:
     confetti: true
@@ -44,7 +50,13 @@ steps:
       This demo shows how the flow diagram highlights each step
       in your API architecture as you progress through the demo.
 
-      Watch the sidebar diagram - edges turn **green** when completed.
+      Watch the sidebar diagram - edges turn **green** when completed
+      and **purple** when active.
+
+      **Diagram features:**
+      - Auto-generated from step `diagram:` properties
+      - Animated particles on active edges
+      - Clickable nodes to navigate
     title: "Welcome"
     diagram: Client
 
@@ -69,7 +81,11 @@ steps:
 
       The API Gateway validates the token and forwards
       the request to the API Server.
-    title: "Gateway → API"
+
+      **Auto-generation tip:**
+      The edge `Gateway->API` was automatically added
+      to the diagram from this step's `diagram:` property.
+    title: "Gateway to API"
     diagram: Gateway->API
 
   # Step 3: API to Database
@@ -86,12 +102,17 @@ steps:
   - slide: |
       # Flow Complete!
 
-      The diagram shows the linear request flow:
+      The diagram shows the vertical request flow:
 
-      1. **Client → Gateway**: Authentication
-      2. **Gateway → API**: Request forwarding
-      3. **API → DB**: Data retrieval
+      1. **Client -> Gateway**: Authentication
+      2. **Gateway -> API**: Request forwarding
+      3. **API -> DB**: Data retrieval
 
-      All edges are now green ✓
+      All edges are now green!
+
+      **Three diagram modes:**
+      - `chart:` - Custom Mermaid syntax (full control)
+      - `nodes:` - Auto-generate edges, customize nodes
+      - `enabled: true` - Fully automatic
     title: "Complete"
     diagram: DB

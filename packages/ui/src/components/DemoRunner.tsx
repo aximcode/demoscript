@@ -158,6 +158,7 @@ function DemoContent() {
             <div className="h-[calc(100%-73px)] p-2 pb-12 flex flex-col">
               <FlowDiagramPanel
                 settings={diagramSettings}
+                steps={state.flatSteps}
                 currentPath={currentDiagramPath}
                 completedPaths={state.completedDiagramPaths}
                 stepTitle={stepTitle}
@@ -179,6 +180,7 @@ function DemoContent() {
           {hasDiagram && diagramSettings && diagramPosition === 'sticky' && (
             <FlowDiagramPanel
               settings={diagramSettings}
+              steps={state.flatSteps}
               currentPath={currentDiagramPath}
               completedPaths={state.completedDiagramPaths}
               stepTitle={stepTitle}
@@ -191,7 +193,10 @@ function DemoContent() {
             />
           )}
 
-          <Stepper />
+          {/* Hide stepper when diagram replaces it (sticky/top position) */}
+          {!(hasDiagram && (diagramPosition === 'sticky' || diagramPosition === 'top')) && (
+            <Stepper />
+          )}
           <div className="mt-6">
             <StepViewer />
           </div>
@@ -207,6 +212,7 @@ function DemoContent() {
       {hasDiagram && diagramSettings && diagramPosition === 'toggle' && (
         <FlowDiagramPanel
           settings={diagramSettings}
+          steps={state.flatSteps}
           currentPath={currentDiagramPath}
           completedPaths={state.completedDiagramPaths}
           stepTitle={stepTitle}

@@ -3,7 +3,7 @@ description: "Demonstrates poll steps for waiting on async operations"
 version: "1.0"
 
 settings:
-  base_url: "/sandbox"
+  base_url: "https://apis.aximcode.com/v1"
   theme:
     preset: "orange"
   effects:
@@ -35,22 +35,22 @@ steps:
   - rest: POST /jobs
     title: "Create Background Job"
     defaults:
+      type: "process"
       name: "Demo Job"
-      duration: 8000
     save:
       jobId: id
 
   - poll: /jobs/$jobId
     title: "Wait for Job Completion"
-    success_when: status == 'complete'
+    success_when: status == 'completed'
     failure_when: status == 'failed'
     interval: 1000
-    max_attempts: 20
+    max_attempts: 15
     stages:
-      - label: "Queued"
-        when: status == 'queued'
-      - label: "Running"
-        when: status == 'running'
+      - label: "Pending"
+        when: status == 'pending'
+      - label: "Processing"
+        when: status == 'processing'
       - label: "Completing"
         when: progress > 80
     save:

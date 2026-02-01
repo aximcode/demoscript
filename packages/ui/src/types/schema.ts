@@ -69,9 +69,30 @@ export interface SidebarSettings {
   show_status?: boolean;  // Show step completion status (default: true)
 }
 
+export interface NodeConfig {
+  label?: string;                                   // Display label for the node
+  shape?: 'rectangle' | 'rounded' | 'circle' | 'diamond' | 'cylinder' | 'stadium';
+  color?: string;                                   // Node color (hex code)
+}
+
+export interface ParticipantConfig {
+  label?: string;                                   // Display label for the participant
+}
+
 export interface DiagramSettings {
-  chart: string;                                    // Mermaid flowchart syntax
-  position?: 'sticky' | 'sidebar' | 'toggle';       // Display position (default: toggle)
+  // Visual structure (priority: chart > nodes > enabled)
+  chart?: string;                                   // Custom Mermaid chart (full control)
+  enabled?: boolean;                                // Enable auto-generated diagram
+  nodes?: Record<string, NodeConfig>;               // Node customization by ID
+  participants?: Record<string, ParticipantConfig>; // Sequence diagram participants
+
+  // Diagram type and layout
+  type?: 'flowchart' | 'sequence';                  // Diagram type (default: auto-detect)
+  direction?: 'LR' | 'TD';                          // Flow direction (default: LR)
+  default_mode?: 'linear' | 'grouped' | 'explicit'; // Default path generation mode
+
+  // Display options
+  position?: 'auto' | 'top' | 'bottom' | 'sidebar' | 'sticky' | 'toggle';  // Display position
   height?: number;                                  // Diagram height in px (default: 300)
 }
 

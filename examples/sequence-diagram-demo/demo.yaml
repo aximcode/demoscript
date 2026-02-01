@@ -1,0 +1,139 @@
+title: "Sequence Diagram Demo"
+description: "Demonstrates auto-generated sequence diagrams showing API request/response flow"
+version: "1.0"
+author: "DemoScript"
+tags:
+  - diagram
+  - sequence
+  - api
+  - visualization
+
+metadata:
+  duration: "3 minutes"
+  difficulty: beginner
+  category: "Tutorial"
+
+settings:
+  base_url: "https://apis.aximcode.com/v1"
+  openapi: "https://apis.aximcode.com/v1/openapi.json"
+
+  # Sequence diagram configuration
+  diagram:
+    enabled: true
+    type: sequence                # Explicitly use sequence diagram
+    position: sidebar
+    height: 400
+    # Participant labels (optional - customizes display names)
+    participants:
+      Client:
+        label: "Web Browser"
+      Gateway:
+        label: "API Gateway"
+      Auth:
+        label: "Auth Service"
+      API:
+        label: "User API"
+      DB:
+        label: "Database"
+
+  effects:
+    confetti: true
+    sounds: true
+    transitions: true
+
+steps:
+  # Introduction
+  - slide: |
+      # Sequence Diagrams
+
+      This demo shows **sequence diagrams** - perfect for visualizing
+      the request/response flow between services.
+
+      Watch the sidebar - each message is highlighted as you progress!
+
+      **Arrow types:**
+      - `->>` Synchronous request (solid line)
+      - `-->>` Asynchronous response (dashed line)
+    title: "Welcome"
+
+  # Step 1: Client sends login request to Gateway
+  - rest: POST /auth/login
+    title: "Login Request"
+    description: "Client sends credentials to API Gateway"
+    diagram: "Client->>Gateway: POST /login"
+    defaults:
+      email: "demo@example.com"
+      password: "demo123"
+    save:
+      token: token
+
+  # Step 2: Gateway forwards to Auth service
+  - slide: |
+      # Validating Credentials
+
+      The Gateway forwards the request to the Auth Service
+      for credential validation.
+    title: "Forward to Auth"
+    diagram: "Gateway->>Auth: Validate credentials"
+
+  # Step 3: Auth checks database
+  - slide: |
+      # Database Lookup
+
+      The Auth Service queries the database to verify
+      the user's credentials.
+    title: "DB Query"
+    diagram: "Auth->>DB: SELECT user"
+
+  # Step 4: Database responds
+  - slide: |
+      # User Found
+
+      Database returns the user record to Auth Service.
+    title: "User Data"
+    diagram: "DB-->>Auth: User record"
+
+  # Step 5: Auth creates token and responds
+  - slide: |
+      # Token Generated
+
+      Auth Service creates a JWT token and sends it back
+      through the Gateway to the Client.
+    title: "Token Created"
+    diagram: "Auth-->>Gateway: JWT token"
+
+  # Step 6: Gateway responds to client
+  - slide: |
+      # Login Complete
+
+      The Gateway returns the token to the Client.
+      Authentication flow is complete!
+    title: "Response"
+    diagram: "Gateway-->>Client: 200 OK + token"
+
+  # Step 7: Client makes API request
+  - rest: GET /users
+    title: "API Request"
+    description: "Client requests user list with token"
+    diagram: "Client->>API: GET /users"
+    results:
+      - key: users
+        label: "Users"
+        type: json
+
+  # Completion
+  - slide: |
+      # Sequence Complete!
+
+      The diagram traced the full authentication and API flow:
+
+      1. **Client -> Gateway**: Login request
+      2. **Gateway -> Auth**: Credential validation
+      3. **Auth -> DB**: User lookup
+      4. **DB -> Auth**: User data (response)
+      5. **Auth -> Gateway**: JWT token (response)
+      6. **Gateway -> Client**: Success (response)
+      7. **Client -> API**: Authenticated request
+
+      **Tip:** Use `->>` for requests and `-->>` for responses!
+    title: "Complete"

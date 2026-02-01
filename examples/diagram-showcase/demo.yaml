@@ -1,0 +1,128 @@
+title: "Diagram Auto-Generation Showcase"
+description: "Demonstrates auto-generated flow diagrams from step definitions with minimal configuration"
+version: "1.0"
+author: "DemoScript"
+tags:
+  - diagram
+  - auto-generation
+  - visualization
+  - api
+
+metadata:
+  duration: "5 minutes"
+  difficulty: beginner
+  category: "Tutorial"
+
+settings:
+  base_url: "https://apis.aximcode.com/v1"
+  openapi: "https://apis.aximcode.com/v1/openapi.json"
+
+  # Auto-generated diagram configuration
+  # Priority: chart (custom) > nodes (semi-auto) > enabled (full auto)
+  diagram:
+    enabled: true           # Auto-generate from step diagram: values
+    direction: LR           # Left-to-right flow
+    position: sticky        # Show at top of steps
+    height: 50              # Compact height for sticky position
+    nodes:                  # Node customization (optional)
+      Start:
+        label: "Welcome"
+        shape: stadium
+      Auth:
+        label: "Login"
+        shape: rounded
+      Users:
+        label: "User Mgmt"
+        shape: rectangle
+      Create:
+        label: "Create User"
+        shape: rounded
+      Done:
+        label: "Complete"
+        shape: stadium
+
+  effects:
+    confetti: true
+    sounds: true
+    transitions: true
+
+steps:
+  # Introduction
+  - slide: |
+      # Auto-Generated Diagrams
+
+      This demo shows how diagrams are **automatically generated**
+      from step `diagram:` properties.
+
+      No need to write Mermaid syntax manually!
+
+      **Watch the diagram above** - it was generated from the step definitions.
+    title: "Welcome"
+    diagram: Start
+
+  # Step 1: Authentication
+  - rest: POST /auth/login
+    title: "Login"
+    description: "Authenticate with the API"
+    diagram: Start->Auth
+    defaults:
+      email: "demo@example.com"
+      password: "demo123"
+    save:
+      token: token
+    results:
+      - key: token
+        label: "Access Token"
+        type: id
+
+  # Step 2: Get Users
+  - rest: GET /users
+    title: "List Users"
+    description: "Retrieve all users from the system"
+    diagram: Auth->Users
+    results:
+      - key: users
+        label: "Users"
+        type: json
+
+  # Step 3: Create User
+  - rest: POST /users
+    title: "Create User"
+    description: "Add a new user to the system"
+    diagram: Users->Create
+    defaults:
+      email: "newuser@example.com"
+      name: "Demo User"
+    save:
+      userId: id
+    results:
+      - key: id
+        label: "User ID"
+        type: id
+      - key: email
+        label: "Email"
+        type: text
+
+  # Completion
+  - slide: |
+      # Diagram Complete!
+
+      The diagram was automatically generated from:
+
+      ```yaml
+      diagram: Start           # Single node
+      diagram: Start->Auth     # Edge definition
+      diagram: Auth->Users     # Next edge
+      diagram: Users->Create   # And so on...
+      diagram: Create->Done    # Final edge
+      ```
+
+      **Three configuration modes:**
+
+      1. `enabled: true` - Full auto-generation
+      2. `nodes:` - Custom node labels/shapes
+      3. `chart:` - Full Mermaid syntax control
+
+      **Also available:** Sequence diagrams with `->>` syntax!
+    title: "Complete"
+    diagram: Create->Done

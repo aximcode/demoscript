@@ -62,7 +62,8 @@ export function Header() {
                 📼 Recorded
               </span>
             )}
-            {hasDiagram && (
+            {/* Only show toggle for toggle/sidebar modes (not sticky/top where diagram is always visible) */}
+            {hasDiagram && (diagramPosition === 'toggle' || diagramPosition === 'sidebar') && (
               <DiagramToggleButton
                 isVisible={state.diagramVisible}
                 onClick={toggleDiagram}

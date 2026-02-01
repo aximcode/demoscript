@@ -404,8 +404,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     ? currentStepConfig.diagram
     : undefined;
 
-  // Whether the demo has a diagram configured
-  const hasDiagram = !!state.config?.settings?.diagram?.chart;
+  // Whether the demo has a diagram configured (custom chart, nodes, or auto-enabled)
+  const hasDiagram = !!(
+    state.config?.settings?.diagram?.chart ||
+    state.config?.settings?.diagram?.enabled ||
+    state.config?.settings?.diagram?.nodes
+  );
 
   const currentRecording = state.recordings?.recordings.find(
     (r) => r.stepId === `step-${state.currentStep}`

@@ -1,0 +1,29 @@
+{
+  "demoVersion": "1.0",
+  "recordedAt": "2026-02-01T09:47:47.887Z",
+  "recordings": [
+    {
+      "stepId": "step-2",
+      "timestamp": "2026-02-01T09:47:32.581Z",
+      "request": {
+        "method": "POST",
+        "url": "https://apis.aximcode.com/v1/jobs",
+        "headers": {
+          "Content-Type": "application/json"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "Valid job type is required (export, import, process)",
+          "code": "INVALID_INPUT"
+        }
+      }
+    },
+    {
+      "stepId": "step-3",
+      "timestamp": "2026-02-01T09:47:47.886Z",
+      "error": "Polling timed out after 15 attempts"
+    }
+  ]
+}

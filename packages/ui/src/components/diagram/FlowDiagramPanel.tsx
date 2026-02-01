@@ -1,10 +1,27 @@
 /**
- * FlowDiagramPanel - Panel wrapper for FlowDiagram with position modes
- * Supports: sticky (above content), sidebar (right panel), toggle (show/hide)
+ * FlowDiagramPanel - Panel wrapper for FlowDiagram/SequenceDiagram with position modes
+ * Supports: top (replaces step nav), bottom, sidebar, toggle (show/hide)
+ *
+ * Visual Structure Priority:
+ * 1. chart: provided -> use verbatim Mermaid
+ * 2. nodes: provided -> auto-generate from nodes config
+ * 3. enabled: true -> fully auto-generate from step diagram: values
+ *
+ * Diagram Types:
+ * - flowchart: Uses React Flow for animated flow diagrams
+ * - sequence: Uses Mermaid for sequence diagrams with highlighting
  */
 
+import { useMemo } from 'react';
 import { FlowDiagram } from './FlowDiagram';
-import type { DiagramSettings } from '../../types/schema';
+import { SequenceDiagram } from './SequenceDiagram';
+import type { DiagramSettings, Step } from '../../types/schema';
+import {
+  generateDiagram,
+  buildPathToIndexFromSteps,
+  getEffectivePosition,
+  detectDiagramType,
+} from '../../lib/diagram-generator';
 
 interface StepInfo {
   index: number;
@@ -14,6 +31,7 @@ interface StepInfo {
 
 interface FlowDiagramPanelProps {
   settings: DiagramSettings;
+  steps?: Step[];  // Full steps for auto-generation
   currentPath?: string;
   completedPaths?: string[];
   stepTitle?: string;
@@ -28,6 +46,7 @@ interface FlowDiagramPanelProps {
 
 export function FlowDiagramPanel({
   settings,
+  steps = [],
   currentPath,
   completedPaths,
   stepTitle,
@@ -39,47 +58,88 @@ export function FlowDiagramPanel({
   onStepClick: _onStepClick,
   className = '',
 }: FlowDiagramPanelProps) {
-  const position = settings.position || 'toggle';
+  // Determine effective position (smart defaults: LR -> top, TD -> sidebar)
+  const position = getEffectivePosition(settings);
   const height = settings.height || 300;
+
+  // Generate chart based on priority: chart -> nodes -> enabled
+  // Also detect diagram type (flowchart vs sequence)
+  const { chart, diagramType } = useMemo(() => {
+    // Detect type from settings or step diagram: values
+    const detectedType = settings.type || detectDiagramType(steps);
+
+    // Priority 1: Custom chart provided
+    if (settings.chart) {
+      // Check if custom chart is a sequence diagram
+      const isSequence = settings.chart.trim().startsWith('sequenceDiagram');
+      return {
+        chart: settings.chart,
+        pathToIndex: buildPathToIndexFromSteps(steps),
+        diagramType: isSequence ? 'sequence' as const : 'flowchart' as const,
+      };
+    }
+
+    // Priority 2 & 3: Auto-generate from nodes or step diagram: values
+    if (settings.nodes || settings.enabled) {
+      const result = generateDiagram(steps, {
+        enabled: settings.enabled,
+        type: detectedType,
+        direction: settings.direction,
+        default_mode: settings.default_mode,
+        nodes: settings.nodes,
+        participants: settings.participants,
+      });
+      return {
+        chart: result.chart,
+        pathToIndex: result.pathToIndex,
+        diagramType: detectedType,
+      };
+    }
+
+    // No diagram configured
+    return { chart: undefined, pathToIndex: new Map<string, number>(), diagramType: 'flowchart' as const };
+  }, [settings, steps]);
 
   // Toggle mode: hidden by default, shown via button
   if (position === 'toggle' && !isVisible) {
     return null;
   }
 
+  // No chart to display
+  if (!chart) {
+    return null;
+  }
 
-  // Panel content - close button is now in the diagram toolbar for sidebar mode
+
+  // Panel content - no close button for sticky/top modes (diagram is always visible)
   const panelContent = (
     <div className={`relative ${position === 'sidebar' ? 'h-full flex flex-col' : ''} ${className}`}>
-      {/* Header with toggle button only for sticky mode (sidebar has it in toolbar) */}
-      {position === 'sticky' && onToggle && (
-        <div className="absolute top-2 right-2 z-10">
-          <button
-            onClick={onToggle}
-            className="p-1.5 rounded-lg bg-slate-700/80 hover:bg-slate-600 text-slate-300 transition-colors"
-            title={isVisible ? 'Hide Diagram' : 'Show Diagram'}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      {/* Render appropriate diagram component based on type */}
+      {diagramType === 'sequence' ? (
+        <SequenceDiagram
+          chart={chart}
+          currentPath={currentPath}
+          completedPaths={completedPaths}
+          height={position === 'sidebar' ? height : height}
+          minimalMode={position === 'sticky' || position === 'top'}
+          className={position === 'sidebar' ? 'flex-1 min-h-0' : ''}
+        />
+      ) : (
+        <FlowDiagram
+          chart={chart}
+          currentPath={currentPath}
+          completedPaths={completedPaths}
+          stepTitle={stepTitle}
+          height={position === 'sidebar' ? undefined : height}
+          onNodeClick={onNodeClick}
+          onClose={position === 'sidebar' ? onToggle : undefined}
+          showStepNumbers={position === 'sidebar'}
+          stepList={stepList}
+          currentStepIndex={currentStepIndex}
+          minimalMode={position === 'sticky' || position === 'top'}
+          className={position === 'sidebar' ? 'flex-1 min-h-0' : ''}
+        />
       )}
-
-      {/* Diagram - fills the panel in sidebar mode */}
-      <FlowDiagram
-        chart={settings.chart}
-        currentPath={currentPath}
-        completedPaths={completedPaths}
-        stepTitle={stepTitle}
-        height={position === 'sidebar' ? undefined : height}
-        onNodeClick={onNodeClick}
-        onClose={position === 'sidebar' ? onToggle : undefined}
-        showStepNumbers={position === 'sidebar'}
-        stepList={stepList}
-        currentStepIndex={currentStepIndex}
-        className={position === 'sidebar' ? 'flex-1 min-h-0' : ''}
-      />
     </div>
   );
 
@@ -87,7 +147,7 @@ export function FlowDiagramPanel({
   switch (position) {
     case 'sticky':
       return (
-        <div className="mb-6 bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 backdrop-blur-sm">
+        <div className="mb-4 bg-slate-800/50 rounded-lg border border-slate-700/50 p-1 backdrop-blur-sm">
           {panelContent}
         </div>
       );

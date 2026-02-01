@@ -30,6 +30,7 @@ interface FlowDiagramProps {
   showStepNumbers?: boolean;        // Show step numbers on edges
   stepList?: StepInfo[];            // List of all steps with diagram paths
   currentStepIndex?: number;        // Current step index in the step list
+  minimalMode?: boolean;            // Hide extras for sticky/top positions
   className?: string;
 }
 
@@ -105,6 +106,7 @@ export function FlowDiagram({
   showStepNumbers = false,
   stepList = [],
   currentStepIndex = 0,
+  minimalMode = false,
   className = '',
 }: FlowDiagramProps) {
   // Build steps array from paths
@@ -140,6 +142,7 @@ export function FlowDiagram({
         showStepNumbers={showStepNumbers}
         stepList={stepList}
         currentStepIndex={currentStepIndex}
+        minimalMode={minimalMode}
         className={height ? 'h-full' : 'flex-1 min-h-0'}
       />
     </div>

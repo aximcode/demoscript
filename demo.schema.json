@@ -356,22 +356,79 @@
     },
     "DiagramSettings": {
       "type": "object",
-      "description": "Flow diagram configuration",
-      "required": ["chart"],
+      "description": "Flow diagram configuration. Priority: chart (custom) > nodes (semi-auto) > enabled (full auto)",
       "properties": {
         "chart": {
           "type": "string",
-          "description": "Mermaid flowchart syntax defining the diagram"
+          "description": "Custom Mermaid flowchart/sequence syntax. When provided, step diagram: values are used for highlighting only."
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable fully auto-generated diagram from step diagram: values (default: false)"
+        },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/NodeConfig" },
+          "description": "Node configuration for semi-auto mode. Keys are node IDs, edges come from step diagram: values."
+        },
+        "participants": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/ParticipantConfig" },
+          "description": "Participant configuration for sequence diagrams"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["flowchart", "sequence"],
+          "description": "Diagram type (auto-detected from step diagram: syntax if not specified)"
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["LR", "TD"],
+          "description": "Flowchart direction: LR (left-right) or TD (top-down). Default: LR"
+        },
+        "default_mode": {
+          "type": "string",
+          "enum": ["linear", "grouped", "explicit"],
+          "description": "Auto-generation mode: linear (connect sequentially), grouped (group by step type), explicit (only diagram: values)"
         },
         "position": {
           "type": "string",
-          "enum": ["sticky", "sidebar", "toggle"],
-          "description": "Diagram display position (default: toggle)"
+          "enum": ["auto", "top", "bottom", "sidebar", "sticky", "toggle"],
+          "description": "Diagram display position. auto: LR->top, TD->sidebar. top: replaces step nav. Default: toggle"
         },
         "height": {
           "type": "integer",
-          "minimum": 100,
-          "description": "Diagram height in pixels (default: 300)"
+          "minimum": 30,
+          "description": "Diagram height in pixels (default: 300, minimum: 30 for compact sticky)"
+        }
+      }
+    },
+    "NodeConfig": {
+      "type": "object",
+      "description": "Node appearance configuration",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Display label (defaults to node ID)"
+        },
+        "shape": {
+          "type": "string",
+          "enum": ["rectangle", "rounded", "circle", "diamond", "cylinder", "stadium"],
+          "description": "Node shape (default: rectangle)"
+        },
+        "color": {
+          "type": "string",
+          "description": "Node color (CSS color value)"
+        }
+      }
+    },
+    "ParticipantConfig": {
+      "type": "object",
+      "description": "Sequence diagram participant configuration",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Display label (defaults to participant ID)"
         }
       }
     },
@@ -571,7 +628,13 @@
         { "$ref": "#/$defs/GraphQLStep" },
         { "$ref": "#/$defs/GraphQLStepExplicit" },
         { "$ref": "#/$defs/DatabaseStep" },
-        { "$ref": "#/$defs/DatabaseStepExplicit" }
+        { "$ref": "#/$defs/DatabaseStepExplicit" },
+        { "$ref": "#/$defs/FormStep" },
+        { "$ref": "#/$defs/FormStepExplicit" },
+        { "$ref": "#/$defs/TerminalStep" },
+        { "$ref": "#/$defs/TerminalStepExplicit" },
+        { "$ref": "#/$defs/PollStep" },
+        { "$ref": "#/$defs/PollStepExplicit" }
       ]
     },
     "SlideStep": {
@@ -883,6 +946,120 @@
         "save": { "type": "object", "additionalProperties": { "type": "string" } },
         "results": { "type": "array", "items": { "$ref": "#/$defs/ResultField" }, "description": "Fields to display from response. If omitted and OpenAPI is configured, auto-generated from response schema." },
         "results_position": { "type": "string", "enum": ["left", "right", "auto"], "description": "Results panel position (overrides global)" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
+      }
+    },
+    "FormStep": {
+      "type": "object",
+      "required": ["form", "fields"],
+      "properties": {
+        "form": { "type": "string", "description": "Form title" },
+        "title": { "type": "string" },
+        "id": { "type": "string" },
+        "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
+        "description": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/FormField" } },
+        "save": { "type": "object", "additionalProperties": { "type": "string" } },
+        "submit_label": { "type": "string", "description": "Custom submit button text (default: Continue)" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
+      }
+    },
+    "FormStepExplicit": {
+      "type": "object",
+      "required": ["step", "fields"],
+      "properties": {
+        "step": { "const": "form" },
+        "title": { "type": "string" },
+        "id": { "type": "string" },
+        "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
+        "description": { "type": "string" },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/FormField" } },
+        "save": { "type": "object", "additionalProperties": { "type": "string" } },
+        "submit_label": { "type": "string", "description": "Custom submit button text (default: Continue)" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
+      }
+    },
+    "TerminalStep": {
+      "type": "object",
+      "required": ["terminal"],
+      "properties": {
+        "terminal": { "type": "string", "description": "Multi-line terminal content with $ prompts" },
+        "title": { "type": "string" },
+        "id": { "type": "string" },
+        "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
+        "typing_speed": { "type": "integer", "minimum": 1, "description": "Milliseconds per character (default: 30)" },
+        "output_delay": { "type": "integer", "minimum": 0, "description": "Delay before showing output (default: 200ms)" },
+        "prompt": { "type": "string", "description": "Prompt character (default: $)" },
+        "theme": { "type": "string", "enum": ["dark", "light", "matrix"], "description": "Terminal theme" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
+      }
+    },
+    "TerminalStepExplicit": {
+      "type": "object",
+      "required": ["step", "content"],
+      "properties": {
+        "step": { "const": "terminal" },
+        "content": { "type": "string", "description": "Multi-line terminal content with $ prompts" },
+        "title": { "type": "string" },
+        "id": { "type": "string" },
+        "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
+        "typing_speed": { "type": "integer", "minimum": 1, "description": "Milliseconds per character (default: 30)" },
+        "output_delay": { "type": "integer", "minimum": 0, "description": "Delay before showing output (default: 200ms)" },
+        "prompt": { "type": "string", "description": "Prompt character (default: $)" },
+        "theme": { "type": "string", "enum": ["dark", "light", "matrix"], "description": "Terminal theme" },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
+      }
+    },
+    "PollStage": {
+      "type": "object",
+      "required": ["label", "when"],
+      "properties": {
+        "label": { "type": "string", "description": "Stage display label" },
+        "when": { "type": "string", "description": "Condition expression (e.g., status == 'running')" }
+      }
+    },
+    "PollStep": {
+      "type": "object",
+      "required": ["poll", "success_when"],
+      "properties": {
+        "poll": { "type": "string", "description": "Endpoint URL to poll" },
+        "title": { "type": "string" },
+        "id": { "type": "string" },
+        "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
+        "success_when": { "type": "string", "description": "Condition for success (e.g., status == 'complete')" },
+        "failure_when": { "type": "string", "description": "Condition for failure (e.g., status == 'failed')" },
+        "interval": { "type": "integer", "minimum": 100, "description": "Polling interval in ms (default: 2000)" },
+        "max_attempts": { "type": "integer", "minimum": 1, "description": "Maximum poll attempts (default: 30)" },
+        "base_url": { "type": "string", "description": "Base URL override for this poll" },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "stages": { "type": "array", "items": { "$ref": "#/$defs/PollStage" }, "description": "Visual progress stages" },
+        "save": { "type": "object", "additionalProperties": { "type": "string" } },
+        "effects": { "$ref": "#/$defs/StepEffectsOverride" }
+      }
+    },
+    "PollStepExplicit": {
+      "type": "object",
+      "required": ["step", "endpoint", "success_when"],
+      "properties": {
+        "step": { "const": "poll" },
+        "endpoint": { "type": "string", "description": "Endpoint URL to poll" },
+        "title": { "type": "string" },
+        "id": { "type": "string" },
+        "goto": { "type": "string" },
+        "diagram": { "type": "string", "description": "Diagram path to highlight" },
+        "success_when": { "type": "string", "description": "Condition for success (e.g., status == 'complete')" },
+        "failure_when": { "type": "string", "description": "Condition for failure (e.g., status == 'failed')" },
+        "interval": { "type": "integer", "minimum": 100, "description": "Polling interval in ms (default: 2000)" },
+        "max_attempts": { "type": "integer", "minimum": 1, "description": "Maximum poll attempts (default: 30)" },
+        "base_url": { "type": "string", "description": "Base URL override for this poll" },
+        "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+        "stages": { "type": "array", "items": { "$ref": "#/$defs/PollStage" }, "description": "Visual progress stages" },
+        "save": { "type": "object", "additionalProperties": { "type": "string" } },
         "effects": { "$ref": "#/$defs/StepEffectsOverride" }
       }
     }
