@@ -163,7 +163,7 @@ export function TerminalStep({ step }: Props) {
         <div className="p-4">
           <div
             ref={terminalRef}
-            className={`${themeStyles.bg} rounded-lg p-4 font-mono text-sm overflow-y-auto max-h-80`}
+            className={`${themeStyles.bg} rounded-lg p-4 font-mono text-sm overflow-auto max-h-80`}
           >
             {/* Window controls */}
             <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-700/50">

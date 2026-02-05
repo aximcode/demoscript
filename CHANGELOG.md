@@ -5,6 +5,17 @@ All notable changes to DemoScript will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-02-04
+
+### Added
+
+- **E2E Test API** (`/api/test/setup`, `/api/test/teardown`)
+  - Creates test users at any plan (free/pro/team) with populated first_name/last_name
+  - Auto-creates team and team_members for team plan users
+  - Gated behind `TEST_SECRET` env var (returns 404 when unset, 403 on wrong secret)
+  - Teardown deletes test users by email pattern (safety: must contain "test")
+  - Used by site-review project for automated user journey testing
+
 ## [0.2.0] - 2026-01-10
 
 ### Added

@@ -222,7 +222,7 @@ html:not(.dark) .light-glow-primary {
 
 /* Light mode prose */
 .prose pre {
-  @apply bg-gray-100 text-gray-800 border border-gray-200;
+  @apply bg-gray-100 text-gray-800 border border-gray-200 overflow-x-auto;
 }
 
 .prose code {
@@ -235,7 +235,7 @@ html:not(.dark) .light-glow-primary {
 
 /* Dark mode prose */
 .dark .prose pre {
-  @apply bg-slate-950 text-slate-100 border-slate-700/50;
+  @apply bg-slate-950 text-slate-100 border-slate-700/50 overflow-x-auto;
 }
 
 .dark .prose code {
